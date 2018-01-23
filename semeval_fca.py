@@ -22,29 +22,45 @@ def generate_file_names(args, mapping):
     return data_file, gold_file, vocab_file
 
 
-def retrieve_possible_hypernyms(J, query):
+def find_paths_to_object(J, query):
+    '''
+    All the occurrences of the query object is searched for within the concept tree J created with In-close.
+    Paths to the within-tree occurrence of the query string are returned as a list of nodes towards less specific nodes (eventually all of them ending in the root of the tree.
+
+    usage example:
+
+    J = json.load(open('1A_UMBC_tokenized.txt_100_cbow.vec.gz_True_1000_0.2_unit_True_vocabulary_filtered_reduced.cxt.json')
+    paths, nodes, depths = find_paths_to_object(J, 'tropical_storm')
+    '''
     to_visit = [J]
     own_nodes = []
-    depths = {J['Node']:0} # the node of the root is 0
-    parents = {J['Node']:-1} # the node of the root is 0
+    depths = {J['Node']:0}
+    parents = {J['Node']:-1} # the root has no parent
+    previous_nodes = {0: J}
     depths_to_return = []
     paths = []
+    visited_nodes = {}
     while len(to_visit) > 0:
-        visit_next = to_visit[0]
-        del to_visit[0]
+        visit_next = to_visit.pop(0)
         if 'children' in visit_next:
             for child in visit_next['children']:
                 depths[child['Node']] = depths[visit_next['Node']] + 1
                 parents[child['Node']] = visit_next['Node']
+                previous_nodes[child['Node']] = child
                 if query in child['own_objects']:
                     #print(child)
                     parent = parents[child['Node']]
                     path = []
+                    to_remove = set(child['own_objects'])
                     while parent != -1:
-                        path.append(parent)
+                        pn = previous_nodes[parent].copy()
+                        del pn['children'] # for better readibility
+                        del pn['ObjectCount']
+                        del pn['objects']
+                        path.append(pn)
                         parent = parents[parent]
                     paths.append(path)
-                    own_nodes.append(child)
+                    own_nodes.append(child['own_objects'])
                     depths_to_return.append(depths[child['Node']])
                 elif query in child['objects']:
                     to_visit.append(child)
@@ -65,7 +81,7 @@ def main():
     parser.add_argument('--query_word', required=False, default='tropical_storm')
     parser.add_argument('--input_embedding', default='sg', choices=['sg', 'cbow'])
     parser.add_argument('--regularizer', default=0.3, choices=[0.2, 0.3, 0.4, 0.5], type=float)
-    parser.add_argument('--fca_dir', default='/home/berend/datasets/semeval2018/SemEval18-Task9/FCA')
+    parser.add_argument('--fca_dir', default='/home/berend/datasets/semeval2018/task9_FCA_data')
     parser.add_argument('--dataset_dir', default='/home/berend/datasets/semeval2018/SemEval18-Task9')
     args = parser.parse_args()
 
@@ -79,9 +95,9 @@ def main():
     print(f)
     J = json.load(open(f))
 
-    parents, own_nodes, depths_to_return = retrieve_possible_hypernyms(J, args.query_word)
-    possible_hypernyms2 = Counter([o for p in own_nodes for o in p['own_objects']])
-    for x in possible_hypernyms2.most_common(6):
+    parents, own_nodes, depths_to_return = find_paths_to_object(J, args.query_word)
+    common_neighbors = Counter([o for p in own_nodes for o in p])
+    for x in common_neighbors.most_common(15):
         print(x)
 
     '''
