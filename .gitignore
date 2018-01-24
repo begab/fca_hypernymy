@@ -8,6 +8,8 @@ __pycache__/
 *.reduced2
 *.reduced
 
+.idea
+
 # C extensions
 *.so
 
