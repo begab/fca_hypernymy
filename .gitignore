@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+*.gpickle
+*.dot
+*.reduced2
 *.reduced
 
 # C extensions
