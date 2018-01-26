@@ -62,17 +62,21 @@ train_data_file, train_gold_file, vocab, freq_file = generate_file_names(dataset
 dev_data_file, dev_gold_file = train_data_file.replace('training', 'trial'), train_gold_file.replace('training', 'trial')
 test_data_file = train_data_file.replace('training', 'test')
 
-train_queries = [l.split('\t')[0].replace(' ', '_') for l in open(train_data_file)] # do we want to consider category as well?
+train_queries = [(l.split('\t')[0].replace(' ', '_'), l.split('\t')[1].strip()) for l in open(train_data_file)]
 train_golds = [
     [x.replace(' ', '_') for x in line.strip().split('\t')] for line in open(train_gold_file)
 ]
 
-dev_queries = [l.split('\t')[0].replace(' ', '_') for l in open(dev_data_file)]
+gold_counter = defaultdict(Counter)
+for tq, tgs in zip(train_queries, train_golds):
+    gold_counter[tq[1]].update(tgs)
+
+dev_queries = [(l.split('\t')[0].replace(' ', '_'), l.split('\t')[1].strip()) for l in open(dev_data_file)]
 dev_golds = [
     [x.replace(' ', '_') for x in line.strip().split('\t')] for line in open(dev_gold_file)
 ]
 
-test_queries = [l.split('\t')[0].replace(' ', '_') for l in open(test_data_file)]
+test_queries = [(l.split('\t')[0].replace(' ', '_'), l.split('\t')[1].strip()) for l in open(test_data_file)]
 freqs = {line.split('\t')[0].replace('_', ' '):int(line.split('\t')[1]) for line in open(freq_file)}
 
 def get_children_words(graph, node_id):
@@ -86,6 +90,13 @@ def get_own_words(graph, node_id):
     own_words -= to_remove
     return own_words
 
+### provide a baseline ###
+out_file = open('{}_basline.predictions'.format(dataset_id), 'w')
+for query_tuple, hypernyms in zip(train_queries, train_golds):
+    out_file.write('{}\n'.format('\t'.join([t[0] for t in gold_counter[query_tuple[1]].most_common(15)])))
+out_file.close()
+subprocess.call(['python2', 'official-scorer.py', '../SemEval18-Task9/training/gold/1A.english.training.gold.txt', '{}_basline.predictions'.format(dataset_id)])
+
 dag_reversed = dag.reverse()
 shortest_path_lengths = []
 hypernym_pairs_included = []
@@ -95,8 +106,9 @@ out_file = open('{}.predictions'.format(path_to_dag), 'w')
 alert_counter, missing_word_counter = 0, 0
 numbers_predicted = []
 numbers_chosen_from = []
-for query, hypernyms in zip(train_queries, train_golds):
+for query_tuple, hypernyms in zip(train_queries, train_golds):
     predicted_words = 0
+    query, query_type = query_tuple[0], query_tuple[1]
     if query in deepest_occurrence:
         query_location = deepest_occurrence[query][0]
         chance = False
@@ -157,6 +169,7 @@ for query, hypernyms in zip(train_queries, train_golds):
         missing_word_counter += 1
         #print("MISSING word #{}: {}".format(missing_word_counter, query))
         is_multiword = '_' in query
+        '''
         if is_multiword and 'University' in query:
             if dataset_id == '1A':
                 out_file.write('university')
@@ -166,6 +179,7 @@ for query, hypernyms in zip(train_queries, train_golds):
                 out_file.write('universidad')
         elif is_multiword and query[0].isupper():
             out_file.write('person{}'.format('a' if dataset_id in ['1B', '1C'] else ''))
+        '''
     numbers_predicted.append(predicted_words)
     out_file.write('\n')
 out_file.close()
@@ -173,4 +187,4 @@ out_file.close()
 c=Counter([spl for spl in shortest_path_lengths])
 total_nonzeros = sum(c.values())
 print([(x, '{:.2%}'.format(c[x]/total_nonzeros)) for x in sorted(c)], total_nonzeros, sum(chances), missing_word_counter, alert_counter, np.mean(numbers_chosen_from), np.mean(numbers_predicted))
-subprocess.call(['python2', 'task9-scorer.py', '../SemEval18-Task9/training/gold/1A.english.training.gold.txt', '{}.predictions'.format(path_to_dag)])
+subprocess.call(['python2', 'official-scorer.py', '../SemEval18-Task9/training/gold/1A.english.training.gold.txt', '{}.predictions'.format(path_to_dag)])
