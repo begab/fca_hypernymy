@@ -75,6 +75,17 @@ dev_golds = [
 test_queries = [l.split('\t')[0].replace(' ', '_') for l in open(test_data_file)]
 freqs = {line.split('\t')[0].replace('_', ' '):int(line.split('\t')[1]) for line in open(freq_file)}
 
+def get_children_words(graph, node_id):
+    return [words_at_nodes[int(n.replace('node', ''))] for n in graph['node{}'.format(node_id)].keys()]
+
+def get_own_words(graph, node_id):
+    own_words = words_at_nodes[node_id].copy()
+    to_remove = set()
+    for c in get_children_words(graph, node_id):
+        to_remove |= c
+    own_words -= to_remove
+    return own_words
+
 dag_reversed = dag.reverse()
 shortest_path_lengths = []
 hypernym_pairs_included = []
@@ -90,28 +101,35 @@ for query, hypernyms in zip(train_queries, train_golds):
         query_location = deepest_occurrence[query][0]
         chance = False
         all_words_of_query = words_at_nodes[query_location]
-        all_words_of_query_to_filter = all_words_of_query.copy()
-        children_words = [words_at_nodes[int(n.replace('node', ''))] for n in dag['node{}'.format(query_location)].keys()]
-        to_remove = set([query])
-        for c in children_words + [set([query])]:
-            to_remove |= c
-        all_words_of_query_to_filter -= to_remove
-        numbers_chosen_from.append(len(all_words_of_query_to_filter))
+        all_words_of_query_to_filter = get_own_words(dag, query_location)
+        all_words_of_query_to_filter.remove(query)
+        chosen_from = len(all_words_of_query_to_filter)
+
         if len(all_words_of_query_to_filter) == 0:
             alert_counter += 1
             #print('{}\t{}'.format(alert_counter, query))
-            out_file.write('\n')
-        accepted = 0
         for guess in all_words_of_query_to_filter:
-            accepted += 1
-            predicted_words += 1
-            out_file.write(guess.replace('_', ' '))
-            if accepted == 15 or accepted == len(all_words_of_query_to_filter):
-                out_file.write('\n')
-                break
+            if predicted_words < 15:
+                out_file.write(guess.replace('_', ' ') + '\t')
+                predicted_words += 1
+                predicted_words += 1
             else:
-                out_file.write('\t')
-        
+                break
+
+        parent_nodes = dag_reversed['node{}'.format(query_location)].keys()
+        potential_hypernyms = set()
+        for parent_node in parent_nodes:
+            potential_hypernyms |= get_own_words(dag, int(parent_node.replace('node', '')))
+
+        chosen_from += len(potential_hypernyms)
+        for guess in potential_hypernyms:
+            if predicted_words < 15:
+                predicted_words += 1
+                out_file.write(guess.replace('_', ' ') + '\t')
+            else:
+                break
+        numbers_chosen_from.append(chosen_from)
+
         for gold in hypernyms:
             if not gold in deepest_occurrence:
                 continue
@@ -141,18 +159,15 @@ for query, hypernyms in zip(train_queries, train_golds):
         is_multiword = '_' in query
         if is_multiword and 'University' in query:
             if dataset_id == '1A':
-                out_file.write('university\n')
+                out_file.write('university')
             elif dataset_id == '1B':
-                out_file.write('università\n')
+                out_file.write('università')
             elif dataset_id == '1C':
-                out_file.write('universidad\n')
-            else:
-                out_file.write('\n')
+                out_file.write('universidad')
         elif is_multiword and query[0].isupper():
-            out_file.write('person{}\n'.format('a' if dataset_id in ['1B', '1C'] else ''))
-        else:
-            out_file.write('\n')
+            out_file.write('person{}'.format('a' if dataset_id in ['1B', '1C'] else ''))
     numbers_predicted.append(predicted_words)
+    out_file.write('\n')
 out_file.close()
 
 c=Counter([spl for spl in shortest_path_lengths])
