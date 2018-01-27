@@ -114,24 +114,58 @@ def get_own_words(graph, node_id):
     own_words -= to_remove
     return own_words
 
-features = {'freq_ratios_log' : defaultdict(list),
+def update_dag_based_features(features, query_type, gold, own_query_words):
+    if gold in own_query_words:
+        features['dag_shortest_path'][query_type].append(0)
+        features['dag_avg_path_len'][query_type].append(0)
+        features['dag_number_of_paths'][query_type].append(1)
+    else:
+        gold_location = deepest_occurrence[gold][0] if gold_in_dag else 0
+        all_paths = list(nx.all_simple_paths(dag, 'node{}'.format(gold_location), 'node{}'.format(query_location)))
+        if len(all_paths) > 0:
+            features['dag_shortest_path'][query_type].append(min([len(p)-1 for p in all_paths]))
+            features['dag_avg_path_len'][query_type].append(np.mean([len(p)-1 for p in all_paths]))
+            features['dag_number_of_paths'][query_type].append(len(all_paths))
+        else:
+            all_paths = list(nx.all_simple_paths(dag, 'node{}'.format(query_location), 'node{}'.format(gold_location)))
+            if len(all_paths) == 0:
+                features['dag_shortest_path'][query_type].append(-100)
+                features['dag_avg_path_len'][query_type].append(-100)
+                features['dag_number_of_paths'][query_type].append(0)
+            else:
+                features['dag_shortest_path'][query_type].append(-min([len(p)-1 for p in all_paths]))
+                features['dag_avg_path_len'][query_type].append(-np.mean([len(p)-1 for p in all_paths]))
+                features['dag_number_of_paths'][query_type].append(len(all_paths))
+
+def generate_candidates(word):
+    w = embeddings[w2i[word]]
+    uw = unit_embeddings[w2i[word]]
+
+features = {
+            'difference_length' : defaultdict(list),
+            'right_above_in_dag' : defaultdict(list),
+            'right_below_in_dag' : defaultdict(list),
+            'same_dag_position' : defaultdict(list),
+            'has_textual_overlap' : defaultdict(list),
+            'freq_ratios_log' : defaultdict(list),
             'length_ratios' : defaultdict(list),
-            'attribute_jaccard' : defaultdict(list),
+            'attribute_differenceA' : defaultdict(list),
+            'attribute_differenceB' : defaultdict(list),
             'cosines' : defaultdict(list),
-            'dag_shortest_path' : defaultdict(list),
-            'dag_number_of_paths' : defaultdict(list),
-            'dag_avg_path_len' : defaultdict(list)}
-training_pairs = defaultdict(list)
+#            'dag_shortest_path' : defaultdict(list),
+#            'dag_number_of_paths' : defaultdict(list),
+#            'dag_avg_path_len' : defaultdict(list)
+}
+positive_training_pairs = defaultdict(list)
 
 missed_query, missed_hypernyms = 0, 0
 for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, train_golds):
-    if i % 25 == 0:
-        print(i, query_tuple)
     query, query_type = query_tuple[0], query_tuple[1]
     if query not in w2i:
         missed_query += 1
         missed_hypernyms += len(hypernyms)
         continue
+    query_tokens = set(query.lower().split('_'))
     query_in_dag = query in deepest_occurrence
     query_location = deepest_occurrence[query][0] if query_in_dag else 0
     if query_in_dag:
@@ -143,55 +177,40 @@ for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, t
             missed_hypernyms += 1
             continue
 
+        gold_tokens = set(gold.lower().split('_'))
+        features['has_textual_overlap'][query_type].append(1 if len(gold_tokens & query_tokens) > 0 else 0)
+
         gold_in_dag = gold in deepest_occurrence
-        if gold in own_query_words:
-            features['dag_shortest_path'][query_type].append(0)
-            features['dag_avg_path_len'][query_type].append(0)
-            features['dag_number_of_paths'][query_type].append(1)
-        else:
-            gold_location = deepest_occurrence[gold][0] if gold_in_dag else 0
-            all_paths = list(nx.all_simple_paths(dag, 'node{}'.format(gold_location), 'node{}'.format(query_location)))
-            if len(all_paths) > 0:
-                features['dag_shortest_path'][query_type].append(min([len(p)-1 for p in all_paths]))
-                features['dag_avg_path_len'][query_type].append(np.mean([len(p)-1 for p in all_paths]))
-                features['dag_number_of_paths'][query_type].append(len(all_paths))
-            else:
-                all_paths = list(nx.all_simple_paths(dag, 'node{}'.format(query_location), 'node{}'.format(gold_location)))
-                if len(all_paths) == 0:
-                    features['dag_shortest_path'][query_type].append(-100)
-                    features['dag_avg_path_len'][query_type].append(-100)
-                    features['dag_number_of_paths'][query_type].append(0)
-                else:
-                    features['dag_shortest_path'][query_type].append(-min([len(p)-1 for p in all_paths]))
-                    features['dag_avg_path_len'][query_type].append(-np.mean([len(p)-1 for p in all_paths]))
-                    features['dag_number_of_paths'][query_type].append(len(all_paths))
+        gold_location = deepest_occurrence[gold][0] if gold_in_dag else 0
+        #update_dag_based_features(features, query_type, gold, own_query_words)
+        features['same_dag_position'][query_type].append(1 if query_location == gold_location else 0)
+        features['right_below_in_dag'][query_type].append(1 if dag.has_edge('node{}'.format(query_location), 'node{}'.format(gold_location)) else 0)
+        features['right_above_in_dag'][query_type].append(1 if dag.has_edge('node{}'.format(gold_location), 'node{}'.format(query_location)) else 0)
 
         query_vec = embeddings[w2i[query]]
         query_attributes = set(words_to_attributes[query] if query_in_dag else [])
         gold_vec = embeddings[w2i[gold]]
         gold_attributes = set(words_to_attributes[gold] if gold_in_dag else [])
-        training_pairs[query_type].append((query, gold))
+        positive_training_pairs[query_type].append((query, gold))
+        features['difference_length'][query_type].append(np.linalg.norm(query_vec - gold_vec))
         features['length_ratios'][query_type].append(np.linalg.norm(query_vec) / np.linalg.norm(gold_vec))
         features['cosines'][query_type].append(unit_embeddings[w2i[query]] @ unit_embeddings[w2i[gold]])
         attribute_intersection_size = len(query_attributes & gold_attributes)
         attribute_union_size = len(query_attributes | gold_attributes)
-        features['attribute_jaccard'][query_type].append(-1 if attribute_union_size == 0 else attribute_intersection_size / attribute_union_size)
+        features['attribute_differenceA'][query_type].append(len(query_attributes - gold_attributes))
+        features['attribute_differenceB'][query_type].append(len(gold_attributes - query_attributes))
         if query in word_frequencies and gold in word_frequencies:
             features['freq_ratios_log'][query_type].append(np.log10(word_frequencies[query] / word_frequencies[gold]))
         else:
             print(query, gold, query in word_frequencies, query in word_frequencies and gold in word_frequencies)
 
 
-for f in features.keys():
-    for category in ['Concept', 'Entity']: 
-        sns.distplot(features[f][category])
-    plt.savefig('{}.png'.format(f))
-    plt.close()
-    if -100 in features[f]['Concept']: # -100 denotes missing values
-        for category in ['Concept', 'Entity']:
-            sns.distplot([x for x in features[f][category] if x != -100])
-        plt.savefig('{}_wo_missing.png'.format(f))
-        plt.close()
+for f in sorted(features.keys()):
+    print(f)
+    for category in ['Concept', 'Entity']:
+        plt.hist(features[f][category])
+    plt.legend(['Concept', 'Entity'])
+    plt.show()
 
 
 ### provide a baseline ###
