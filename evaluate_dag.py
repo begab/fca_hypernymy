@@ -6,8 +6,12 @@ import networkx as nx
 import pygraphviz
 from collections import Counter, defaultdict
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_validate
+from sklearn import svm
+
 if len(sys.argv) == 1:
-    path_to_dag = 'dots/1A_UMBC_tokenized.txt_100_sg.vec.gz_True_200_0.3_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
+    path_to_dag = 'dots/1A_UMBC_tokenized.txt_100_sg.vec.gz_True_200_0.4_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
     print('WARNING: No dot input file provided, thus defaulting to the usage of {}'.format(path_to_dag))
 else:
     path_to_dag = sys.argv[1]
@@ -137,12 +141,9 @@ def update_dag_based_features(features, query_type, gold, own_query_words):
                 features['dag_avg_path_len'][query_type].append(-np.mean([len(p)-1 for p in all_paths]))
                 features['dag_number_of_paths'][query_type].append(len(all_paths))
 
-def generate_candidates(word):
-    w = embeddings[w2i[word]]
-    uw = unit_embeddings[w2i[word]]
-
 features = {
             'difference_length' : defaultdict(list),
+            'is_frequent_hypernym' : defaultdict(list),
             'right_above_in_dag' : defaultdict(list),
             'right_below_in_dag' : defaultdict(list),
             'same_dag_position' : defaultdict(list),
@@ -152,14 +153,20 @@ features = {
             'attribute_differenceA' : defaultdict(list),
             'attribute_differenceB' : defaultdict(list),
             'cosines' : defaultdict(list),
+            'class_label' : defaultdict(list),
 #            'dag_shortest_path' : defaultdict(list),
 #            'dag_number_of_paths' : defaultdict(list),
 #            'dag_avg_path_len' : defaultdict(list)
 }
-positive_training_pairs = defaultdict(list)
+training_pairs = defaultdict(list)
 
+categories = ['Concept', 'Entity']
+frequent_hypernyms = {category: set([h for h,f in gold_counter[category].most_common(100)]) for category in categories}
+np.random.seed(400)
 missed_query, missed_hypernyms = 0, 0
 for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, train_golds):
+    if i % 100 == 0:
+        print('{} training cases covered.'.format(i))
     query, query_type = query_tuple[0], query_tuple[1]
     if query not in w2i:
         missed_query += 1
@@ -172,45 +179,72 @@ for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, t
         own_query_words = get_own_words(dag, query_location)
     else: # if the query is not in the dag, it means that it had no nonzero coefficient in its representation
         own_query_words = set(w2i.keys()) - deepest_occurrence.keys()
-    for gold in hypernyms:
-        if gold not in w2i:
+
+    negative_samples = np.random.choice([h for h in gold_counter[query_type] if h not in hypernyms], size=50, replace=False)
+    for gold_candidate in set(hypernyms) | set(negative_samples):
+        if gold_candidate not in w2i:
             missed_hypernyms += 1
             continue
 
-        gold_tokens = set(gold.lower().split('_'))
-        features['has_textual_overlap'][query_type].append(1 if len(gold_tokens & query_tokens) > 0 else 0)
+        features['class_label'][query_type].append(gold_candidate in hypernyms)
+        features['is_frequent_hypernym'][query_type].append(1 if gold_candidate in frequent_hypernyms[query_type] else 0)
+        gold_candidate_tokens = set(gold_candidate.lower().split('_'))
+        features['has_textual_overlap'][query_type].append(1 if len(gold_candidate_tokens & query_tokens) > 0 else 0)
 
-        gold_in_dag = gold in deepest_occurrence
-        gold_location = deepest_occurrence[gold][0] if gold_in_dag else 0
+        gold_candidate_in_dag = gold_candidate in deepest_occurrence
+        gold_candidate_location = deepest_occurrence[gold_candidate][0] if gold_candidate_in_dag else 0
         #update_dag_based_features(features, query_type, gold, own_query_words)
-        features['same_dag_position'][query_type].append(1 if query_location == gold_location else 0)
-        features['right_below_in_dag'][query_type].append(1 if dag.has_edge('node{}'.format(query_location), 'node{}'.format(gold_location)) else 0)
-        features['right_above_in_dag'][query_type].append(1 if dag.has_edge('node{}'.format(gold_location), 'node{}'.format(query_location)) else 0)
+        features['same_dag_position'][query_type].append(1 if query_location == gold_candidate_location else 0)
+        features['right_below_in_dag'][query_type].append(1 if dag.has_edge('node{}'.format(query_location), 'node{}'.format(gold_candidate_location)) else 0)
+        features['right_above_in_dag'][query_type].append(1 if dag.has_edge('node{}'.format(gold_candidate_location), 'node{}'.format(query_location)) else 0)
 
         query_vec = embeddings[w2i[query]]
         query_attributes = set(words_to_attributes[query] if query_in_dag else [])
-        gold_vec = embeddings[w2i[gold]]
-        gold_attributes = set(words_to_attributes[gold] if gold_in_dag else [])
-        positive_training_pairs[query_type].append((query, gold))
-        features['difference_length'][query_type].append(np.linalg.norm(query_vec - gold_vec))
-        features['length_ratios'][query_type].append(np.linalg.norm(query_vec) / np.linalg.norm(gold_vec))
-        features['cosines'][query_type].append(unit_embeddings[w2i[query]] @ unit_embeddings[w2i[gold]])
-        attribute_intersection_size = len(query_attributes & gold_attributes)
-        attribute_union_size = len(query_attributes | gold_attributes)
-        features['attribute_differenceA'][query_type].append(len(query_attributes - gold_attributes))
-        features['attribute_differenceB'][query_type].append(len(gold_attributes - query_attributes))
-        if query in word_frequencies and gold in word_frequencies:
-            features['freq_ratios_log'][query_type].append(np.log10(word_frequencies[query] / word_frequencies[gold]))
+        gold_candidate_vec = embeddings[w2i[gold_candidate]]
+        gold_candidate_attributes = set(words_to_attributes[gold_candidate] if gold_candidate_in_dag else [])
+        training_pairs[query_type].append((query, gold_candidate))
+        features['difference_length'][query_type].append(np.linalg.norm(query_vec - gold_candidate_vec))
+        features['length_ratios'][query_type].append(np.linalg.norm(query_vec) / np.linalg.norm(gold_candidate_vec))
+        features['cosines'][query_type].append(unit_embeddings[w2i[query]] @ unit_embeddings[w2i[gold_candidate]])
+        attribute_intersection_size = len(query_attributes & gold_candidate_attributes)
+        attribute_union_size = len(query_attributes | gold_candidate_attributes)
+        features['attribute_differenceA'][query_type].append(len(query_attributes - gold_candidate_attributes))
+        features['attribute_differenceB'][query_type].append(len(gold_candidate_attributes - query_attributes))
+        if query in word_frequencies and gold_candidate in word_frequencies:
+            features['freq_ratios_log'][query_type].append(np.log10(word_frequencies[query] / word_frequencies[gold_candidate]))
         else:
-            print(query, gold, query in word_frequencies, query in word_frequencies and gold in word_frequencies)
+            print(query, gold_candidate, query in word_frequencies, query in word_frequencies and gold_candidate in word_frequencies)
 
 
 for f in sorted(features.keys()):
     print(f)
-    for category in ['Concept', 'Entity']:
-        plt.hist(features[f][category])
-    plt.legend(['Concept', 'Entity'])
+    for category in categories:
+        plt.hist([v for c, v in zip(features['class_label'][category], features[f][category]) if c==True])
+    plt.legend(categories)
     plt.show()
+
+for category in categories:
+    for f in features.keys():
+        plt.hist([v for c, v in zip(features['class_label'][category], features[f][category]) if c==False])
+        plt.hist([v for c, v in zip(features['class_label'][category], features[f][category]) if c==True])
+        plt.legend(['False', 'True'])
+        plt.savefig('{}_{}.png'.format(f, category))
+        plt.close()
+
+X = {c: [] for c in categories}
+y = {}
+for category in categories:
+    for feature in sorted(features):
+        if feature == 'class_label':
+            y[category] = features[feature][category]
+        else:
+            X[category].append(features[feature][category])
+
+
+for learner in [LogisticRegression(), svm.SVC(kernel='linear', C=1, random_state=0)]:
+    for category in categories:
+        scores = cross_validate(learner, np.array(X[category]).T, y[category], cv=3, return_train_score=False)
+        print(scores)
 
 
 ### provide a baseline ###
