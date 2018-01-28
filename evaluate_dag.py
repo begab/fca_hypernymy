@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s")
 import sys
 import pickle
 import subprocess
@@ -17,7 +19,7 @@ from sklearn import svm
 
 if len(sys.argv) == 1:
     path_to_dag = 'dots/1A_UMBC_tokenized.txt_100_sg.vec.gz_True_200_0.4_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
-    print('WARNING: No dot input file provided, thus defaulting to the usage of {}'.format(path_to_dag))
+    logging.warning('No dot input file provided, thus defaulting to the usage of {}'.format(path_to_dag))
 else:
     path_to_dag = sys.argv[1]
 
@@ -169,6 +171,9 @@ features = {
 #            'dag_number_of_paths' : defaultdict(list),
 #            'dag_avg_path_len' : defaultdict(list)
 }
+for name in ['first', 'last']:
+    features['cand_is_{}_w'.format(name)] = defaultdict(list)
+    features['same_{}_w'.format(name)] = defaultdict(list)
 training_pairs = defaultdict(list)
 
 categories = ['Concept', 'Entity']
@@ -178,13 +183,14 @@ np.random.seed(400)
 missed_query, missed_hypernyms = 0, 0
 for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, train_golds):
     #if i % 100 == 0:
-    #    print('{} training cases covered.'.format(i))
+    #    logging.info('{} training cases covered.'.format(i))
     query, query_type = query_tuple[0], query_tuple[1]
     if query not in w2i:
         missed_query += 1
         missed_hypernyms += len(hypernyms)
         continue
     query_tokens = set(query.lower().split('_'))
+    query_tokens_l = query.lower().split('_')
     query_in_dag = query in deepest_occurrence
     query_location = deepest_occurrence[query][0] if query_in_dag else 0
     if query_in_dag:
@@ -196,7 +202,7 @@ for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, t
     if len(gold_counter[query_type].keys()-hypernyms) > 0: # check if we can generate any negative samples
         negative_samples = np.random.choice([h for h in gold_counter[query_type] if h not in hypernyms and h in word_frequencies], size=25, replace=False)
     else:
-        print('WARNING: No negative samples are generated for word {}'.format(query))
+        logging.warning('No negative samples are generated for word {}'.format(query))
 
     for gold_candidate in set(hypernyms) | set(negative_samples):
         if gold_candidate not in w2i:
@@ -206,7 +212,13 @@ for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, t
         features['class_label'][query_type].append(gold_candidate in hypernyms)
         features['is_frequent_hypernym'][query_type].append(1 if gold_candidate in frequent_hypernyms[query_type] else 0)
         gold_candidate_tokens = set(gold_candidate.lower().split('_'))
+        gold_candidate_tokens_l = gold_candidate.lower().split('_')
         features['has_textual_overlap'][query_type].append(1 if len(gold_candidate_tokens & query_tokens) > 0 else 0)
+        for name, ind in [('first', 0), ('last', -1)]:
+            features['cand_is_{}_w'.format(name)][query_type].append(int(
+                query_tokens_l[ind] == gold_candidate))
+            features['same_{}_w'.format(name)][query_type].append(int(
+                query_tokens_l[ind] == gold_candidate_tokens_l[ind]))
 
         gold_candidate_in_dag = gold_candidate in deepest_occurrence
         gold_candidate_location = deepest_occurrence[gold_candidate][0] if gold_candidate_in_dag else 0
@@ -233,11 +245,11 @@ for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, t
             features['freq_ratios_log'][query_type].append(np.log10(word_frequencies[query] / word_frequencies[gold_candidate]))
         else:
             features['freq_ratios_log'][query_type].append(0)
-            #print(query, gold_candidate, query in word_frequencies, query in word_frequencies and gold_candidate in word_frequencies)
+            #logging.info(query, gold_candidate, query in word_frequencies, query in word_frequencies and gold_candidate in word_frequencies)
 
 '''
 for f in sorted(features.keys()):
-    print(f)
+    logging.info(f)
     for category in categories:
         plt.hist([v for c, v in zip(features['class_label'][category], features[f][category]) if c==True])
     plt.legend(categories)
@@ -272,31 +284,36 @@ models = {c: make_pipeline(LogisticRegression()) for c in categories}
 #models = {c: make_pipeline(StandardScaler(), PolynomialFeatures(2), LogisticRegression()) for c in categories}
 #svm.SVC(kernel='linear', C=1, random_state=0)
 for category in categories:
-    print(category)
+    logging.info(category)
     X = np.array(X_per_category[category]).T
     if X.shape[0] == 0:
         models[category] = joint_model
-        print('Warning: joint model has to be used for {}\t{}'.format(category, list(zip(feature_names_used, joint_model.coef_[0]))))
+        logging.info('Warning: joint model has to be used for {}\t{}'.format(category, list(zip(feature_names_used, joint_model.coef_[0]))))
     else:
         #X = poly.fit_transform(X)
         models[category].fit(X, y_per_category[category])
-        print(category, list(zip(feature_names_used, models[category].steps[0][1].coef_[0])))
+        logging.info((
+            category, 
+            sorted(list(zip(feature_names_used,
+                            models[category].steps[0][1].coef_[0])),
+                   key=lambda p: abs(p[1]), reverse=True)))
 
 true_class_index = [i for i,c in enumerate(models[query_type].classes_) if c][0]
 pred_file = open('{}.predictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
 joint_pred_file = open('{}.jointpredictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
 for i, query_tuple, hypernyms in zip(range(len(dev_queries)), dev_queries, dev_golds):
-    #print(query_tuple, hypernyms)
+    #logging.info(query_tuple, hypernyms)
     query, query_type = query_tuple[0], query_tuple[1]
     if query not in w2i:
         for x in gold_counter[query_type].most_common(15):
             pred_file.write(x[0].replace('_', ' ') + '\t')
             joint_pred_file.write(x[0].replace('_', ' ') + '\t')
-            #print('\t'+x[0].replace('_', ' '))
+            #logging.info('\t'+x[0].replace('_', ' '))
         pred_file.write('\n')
         joint_pred_file.write('\n')
         continue
     query_tokens = set(query.lower().split('_'))
+    query_tokens_l = query.lower().split('_')
     query_in_dag = query in deepest_occurrence
     query_location = deepest_occurrence[query][0] if query_in_dag else 0
     if query_in_dag:
@@ -314,7 +331,13 @@ for i, query_tuple, hypernyms in zip(range(len(dev_queries)), dev_queries, dev_g
         feature_vector = {}
         feature_vector['is_frequent_hypernym'] = 1 if gold_candidate in frequent_hypernyms[query_type] else 0
         gold_candidate_tokens = set(gold_candidate.lower().split('_'))
+        gold_candidate_tokens_l = gold_candidate.lower().split('_')
         feature_vector['has_textual_overlap'] = 1 if len(gold_candidate_tokens & query_tokens) > 0 else 0
+        for name, ind in [('first', 0), ('last', -1)]:
+            feature_vector['cand_is_{}_w'.format(name)] = int(
+                query_tokens_l[ind] == gold_candidate)
+            feature_vector['same_{}_w'.format(name)] = int(
+                query_tokens_l[ind] == gold_candidate_tokens_l[ind])
 
         gold_candidate_in_dag = gold_candidate in deepest_occurrence
         gold_candidate_location = deepest_occurrence[gold_candidate][0] if gold_candidate_in_dag else 0
@@ -340,13 +363,19 @@ for i, query_tuple, hypernyms in zip(range(len(dev_queries)), dev_queries, dev_g
         if query in word_frequencies and gold_candidate in word_frequencies:
             feature_vector['freq_ratios_log'] = np.log10(word_frequencies[query] / word_frequencies[gold_candidate])
         else:
-            print(query, gold_candidate, query in word_frequencies, query in word_frequencies and gold_candidate in word_frequencies)
-        possible_hypernym_feature_vecs.append(np.array([feature_vector[f] for f in feature_names_used]))
+            logging.info((
+                query, gold_candidate, query in word_frequencies, 
+                query in word_frequencies and gold_candidate in word_frequencies))
+        try:
+            possible_hypernym_feature_vecs.append(np.array([feature_vector[f] for f in feature_names_used]))
+        except:
+            logging.info(feature_vector.keys())
+            break
     features_to_rank = np.array(possible_hypernym_feature_vecs)
     possible_hypernym_scores = models[query_type].predict_proba(features_to_rank)
     for prediction_index in np.argsort(possible_hypernym_scores[:, true_class_index])[-15:]:
         pred_file.write(possible_hypernyms[prediction_index].replace('_', ' ') + '\t')
-        #print('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
+        #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
     possible_hypernym_scores = joint_model.predict_proba(features_to_rank)
     for prediction_index in np.argsort(possible_hypernym_scores[:, true_class_index])[-15:]:
         joint_pred_file.write(possible_hypernyms[prediction_index].replace('_', ' ') + '\t')
@@ -365,7 +394,7 @@ solution_file = os.path.join(
     dataset_dir, 'trial/gold',
     '{}.{}.trial.gold.txt'.format(dataset_id, dataset_mapping[dataset_id][0]))
 subprocess.call(['python2', 'official-scorer.py', solution_file, pred_file.name])
-print("=============")
+logging.info("=============")
 subprocess.call(['python2', 'official-scorer.py', solution_file, joint_pred_file.name])
-print(":::::::::::::")
+logging.info(":::::::::::::")
 subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
