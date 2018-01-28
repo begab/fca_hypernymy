@@ -12,6 +12,7 @@ __pycache__/
 *.reduced
 *.emb
 dense_embeddings/
+predictions/
 .idea
 
 # C extensions
