@@ -3,8 +3,9 @@ import pickle
 import subprocess
 import numpy as np
 import networkx as nx
+import os
 import pygraphviz
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from collections import Counter, defaultdict
 
 from sklearn.preprocessing import StandardScaler
@@ -20,7 +21,8 @@ if len(sys.argv) == 1:
 else:
     path_to_dag = sys.argv[1]
 
-dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
+#dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
+dataset_dir = '/mnt/permanent/Language/English/Data/SemEval/2018/Hypernym/SemEval2018_task9_test'
 dataset_id = path_to_dag.replace('dots/', '')[0:2]
 is_sg = '_sg' in path_to_dag
 
@@ -220,7 +222,8 @@ for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, t
         training_pairs[query_type].append((query, gold_candidate))
         features['difference_length'][query_type].append(np.linalg.norm(query_vec - gold_candidate_vec))
         features['length_ratios'][query_type].append(np.linalg.norm(query_vec) / np.linalg.norm(gold_candidate_vec))
-        features['cosines'][query_type].append(unit_embeddings[w2i[query]] @ unit_embeddings[w2i[gold_candidate]])
+        features['cosines'][query_type].append(
+            np.matmul(unit_embeddings[w2i[query]], unit_embeddings[w2i[gold_candidate]]))
         attribute_intersection_size = len(query_attributes & gold_candidate_attributes)
         attribute_union_size = len(query_attributes | gold_candidate_attributes)
         features['attribute_differenceA'][query_type].append(len(query_attributes - gold_candidate_attributes))
@@ -327,7 +330,8 @@ for i, query_tuple, hypernyms in zip(range(len(dev_queries)), dev_queries, dev_g
         training_pairs[query_type].append((query, gold_candidate))
         feature_vector['difference_length'] = np.linalg.norm(query_vec - gold_candidate_vec)
         feature_vector['length_ratios'] = np.linalg.norm(query_vec) / np.linalg.norm(gold_candidate_vec)
-        feature_vector['cosines'] = unit_embeddings[w2i[query]] @ unit_embeddings[w2i[gold_candidate]]
+        feature_vector['cosines'] = np.matmul(
+            unit_embeddings[w2i[query]], unit_embeddings[w2i[gold_candidate]])
         attribute_intersection_size = len(query_attributes & gold_candidate_attributes)
         attribute_union_size = len(query_attributes | gold_candidate_attributes)
         feature_vector['attribute_differenceA'] = len(query_attributes - gold_candidate_attributes)
@@ -357,7 +361,9 @@ for query_tuple, hypernyms in zip(dev_queries, dev_golds):
     out_file.write('{}\n'.format('\t'.join([t[0] for t in gold_counter[query_tuple[1]].most_common(15)])))
 out_file.close()
 
-solution_file = '../SemEval18-Task9/trial/gold/{}.{}.trial.gold.txt'.format(dataset_id, dataset_mapping[dataset_id][0])
+solution_file = os.path.join(
+    dataset_dir, 'trial/gold',
+    '{}.{}.trial.gold.txt'.format(dataset_id, dataset_mapping[dataset_id][0]))
 subprocess.call(['python2', 'official-scorer.py', solution_file, pred_file.name])
 print("=============")
 subprocess.call(['python2', 'official-scorer.py', solution_file, joint_pred_file.name])
