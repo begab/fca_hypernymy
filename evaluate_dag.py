@@ -29,6 +29,7 @@ if len(sys.argv) > 2:
 if len(sys.argv) > 3:
     path_to_dag = sys.argv[3]
 
+input_hyperparams = '_'.join([str(path_to_dag.split('_')[i]) for i in [4, 6, 7, 8]])
 logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}'.format(regularization, include_sparse_feats,path_to_dag))
 
 dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
@@ -313,7 +314,7 @@ for category in categories:
         models[category] = backup_model
 
 true_class_index = {query_type:[i for i,c in enumerate(models[query_type].classes_) if c][0] for query_type in categories}
-pred_file = open('{}_{}_{}.predictions'.format(path_to_dag.replace('dots', 'predictions'), regularization, include_sparse_feats), 'w')
+pred_file = open('{}_{}_{}_{}.predictions'.format(path_to_dag.replace('dots', 'predictions'), regularization, include_sparse_feats, input_hyperparams), 'w')
 
 
 for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
@@ -372,7 +373,7 @@ subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
 logging.info('')
 
 
-pred_file = open('{}.{}_{}_{}.output.txt'.format(dataset_id, dataset_mapping[dataset_id], regularization, include_sparse_feats), 'w')
+pred_file = open('{}.{}_{}_{}_{}.output.txt'.format(dataset_id, dataset_mapping[dataset_id], regularization, include_sparse_feats, input_hyperparams), 'w')
 for i, query_tuple in zip(range(len(test_queries)), test_queries):
     if i % 50 == 0:
         logging.debug('{} test predictions made'.format(i))
