@@ -372,7 +372,7 @@ subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
 logging.info('')
 
 
-pred_file = open('{}.english.predictions'.format(dataset_id), 'w')
+pred_file = open('{}.{}_{}_{}.output.txt'.format(dataset_id, dataset_mapping[dataset_id], regularization, include_sparse_feats), 'w')
 for i, query_tuple in zip(range(len(test_queries)), test_queries):
     if i % 50 == 0:
         logging.debug('{} test predictions made'.format(i))
