@@ -19,11 +19,17 @@ from sklearn.model_selection import cross_validate
 from sklearn.pipeline import make_pipeline
 from sklearn import svm
 
-if len(sys.argv) == 1:
-    path_to_dag = 'dots/1A_UMBC_tokenized.txt_100_sg.vec.gz_True_200_0.4_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
-    logging.warning('No dot input file provided, thus defaulting to the usage of {}'.format(path_to_dag))
-else:
-    path_to_dag = sys.argv[1]
+regularization = 1.0
+include_sparse_feats = False
+path_to_dag = 'dots/1A_UMBC_tokenized.txt_100_sg.vec.gz_True_200_0.4_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
+if len(sys.argv) > 1:
+    regularization = float(sys.argv[1])
+if len(sys.argv) > 2:
+    include_sparse_feats = sys.argv[2].lower() == 'true'
+if len(sys.argv) > 3:
+    path_to_dag = sys.argv[3]
+
+logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}'.format(regularization, include_sparse_feats,path_to_dag))
 
 dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
 #dataset_dir = '/mnt/permanent/Language/English/Data/SemEval/2018/Hypernym/SemEval2018_task9_test'
@@ -274,8 +280,7 @@ for category in categories:
             X_per_category[category].append(features[feature][category])
 
 backup_model = None
-include_sparse_feats = False
-models = {c: make_pipeline(LogisticRegression(C=2.0)) for c in categories}
+models = {c: make_pipeline(LogisticRegression(C=regularization)) for c in categories}
 for category in categories:
     logging.info(category)
 
