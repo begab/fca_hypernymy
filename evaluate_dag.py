@@ -1,5 +1,5 @@
 import logging
-logging.basicConfig(level=logging.ERROR, format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s")
 import sys
 import pickle
 import subprocess
@@ -335,8 +335,7 @@ for category in categories:
     logging.info(category)
     for mx in [np.array(X_per_category[category]).T,
                sparse_block_per_category[category]]:
-        logging.debug(mx.shape)
-    X = hstack([#csr_matrix(
+        X = hstack([#csr_matrix(
         np.array(X_per_category[category]).T, 
         sparse_block_per_category[category]])
     if X.shape[0] == 0:
@@ -361,9 +360,9 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
         for x in gold_counter[query_type].most_common(15):
             pred_file.write(x[0].replace('_', ' ') + '\t')
             pred_file2.write(x[0].replace('_', ' ') + '\t')
-            joint_pred_file.write(x[0].replace('_', ' ') + '\t')
+            #joint_pred_file.write(x[0].replace('_', ' ') + '\t')
         pred_file.write('\n')
-        joint_pred_file.write('\n')
+        #joint_pred_file.write('\n')
         continue
 
     possible_hypernyms = []
@@ -386,6 +385,7 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
         possible_hypernyms.append((gold_candidate, possible_hypernym_score))
 
     sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
+    sorted_hypernyms = sorted(sorted_hypernyms, key=lambda p:word_frequencies[p[0]], reverse=True)
     for prediction in sorted_hypernyms:
         pred_file.write(prediction[0].replace('_', ' ') + '\t')
         #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
@@ -409,7 +409,7 @@ solution_file = os.path.join(
     '{}.{}.trial.gold.txt'.format(dataset_id, dataset_mapping[dataset_id][0]))
 subprocess.call(['python2', 'official-scorer.py', solution_file, pred_file.name])
 logging.info("=============")
-subprocess.call(['python2', 'official-scorer.py', solution_file, joint_pred_file.name])
+#subprocess.call(['python2', 'official-scorer.py', solution_file, joint_pred_file.name])
 logging.info(":::::::::::::")
 subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
 
