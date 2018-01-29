@@ -363,7 +363,7 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
             pred_file2.write(x[0].replace('_', ' ') + '\t')
             #joint_pred_file.write(x[0].replace('_', ' ') + '\t')
         pred_file.write('\n')
-        joint_pred_file.write('\n')
+        #joint_pred_file.write('\n')
         continue
 
     possible_hypernyms = []
