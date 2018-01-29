@@ -1,5 +1,5 @@
 import logging
-logging.basicConfig(level=logging.ERROR, format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s")
 import sys
 import pickle
 import subprocess
@@ -361,7 +361,7 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
         for x in gold_counter[query_type].most_common(15):
             pred_file.write(x[0].replace('_', ' ') + '\t')
             pred_file2.write(x[0].replace('_', ' ') + '\t')
-            joint_pred_file.write(x[0].replace('_', ' ') + '\t')
+            #joint_pred_file.write(x[0].replace('_', ' ') + '\t')
         pred_file.write('\n')
         joint_pred_file.write('\n')
         continue
