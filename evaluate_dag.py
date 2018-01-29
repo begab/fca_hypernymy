@@ -274,9 +274,8 @@ for category in categories:
             X_per_category[category].append(features[feature][category])
 
 backup_model = None
-models = {c: make_pipeline(LogisticRegression(C=1.0)) for c in categories}
-#models = {c: make_pipeline(StandardScaler(), PolynomialFeatures(2), LogisticRegression()) for c in categories}
-#svm.SVC(kernel='linear', C=1, random_state=0)
+include_sparse_feats = False
+models = {c: make_pipeline(LogisticRegression(C=2.0)) for c in categories}
 for category in categories:
     logging.info(category)
 
@@ -287,7 +286,11 @@ for category in categories:
         sparse_ptrs.append(len(sparse_indices))
     sparse_features = csr_matrix((sparse_data, sparse_indices, sparse_ptrs), shape=(len(sparse_ptrs)-1, sparse_dimensions**2))
 
-    X = hstack([np.array(X_per_category[category]).T, sparse_features])
+    if include_sparse_feats:
+        X = hstack([np.array(X_per_category[category]).T, sparse_features])
+    else:
+        X = np.array(X_per_category[category]).T
+
     if X.shape[0] == 0:
         models[category] = None
         logging.info('Warning: joint model has to be used for {}\t{}'.format(category, list(zip(feature_names_used, joint_model.coef_[0]))))
@@ -322,21 +325,26 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
     for gold_candidate in possible_candidates:
         if gold_candidate not in w2i:
             continue
-        sparse_data, sparse_indices = [], []
+        sparse_data, sparse_indices = [], [] 
+        # sparse_... lists contain data for the whole mx, not just for attr pairs
         feature_vector = calculate_features(query, gold_candidate)
         for feature_index, feature_name in enumerate(feature_names_used):
             sparse_data.append(feature_vector[feature_name])
             sparse_indices.append(feature_index)
 
-        for basis_pair in feature_vector['basis_combinations']:
-            sparse_data.append(1)
-            sparse_indices.append(basis_pair[0] * sparse_dimensions + basis_pair[1])
-        features_to_rank = csr_matrix((sparse_data, sparse_indices, [0, len(sparse_data)]), shape=(1, sparse_dimensions**2+len(feature_names_used)))
+        if include_sparse_feats:
+            for basis_pair in feature_vector['basis_combinations']:
+                sparse_data.append(1)
+                sparse_indices.append(len(feature_names_used) + basis_pair[0] * sparse_dimensions + basis_pair[1])
+        num_of_features = len(feature_names_used)
+        num_of_features += sparse_dimensions**2 if include_sparse_feats else 0
+        features_to_rank = csr_matrix((sparse_data, sparse_indices, [0, len(sparse_data)]), shape=(1, num_of_features))
         possible_hypernym_score = models[query_type].predict_proba(features_to_rank)[0,true_class_index[query_type]]
         possible_hypernyms.append((gold_candidate, possible_hypernym_score))
 
     sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
-    sorted_hypernyms = sorted(sorted_hypernyms, key=lambda p:word_frequencies[p[0]], reverse=True)
+    sorted_hypernyms = sorted(sorted_hypernyms, 
+                              key=lambda p:word_frequencies[p[0]], reverse=True)
     for prediction in sorted_hypernyms:
         pred_file.write(prediction[0].replace('_', ' ') + '\t')
         #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
@@ -356,3 +364,4 @@ solution_file = os.path.join(
 subprocess.call(['python2', 'official-scorer.py', solution_file, pred_file.name])
 logging.info(":::::::::::::")
 subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
+logging.info('')
