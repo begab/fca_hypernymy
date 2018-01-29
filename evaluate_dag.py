@@ -33,10 +33,11 @@ path_basename = ntpath.basename(path_to_dag)
 input_hyperparams = '_'.join([str(path_basename.split('_')[i]) for i in [4, 6, 7, 8]])
 logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}'.format(regularization, include_sparse_feats,path_to_dag))
 
-dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
+
+
 #dataset_dir = '/mnt/permanent/Language/English/Data/SemEval/2018/Hypernym/SemEval2018_task9_test'
-sparse_dimensions = int(path_basename.split('_')[6])
 dataset_id = path_basename[0:2]
+sparse_dimensions = int(path_basename.split('_')[7])
 is_sg = '_sg' in path_basename
 
 dataset_mapping = {
