@@ -387,7 +387,7 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
 
     sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
     for prediction in sorted_hypernyms:
-        pred_file.write(prediction.replace('_', ' ') + '\t')
+        pred_file.write(prediction[0].replace('_', ' ') + '\t')
         #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
     #possible_hypernym_scores = joint_model.predict_proba(features_to_rank)
     #for prediction_index in np.argsort(possible_hypernym_scores[:, true_class_index])[-15:]:
