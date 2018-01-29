@@ -9,7 +9,7 @@ import os
 import pygraphviz
 #import matplotlib.pyplot as plt
 from collections import Counter, defaultdict
-from scipy.sparse import csr_matrix 
+from scipy.sparse import csr_matrix
 from scipy.sparse import hstack, vstack
 
 from sklearn.preprocessing import StandardScaler
@@ -278,7 +278,7 @@ for category in categories:
 '''
 
 def get_att_pair_mx(ffcategory):
-    sparse_col_per_category = defaultdict(list) 
+    sparse_col_per_category = defaultdict(list)
     sparse_row_per_category = defaultdict(list)
     sparse_data_per_category = {}
     for qi, att_pairs_in_query in enumerate(ffcategory):
@@ -287,7 +287,7 @@ def get_att_pair_mx(ffcategory):
             sparse_col_per_category[category].append(
                 attribute_pair_to_ind[att_pair])
     sparse_data_per_category[category] = len(sparse_row_per_category[
-        category]) * [1] 
+        category]) * [1]
     mx = csr_matrix(
         (sparse_data_per_category[category],
          (sparse_row_per_category[category],
@@ -306,13 +306,13 @@ for category in categories:
             y_per_category[category] = features[feature][category]
         elif feature == 'basis_combinations':
             # TODO generate the basis combination-related features (probably
-            # we shall opt for sparse representation as a consequence) 
+            # we shall opt for sparse representation as a consequence)
             sparse_block_per_category[category] = get_att_pair_mx(
                 features[feature][category])
         else:
             feature_names_used.append(feature)
             X_per_category[category].append(features[feature][category])
-            
+
 """
 egy olyan ritkamxot kell csinálnom, aminek a bal blokkja joint_X
 a joint_X az az amelyikben ömlesztve vannak a concept és az entity típusú példák
@@ -333,11 +333,8 @@ models = {c: make_pipeline(LogisticRegression()) for c in categories}
 #svm.SVC(kernel='linear', C=1, random_state=0)
 for category in categories:
     logging.info(category)
-    for mx in [np.array(X_per_category[category]).T,
-               sparse_block_per_category[category]]:
-        logging.debug(mx.shape)
     X = hstack([#csr_matrix(
-        np.array(X_per_category[category]).T, 
+        np.array(X_per_category[category]).T,
         sparse_block_per_category[category]])
     if X.shape[0] == 0:
         models[category] = joint_model
@@ -345,7 +342,7 @@ for category in categories:
     else:
         #X = poly.fit_transform(X)
         models[category].fit(X, y_per_category[category])
-        logging.info((category, '  '.join( 
+        logging.info((category, '  '.join(
             '{} {:.2}'.format(fea, coeff) for fea, coeff in sorted( list(zip(
                 feature_names_used, models[category].steps[0][1].coef_[0])),
                 key=lambda p: abs(p[1]), reverse=True))))
@@ -386,6 +383,7 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
         possible_hypernyms.append((gold_candidate, possible_hypernym_score))
 
     sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
+    sorted_hypernyms = sorted(sorted_hypernyms, key=lambda p:word_frequencies[p[0]], reverse=True)
     for prediction in sorted_hypernyms:
         pred_file.write(prediction[0].replace('_', ' ') + '\t')
         #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
@@ -410,6 +408,5 @@ solution_file = os.path.join(
 subprocess.call(['python2', 'official-scorer.py', solution_file, pred_file.name])
 #logging.info("=============")
 #subprocess.call(['python2', 'official-scorer.py', solution_file, joint_pred_file.name])
-#logging.info(":::::::::::::")
-#subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
-
+logging.info(":::::::::::::")
+subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
