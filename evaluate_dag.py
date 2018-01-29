@@ -260,40 +260,6 @@ def logg_attribute_pair_hist():
                   sorted(attribute_pair_hist.items(), key=lambda item: item[1],
                          reverse=True)))
 
-'''
-for f in sorted(features.keys()):
-    logging.info(f)
-    for category in categories:
-        plt.hist([v for c, v in zip(features['class_label'][category], features[f][category]) if c==True])
-    plt.legend(categories)
-    plt.show()
-
-for category in categories:
-    for f in features.keys():
-        plt.hist([v for c, v in zip(features['class_label'][category], features[f][category]) if c==False])
-        plt.hist([v for c, v in zip(features['class_label'][category], features[f][category]) if c==True])
-        plt.legend(['False', 'True'])
-        plt.savefig('{}_{}.png'.format(f, category))
-        plt.close()
-'''
-
-def get_att_pair_mx(ffcategory):
-    sparse_col_per_category = defaultdict(list) 
-    sparse_row_per_category = defaultdict(list)
-    sparse_data_per_category = {}
-    for qi, att_pairs_in_query in enumerate(ffcategory):
-        for att_pair in att_pairs_in_query:
-            sparse_row_per_category[category].append(qi)
-            sparse_col_per_category[category].append(
-                attribute_pair_to_ind[att_pair])
-    sparse_data_per_category[category] = len(sparse_row_per_category[
-        category]) * [1] 
-    mx = csr_matrix(
-        (sparse_data_per_category[category],
-         (sparse_row_per_category[category],
-          sparse_col_per_category[category])),
-        shape=(len(ffcategory), len(attribute_pair_to_ind)))
-    return mx
 
 X_per_category = {c: [] for c in categories}
 y_per_category = {}
@@ -304,66 +270,51 @@ for category in categories:
     for feature in sorted(features):
         if feature == 'class_label':
             y_per_category[category] = features[feature][category]
-        elif feature == 'basis_combinations':
-            # TODO generate the basis combination-related features (probably
-            # we shall opt for sparse representation as a consequence) 
-            sparse_block_per_category[category] = get_att_pair_mx(
-                features[feature][category])
-        else:
+        elif feature != 'basis_combinations':
             feature_names_used.append(feature)
             X_per_category[category].append(features[feature][category])
-            
-"""
-egy olyan ritkamxot kell csinálnom, aminek a bal blokkja joint_X
-a joint_X az az amelyikben ömlesztve vannak a concept és az entity típusú példák
-kell még 2 másik, ahol egyszer a X_per_category['Entity'], illetve amikor a X_per_category['Concept'] a bal blokk
-"""
 
-
-joint_X = np.array([[cv for category in categories for cv in features[fn][category]] for fn in feature_names_used]).T
-sparse_block = vstack([sparse_block_per_category[category] for category in categories])
-joint_X = hstack([joint_X, sparse_block])
-#for mx in []: logging.debug((mx.ndim, mx.shape))
-joint_y = [cl for category in categories for cl in features['class_label'][category]]
-joint_model = LogisticRegression()
-joint_model.fit(joint_X, joint_y)
-
-models = {c: make_pipeline(LogisticRegression()) for c in categories}
+backup_model = None
+models = {c: make_pipeline(LogisticRegression(C=1.0)) for c in categories}
 #models = {c: make_pipeline(StandardScaler(), PolynomialFeatures(2), LogisticRegression()) for c in categories}
 #svm.SVC(kernel='linear', C=1, random_state=0)
 for category in categories:
     logging.info(category)
-    for mx in [np.array(X_per_category[category]).T,
-               sparse_block_per_category[category]]:
-        logging.debug(mx.shape)
-    X = hstack([#csr_matrix(
-        np.array(X_per_category[category]).T, 
-        sparse_block_per_category[category]])
+
+    sparse_data, sparse_indices, sparse_ptrs = [], [], [0]
+    for basis_pairs in features['basis_combinations'][category]:
+        sparse_data.extend(len(basis_pairs) * [1.])
+        sparse_indices.extend([basis_pair[0] * sparse_dimensions + basis_pair[1] for basis_pair in basis_pairs])
+        sparse_ptrs.append(len(sparse_indices))
+    sparse_features = csr_matrix((sparse_data, sparse_indices, sparse_ptrs), shape=(len(sparse_ptrs)-1, sparse_dimensions**2))
+
+    X = hstack([np.array(X_per_category[category]).T, sparse_features])
     if X.shape[0] == 0:
-        models[category] = joint_model
+        models[category] = None
         logging.info('Warning: joint model has to be used for {}\t{}'.format(category, list(zip(feature_names_used, joint_model.coef_[0]))))
     else:
-        #X = poly.fit_transform(X)
         models[category].fit(X, y_per_category[category])
+        backup_model = models[category]
         logging.info((category, '  '.join( 
-            '{} {:.2}'.format(fea, coeff) for fea, coeff in sorted( list(zip(
-                feature_names_used, models[category].steps[0][1].coef_[0])),
-                key=lambda p: abs(p[1]), reverse=True))))
+            '{} {:.2}'.format(fea, coeff) for fea, coeff in sorted(list(zip(
+                feature_names_used + ['{}_{}'.format(i,j) for i in range(sparse_dimensions) for j in range(sparse_dimensions)],
+                models[category].steps[0][1].coef_[0])),
+                key=lambda p: abs(p[1]), reverse=True)[0:20])))
 
-true_class_index = [i for i,c in enumerate(models[query_type].classes_) if c][0]
+for category in categories:
+    if models[category] is None:
+        models[category] = backup_model
+
+true_class_index = {query_type:[i for i,c in enumerate(models[query_type].classes_) if c][0] for query_type in categories}
 pred_file = open('{}.predictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
-pred_file2 = open('{}.predictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
-#joint_pred_file = open('{}.jointpredictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
+
 for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
     #logging.info(query_tuple, hypernyms)
     query, query_type = query_tuple[0], query_tuple[1]
     if query not in w2i:
         for x in gold_counter[query_type].most_common(15):
             pred_file.write(x[0].replace('_', ' ') + '\t')
-            pred_file2.write(x[0].replace('_', ' ') + '\t')
-            #joint_pred_file.write(x[0].replace('_', ' ') + '\t')
         pred_file.write('\n')
-        #joint_pred_file.write('\n')
         continue
 
     possible_hypernyms = []
@@ -378,24 +329,18 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
             sparse_indices.append(feature_index)
 
         for basis_pair in feature_vector['basis_combinations']:
-            if basis_pair in attribute_pair_to_ind:
-                sparse_data.append(1)
-                sparse_indices.append(attribute_pair_to_ind[basis_pair])
-        features_to_rank = csr_matrix((sparse_data, sparse_indices, [0, len(sparse_data)]), shape=(1, joint_X.shape[1]))
-        possible_hypernym_score = models[query_type].predict_proba(features_to_rank)[0,true_class_index]
+            sparse_data.append(1)
+            sparse_indices.append(basis_pair[0] * sparse_dimensions + basis_pair[1])
+        features_to_rank = csr_matrix((sparse_data, sparse_indices, [0, len(sparse_data)]), shape=(1, sparse_dimensions**2+len(feature_names_used)))
+        possible_hypernym_score = models[query_type].predict_proba(features_to_rank)[0,true_class_index[query_type]]
         possible_hypernyms.append((gold_candidate, possible_hypernym_score))
 
     sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
     for prediction in sorted_hypernyms:
         pred_file.write(prediction[0].replace('_', ' ') + '\t')
         #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
-    #possible_hypernym_scores = joint_model.predict_proba(features_to_rank)
-    #for prediction_index in np.argsort(possible_hypernym_scores[:, true_class_index])[-15:]:
-    #    joint_pred_file.write(possible_hypernyms[prediction_index].replace('_', ' ') + '\t')
     pred_file.write('\n')
-    #joint_pred_file.write('\n')
 pred_file.close()
-#joint_pred_file.close()
 
 
 ### provide a baseline predicting the most common etalon hypernyms per query type always ###
@@ -408,8 +353,6 @@ solution_file = os.path.join(
     dataset_dir, 'trial/gold',
     '{}.{}.trial.gold.txt'.format(dataset_id, dataset_mapping[dataset_id][0]))
 subprocess.call(['python2', 'official-scorer.py', solution_file, pred_file.name])
-#logging.info("=============")
-#subprocess.call(['python2', 'official-scorer.py', solution_file, joint_pred_file.name])
-#logging.info(":::::::::::::")
-#subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
+logging.info(":::::::::::::")
+subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
 
