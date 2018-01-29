@@ -1,6 +1,7 @@
 import logging
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s")
 import sys
+import ntpath
 import pickle
 import subprocess
 import numpy as np
@@ -17,7 +18,6 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate
 from sklearn.pipeline import make_pipeline
-from sklearn import svm
 
 regularization = 1.0
 include_sparse_feats = False
@@ -29,14 +29,15 @@ if len(sys.argv) > 2:
 if len(sys.argv) > 3:
     path_to_dag = sys.argv[3]
 
-input_hyperparams = '_'.join([str(path_to_dag.split('_')[i]) for i in [4, 6, 7, 8]])
+path_basename = ntpath.basename(path_to_dag)
+input_hyperparams = '_'.join([str(path_basename.split('_')[i]) for i in [4, 6, 7, 8]])
 logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}'.format(regularization, include_sparse_feats,path_to_dag))
 
 dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
 #dataset_dir = '/mnt/permanent/Language/English/Data/SemEval/2018/Hypernym/SemEval2018_task9_test'
-sparse_dimensions = int(path_to_dag.split('_')[6])
-dataset_id = path_to_dag.replace('dots/', '')[0:2]
-is_sg = '_sg' in path_to_dag
+sparse_dimensions = int(path_basename.split('_')[6])
+dataset_id = path_basename[0:2]
+is_sg = '_sg' in path_basename
 
 dataset_mapping = {
     '1A':['english', 'UMBC'],
@@ -293,7 +294,7 @@ for category in categories:
     sparse_features = csr_matrix((sparse_data, sparse_indices, sparse_ptrs), shape=(len(sparse_ptrs)-1, sparse_dimensions**2))
 
     if include_sparse_feats:
-        X = hstack([np.array(X_per_category[category]).T, sparse_features])
+        X = hstack([csr_matrix(np.array(X_per_category[category]).T), sparse_features])
     else:
         X = np.array(X_per_category[category]).T
 
