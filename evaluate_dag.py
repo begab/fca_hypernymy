@@ -333,9 +333,7 @@ models = {c: make_pipeline(LogisticRegression()) for c in categories}
 #svm.SVC(kernel='linear', C=1, random_state=0)
 for category in categories:
     logging.info(category)
-    for mx in [np.array(X_per_category[category]).T,
-               sparse_block_per_category[category]]:
-        X = hstack([#csr_matrix(
+    X = hstack([#csr_matrix(
         np.array(X_per_category[category]).T,
         sparse_block_per_category[category]])
     if X.shape[0] == 0:
