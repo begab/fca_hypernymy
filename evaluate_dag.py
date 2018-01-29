@@ -408,8 +408,8 @@ solution_file = os.path.join(
     dataset_dir, 'trial/gold',
     '{}.{}.trial.gold.txt'.format(dataset_id, dataset_mapping[dataset_id][0]))
 subprocess.call(['python2', 'official-scorer.py', solution_file, pred_file.name])
-logging.info("=============")
-subprocess.call(['python2', 'official-scorer.py', solution_file, joint_pred_file.name])
-logging.info(":::::::::::::")
-subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
+#logging.info("=============")
+#subprocess.call(['python2', 'official-scorer.py', solution_file, joint_pred_file.name])
+#logging.info(":::::::::::::")
+#subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
 
