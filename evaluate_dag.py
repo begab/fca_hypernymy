@@ -21,6 +21,7 @@ else:
     path_to_dag = sys.argv[1]
 
 dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
+sparse_dimensions = int(path_to_dag.split('_')[6])
 dataset_id = path_to_dag.replace('dots/', '')[0:2]
 is_sg = '_sg' in path_to_dag
 
@@ -105,7 +106,7 @@ words_to_attributes = {}   # dict containing the full set of basis active for a 
 for n in dag.nodes(data=True):
     words = n[1]['label'].split('|')[1].split('\\n')
     node_id = int(n[1]['label'].split('|')[0])
-    attributes = [att for att in n[1]['label'].split('|')[2].split('\\n') if len(att.strip())>0]
+    attributes = [int(att.replace('n', '')) for att in n[1]['label'].split('|')[2].split('\\n') if len(att.strip())>0]
     nodes_to_attributes[node_id] = attributes
     nodes_to_words[node_id] = set(words)
 
@@ -162,16 +163,66 @@ features = {
             'attribute_differenceB' : defaultdict(list),
             'attributes_intersect' : defaultdict(list),
             'cosines' : defaultdict(list),
+            'basis_combinations' : defaultdict(list),
             'class_label' : defaultdict(list),
 #            'dag_shortest_path' : defaultdict(list),
 #            'dag_number_of_paths' : defaultdict(list),
 #            'dag_avg_path_len' : defaultdict(list)
 }
+
+def calculate_features(query_word, gold_candidate):
+    query_vec = embeddings[w2i[query]]
+    query_tokens = set(query_word.lower().split('_'))
+    query_in_dag = query_word in deepest_occurrence
+    query_location = deepest_occurrence[query][0] if query_in_dag else 0
+    query_attributes = set(words_to_attributes[query] if query_in_dag else [])
+    #if query_in_dag:
+    #    own_query_words = get_own_words(dag, query_location)
+    #else: # if the query is not in the dag, it means that it had no nonzero coefficient in its representation
+    #    own_query_words = set(w2i.keys()) - deepest_occurrence.keys()
+
+    gold_candidate_vec = embeddings[w2i[gold_candidate]]
+    gold_candidate_tokens = set(gold_candidate.lower().split('_'))
+    gold_candidate_in_dag = gold_candidate in deepest_occurrence
+    gold_candidate_location = deepest_occurrence[gold_candidate][0] if gold_candidate_in_dag else 0
+    gold_candidate_attributes = set(words_to_attributes[gold_candidate] if gold_candidate_in_dag else [])
+
+    feature_vector = {}
+    feature_vector['basis_combinations'] = []
+    for q_att in query_attributes:
+        for gc_att in gold_candidate_attributes:
+            feature_vector['basis_combinations'].append((q_att, gc_att))
+
+
+    feature_vector['is_frequent_hypernym'] = 1 if gold_candidate in frequent_hypernyms[query_type] else 0
+    feature_vector['has_textual_overlap'] = 1 if len(gold_candidate_tokens & query_tokens) > 0 else 0
+
+
+    #update_dag_based_features(features, query_type, gold, own_query_words)
+    feature_vector['same_dag_position'] = 1 if query_location == gold_candidate_location else 0
+    feature_vector['right_below_in_dag'] = 1 if dag.has_edge('node{}'.format(query_location), 'node{}'.format(gold_candidate_location)) else 0
+    feature_vector['right_above_in_dag'] = 1 if dag.has_edge('node{}'.format(gold_candidate_location), 'node{}'.format(query_location)) else 0
+    feature_vector['difference_length'] = np.linalg.norm(query_vec - gold_candidate_vec)
+    feature_vector['length_ratios'] = np.linalg.norm(query_vec) / np.linalg.norm(gold_candidate_vec)
+    feature_vector['cosines'] = unit_embeddings[w2i[query]].dot(unit_embeddings[w2i[gold_candidate]])
+    attribute_intersection_size = len(query_attributes & gold_candidate_attributes)
+    attribute_union_size = len(query_attributes | gold_candidate_attributes)
+    feature_vector['attribute_differenceA'] = len(query_attributes - gold_candidate_attributes)
+    feature_vector['attribute_differenceB'] = len(gold_candidate_attributes - query_attributes)
+    feature_vector['attributes_intersect'] = attribute_intersection_size > 0
+    if query in word_frequencies and gold_candidate in word_frequencies:
+        feature_vector['freq_ratios_log'] = np.log10(word_frequencies[query] / word_frequencies[gold_candidate])
+    else:
+        features['freq_ratios_log'] = 0
+        #print(query, gold_candidate, query in word_frequencies, query in word_frequencies and gold_candidate in word_frequencies)
+    return feature_vector
+
+
 training_pairs = defaultdict(list)
 
 categories = ['Concept', 'Entity']
 very_frequent_hypernyms = {category: set([h for h,f in gold_counter[category].most_common(10)]) for category in categories}
-frequent_hypernyms = {category: set([h for h,f in gold_counter[category].most_common(100)]) for category in categories}
+frequent_hypernyms = {category: set([h for h,f in gold_counter[category].most_common()]) for category in categories}
 np.random.seed(400)
 missed_query, missed_hypernyms = 0, 0
 for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, train_golds):
@@ -182,55 +233,21 @@ for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, t
         missed_query += 1
         missed_hypernyms += len(hypernyms)
         continue
-    query_tokens = set(query.lower().split('_'))
-    query_in_dag = query in deepest_occurrence
-    query_location = deepest_occurrence[query][0] if query_in_dag else 0
-    if query_in_dag:
-        own_query_words = get_own_words(dag, query_location)
-    else: # if the query is not in the dag, it means that it had no nonzero coefficient in its representation
-        own_query_words = set(w2i.keys()) - deepest_occurrence.keys()
 
-    negative_samples = []
-    if len(gold_counter[query_type].keys()-hypernyms) > 0: # check if we can generate any negative samples
-        negative_samples = np.random.choice([h for h in gold_counter[query_type] if h not in hypernyms and h in word_frequencies], size=25, replace=False)
+    potential_negative_samples = [h for h in gold_counter[query_type] if h not in hypernyms and h in word_frequencies]
+    if len(potential_negative_samples) > 0:
+        negative_samples = np.random.choice(potential_negative_samples, size=min(50, len(potential_negative_samples)), replace=False)
     else:
-        print('WARNING: No negative samples are generated for word {}'.format(query))
+        negative_samples = []
 
     for gold_candidate in set(hypernyms) | set(negative_samples):
         if gold_candidate not in w2i:
             missed_hypernyms += 1
             continue
-
-        features['class_label'][query_type].append(gold_candidate in hypernyms)
-        features['is_frequent_hypernym'][query_type].append(1 if gold_candidate in frequent_hypernyms[query_type] else 0)
-        gold_candidate_tokens = set(gold_candidate.lower().split('_'))
-        features['has_textual_overlap'][query_type].append(1 if len(gold_candidate_tokens & query_tokens) > 0 else 0)
-
-        gold_candidate_in_dag = gold_candidate in deepest_occurrence
-        gold_candidate_location = deepest_occurrence[gold_candidate][0] if gold_candidate_in_dag else 0
-        #update_dag_based_features(features, query_type, gold, own_query_words)
-        features['same_dag_position'][query_type].append(1 if query_location == gold_candidate_location else 0)
-        features['right_below_in_dag'][query_type].append(1 if dag.has_edge('node{}'.format(query_location), 'node{}'.format(gold_candidate_location)) else 0)
-        features['right_above_in_dag'][query_type].append(1 if dag.has_edge('node{}'.format(gold_candidate_location), 'node{}'.format(query_location)) else 0)
-
-        query_vec = embeddings[w2i[query]]
-        query_attributes = set(words_to_attributes[query] if query_in_dag else [])
-        gold_candidate_vec = embeddings[w2i[gold_candidate]]
-        gold_candidate_attributes = set(words_to_attributes[gold_candidate] if gold_candidate_in_dag else [])
         training_pairs[query_type].append((query, gold_candidate))
-        features['difference_length'][query_type].append(np.linalg.norm(query_vec - gold_candidate_vec))
-        features['length_ratios'][query_type].append(np.linalg.norm(query_vec) / np.linalg.norm(gold_candidate_vec))
-        features['cosines'][query_type].append(unit_embeddings[w2i[query]] @ unit_embeddings[w2i[gold_candidate]])
-        attribute_intersection_size = len(query_attributes & gold_candidate_attributes)
-        attribute_union_size = len(query_attributes | gold_candidate_attributes)
-        features['attribute_differenceA'][query_type].append(len(query_attributes - gold_candidate_attributes))
-        features['attribute_differenceB'][query_type].append(len(gold_candidate_attributes - query_attributes))
-        features['attributes_intersect'][query_type].append(attribute_intersection_size > 0)
-        if query in word_frequencies and gold_candidate in word_frequencies:
-            features['freq_ratios_log'][query_type].append(np.log10(word_frequencies[query] / word_frequencies[gold_candidate]))
-        else:
-            features['freq_ratios_log'][query_type].append(0)
-            #print(query, gold_candidate, query in word_frequencies, query in word_frequencies and gold_candidate in word_frequencies)
+        features['class_label'][query_type].append(gold_candidate in hypernyms)
+        for feature_name, feature_value in calculate_features(query, gold_candidate).items():
+            features[feature_name][query_type].append(feature_value)
 
 '''
 for f in sorted(features.keys()):
@@ -256,6 +273,9 @@ for category in categories:
     for feature in sorted(features):
         if feature == 'class_label':
             y_per_category[category] = features[feature][category]
+        elif feature == 'basis_combinations':
+            # TODO generate the basis combination-related features (probably we shall opt for sparse representation as a consequence)
+            pass
         else:
             feature_names_used.append(feature)
             X_per_category[category].append(features[feature][category])
@@ -289,55 +309,19 @@ for i, query_tuple, hypernyms in zip(range(len(dev_queries)), dev_queries, dev_g
         for x in gold_counter[query_type].most_common(15):
             pred_file.write(x[0].replace('_', ' ') + '\t')
             joint_pred_file.write(x[0].replace('_', ' ') + '\t')
-            #print('\t'+x[0].replace('_', ' '))
         pred_file.write('\n')
         joint_pred_file.write('\n')
         continue
-    query_tokens = set(query.lower().split('_'))
-    query_in_dag = query in deepest_occurrence
-    query_location = deepest_occurrence[query][0] if query_in_dag else 0
-    if query_in_dag:
-        own_query_words = get_own_words(dag, query_location)
-    else: # if the query is not in the dag, it means that it had no nonzero coefficient in its representation
-        own_query_words = set(w2i.keys()) - deepest_occurrence.keys()
 
     possible_hypernyms = []
     possible_hypernym_feature_vecs = []
-    for gold_candidate in [h for h in gold_counter[query_type]]:
+    for gold_candidate in [h for h in gold_counter[query_type]]:  # TODO shall we regard all the vocabulary as a potential hypernym?
         if gold_candidate not in w2i:
             continue
-
         possible_hypernyms.append(gold_candidate)
-        feature_vector = {}
-        feature_vector['is_frequent_hypernym'] = 1 if gold_candidate in frequent_hypernyms[query_type] else 0
-        gold_candidate_tokens = set(gold_candidate.lower().split('_'))
-        feature_vector['has_textual_overlap'] = 1 if len(gold_candidate_tokens & query_tokens) > 0 else 0
-
-        gold_candidate_in_dag = gold_candidate in deepest_occurrence
-        gold_candidate_location = deepest_occurrence[gold_candidate][0] if gold_candidate_in_dag else 0
-        #update_dag_based_features(features, query_type, gold, own_query_words)
-        feature_vector['same_dag_position'] = 1 if query_location == gold_candidate_location else 0
-        feature_vector['right_below_in_dag'] = 1 if dag.has_edge('node{}'.format(query_location), 'node{}'.format(gold_candidate_location)) else 0
-        feature_vector['right_above_in_dag'] = 1 if dag.has_edge('node{}'.format(gold_candidate_location), 'node{}'.format(query_location)) else 0
-
-        query_vec = embeddings[w2i[query]]
-        query_attributes = set(words_to_attributes[query] if query_in_dag else [])
-        gold_candidate_vec = embeddings[w2i[gold_candidate]]
-        gold_candidate_attributes = set(words_to_attributes[gold_candidate] if gold_candidate_in_dag else [])
-        training_pairs[query_type].append((query, gold_candidate))
-        feature_vector['difference_length'] = np.linalg.norm(query_vec - gold_candidate_vec)
-        feature_vector['length_ratios'] = np.linalg.norm(query_vec) / np.linalg.norm(gold_candidate_vec)
-        feature_vector['cosines'] = unit_embeddings[w2i[query]] @ unit_embeddings[w2i[gold_candidate]]
-        attribute_intersection_size = len(query_attributes & gold_candidate_attributes)
-        attribute_union_size = len(query_attributes | gold_candidate_attributes)
-        feature_vector['attribute_differenceA'] = len(query_attributes - gold_candidate_attributes)
-        feature_vector['attribute_differenceB'] = len(gold_candidate_attributes - query_attributes)
-        feature_vector['attributes_intersect'] = attribute_intersection_size > 0
-        if query in word_frequencies and gold_candidate in word_frequencies:
-            feature_vector['freq_ratios_log'] = np.log10(word_frequencies[query] / word_frequencies[gold_candidate])
-        else:
-            print(query, gold_candidate, query in word_frequencies, query in word_frequencies and gold_candidate in word_frequencies)
+        feature_vector = calculate_features(query, gold_candidate)
         possible_hypernym_feature_vecs.append(np.array([feature_vector[f] for f in feature_names_used]))
+
     features_to_rank = np.array(possible_hypernym_feature_vecs)
     possible_hypernym_scores = models[query_type].predict_proba(features_to_rank)
     for prediction_index in np.argsort(possible_hypernym_scores[:, true_class_index])[-15:]:
