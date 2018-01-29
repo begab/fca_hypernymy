@@ -9,7 +9,7 @@ import os
 import pygraphviz
 #import matplotlib.pyplot as plt
 from collections import Counter, defaultdict
-from scipy.sparse import csr_matrix 
+from scipy.sparse import csr_matrix
 from scipy.sparse import hstack, vstack
 
 from sklearn.preprocessing import StandardScaler
@@ -260,7 +260,6 @@ def logg_attribute_pair_hist():
                   sorted(attribute_pair_hist.items(), key=lambda item: item[1],
                          reverse=True)))
 
-
 X_per_category = {c: [] for c in categories}
 y_per_category = {}
 attribute_pair_to_ind = {p: i for i, p in enumerate(attribute_pair_freq)}
@@ -308,6 +307,7 @@ for category in categories:
 true_class_index = {query_type:[i for i,c in enumerate(models[query_type].classes_) if c][0] for query_type in categories}
 pred_file = open('{}.predictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
 
+
 for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
     #logging.info(query_tuple, hypernyms)
     query, query_type = query_tuple[0], query_tuple[1]
@@ -336,6 +336,7 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
         possible_hypernyms.append((gold_candidate, possible_hypernym_score))
 
     sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
+    sorted_hypernyms = sorted(sorted_hypernyms, key=lambda p:word_frequencies[p[0]], reverse=True)
     for prediction in sorted_hypernyms:
         pred_file.write(prediction[0].replace('_', ' ') + '\t')
         #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
@@ -355,4 +356,3 @@ solution_file = os.path.join(
 subprocess.call(['python2', 'official-scorer.py', solution_file, pred_file.name])
 logging.info(":::::::::::::")
 subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
-
