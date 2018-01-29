@@ -353,7 +353,7 @@ for category in categories:
 true_class_index = [i for i,c in enumerate(models[query_type].classes_) if c][0]
 pred_file = open('{}.predictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
 pred_file2 = open('{}.predictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
-joint_pred_file = open('{}.jointpredictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
+#joint_pred_file = open('{}.jointpredictions'.format(path_to_dag.replace('dots', 'predictions')), 'w')
 for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
     #logging.info(query_tuple, hypernyms)
     query, query_type = query_tuple[0], query_tuple[1]
@@ -367,14 +367,11 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
         continue
 
     possible_hypernyms = []
-    sparse_data = []
-    sparse_indices = []
-    sparse_indptr = [0]
     possible_candidates = [h for h in gold_counter[query_type]]  # TODO shall we regard all the vocabulary as a potential hypernym?
     for gold_candidate in possible_candidates:
         if gold_candidate not in w2i:
             continue
-        possible_hypernyms.append(gold_candidate)
+        sparse_data, sparse_indices = [], []
         feature_vector = calculate_features(query, gold_candidate)
         for feature_index, feature_name in enumerate(feature_names_used):
             sparse_data.append(feature_vector[feature_name])
@@ -382,23 +379,23 @@ for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
 
         for basis_pair in feature_vector['basis_combinations']:
             if basis_pair in attribute_pair_to_ind:
-                feature_index += 1
                 sparse_data.append(1)
                 sparse_indices.append(attribute_pair_to_ind[basis_pair])
-        sparse_indptr.append(feature_index)
+        features_to_rank = csr_matrix((sparse_data, sparse_indices, [0, len(sparse_data)]), shape=(1, joint_X.shape[1]))
+        possible_hypernym_score = models[query_type].predict_proba(features_to_rank)[0,true_class_index]
+        possible_hypernyms.append((gold_candidate, possible_hypernym_score))
 
-    features_to_rank = csr_matrix((sparse_data, sparse_indices, sparse_indptr), shape=(len(possible_hypernyms), joint_X.shape[1]))
-    possible_hypernym_scores = models[query_type].predict_proba(features_to_rank)
-    for prediction_index in np.argsort(possible_hypernym_scores[:, true_class_index])[-15:]:
+    sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
+    for prediction_index in sorted_hypernyms:
         pred_file.write(possible_hypernyms[prediction_index].replace('_', ' ') + '\t')
         #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
-    possible_hypernym_scores = joint_model.predict_proba(features_to_rank)
-    for prediction_index in np.argsort(possible_hypernym_scores[:, true_class_index])[-15:]:
-        joint_pred_file.write(possible_hypernyms[prediction_index].replace('_', ' ') + '\t')
+    #possible_hypernym_scores = joint_model.predict_proba(features_to_rank)
+    #for prediction_index in np.argsort(possible_hypernym_scores[:, true_class_index])[-15:]:
+    #    joint_pred_file.write(possible_hypernyms[prediction_index].replace('_', ' ') + '\t')
     pred_file.write('\n')
-    joint_pred_file.write('\n')
+    #joint_pred_file.write('\n')
 pred_file.close()
-joint_pred_file.close()
+#joint_pred_file.close()
 
 
 ### provide a baseline predicting the most common etalon hypernyms per query type always ###
