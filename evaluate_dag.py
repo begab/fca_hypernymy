@@ -325,6 +325,8 @@ for category in categories:
 
 def make_predictions(queries, out_file_name):
     pred_file = open(out_file_name, 'w')
+    num_of_features = len(feature_names_used)
+    num_of_features += sparse_dimensions**2 if include_sparse_feats else 0
     true_class_index = {query_type:[i for i,c in enumerate(models[query_type].classes_) if c][0] for query_type in categories}
 
     for i, query_tuple in zip(range(len(queries)), queries):
@@ -339,33 +341,31 @@ def make_predictions(queries, out_file_name):
             continue
 
         possible_hypernyms = []
+        sparse_data, sparse_indices, sparse_ptrs = [], [], [0]
         possible_candidates = [h for h in gold_counter[query_type]]  # TODO shall we regard all the vocabulary as a potential hypernym?
         for gold_candidate in possible_candidates:
             if gold_candidate not in w2i:
                 continue
-            sparse_data, sparse_indices = [], [] 
-            # sparse_... lists contain data for the whole mx, not just for attr pairs
+            possible_hypernyms.append(gold_candidate)
             feature_vector = calculate_features(query, gold_candidate)
             for feature_index, feature_name in enumerate(feature_names_used):
                 sparse_data.append(feature_vector[feature_name])
                 sparse_indices.append(feature_index)
 
             if include_sparse_feats:
-                for basis_pair in feature_vector['basis_combinations']:
-                    sparse_data.append(1)
-                    sparse_indices.append(len(feature_names_used) + basis_pair[0] * sparse_dimensions + basis_pair[1])
-            num_of_features = len(feature_names_used)
-            num_of_features += sparse_dimensions**2 if include_sparse_feats else 0
-            features_to_rank = csr_matrix((sparse_data, sparse_indices, [0, len(sparse_data)]), shape=(1, num_of_features))
-            possible_hypernym_score = models[query_type].predict_proba(features_to_rank)[0,true_class_index[query_type]]
-            possible_hypernyms.append((gold_candidate, possible_hypernym_score))
+                basis_pairs = feature_vector['basis_combinations']
+                sparse_data.extend(len(basis_pairs) *[1])
+                sparse_indices.extend([len(feature_names_used) + basis_pair[0] * sparse_dimensions + basis_pair[1] for basis_pair in basis_pairs])
+            sparse_ptrs.append(len(sparse_data))
+        features_to_rank = csr_matrix((sparse_data, sparse_indices, sparse_ptrs), shape=(len(possible_hypernyms), num_of_features))
+        possible_hypernym_scores = models[query_type].predict_proba(features_to_rank)[:,true_class_index[query_type]]
+        possible_hypernyms = [(h,s) for h,s in zip(possible_hypernyms, possible_hypernym_scores)]
 
         sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
-        sorted_hypernyms = sorted(sorted_hypernyms, 
-                                  key=lambda p:word_frequencies[p[0]], reverse=True)
+        sorted_hypernyms = sorted(sorted_hypernyms, key=lambda p:word_frequencies[p[0]], reverse=True)
         for prediction in sorted_hypernyms:
             pred_file.write(prediction[0].replace('_', ' ') + '\t')
-            #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
+            ##logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
         pred_file.write('\n')
     pred_file.close()
 
