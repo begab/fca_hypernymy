@@ -37,10 +37,7 @@ if len(sys.argv) > 4:
 
 path_basename = ntpath.basename(path_to_dag)
 dataset_id = path_basename[0:2]
-if dataset_id == '1A':
-    input_hyperparams = '_'.join([str(path_basename.split('_')[i-1]) for i in [5, 7, 8, 9]])
-else:
-    input_hyperparams = '_'.join([str(path_basename.split('_')[i]) for i in [5, 7, 8, 9]])
+input_hyperparams = '_'.join([p for p in path_basename.split('_')][0:-4])
 logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}\nmake test predictions: {}'.format(regularization, include_sparse_feats,path_to_dag, make_test_predictions))
 
 dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
