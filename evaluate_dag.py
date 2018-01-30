@@ -22,6 +22,7 @@ from sklearn.pipeline import make_pipeline
 regularization = 1.0
 include_sparse_feats = False
 path_to_dag = 'dots/1A_UMBC_tokenized.txt_100_sg.vec.gz_True_200_0.4_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
+path_to_dag = 'dots/1B_it_itwac_tokenized.txt_100_sg.vec.gz_True_200_0.3_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
 if len(sys.argv) > 1:
     regularization = float(sys.argv[1])
 if len(sys.argv) > 2:
@@ -30,11 +31,11 @@ if len(sys.argv) > 3:
     path_to_dag = sys.argv[3]
 
 path_basename = ntpath.basename(path_to_dag)
-input_hyperparams = '_'.join([str(path_basename.split('_')[i]) for i in [4, 6, 7, 8]])
+input_hyperparams = '_'.join([str(path_basename.split('_')[i]) for i in [5, 7, 8, 9]])
 logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}'.format(regularization, include_sparse_feats,path_to_dag))
 
-#dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
-dataset_dir = '/mnt/permanent/Language/English/Data/SemEval/2018/Hypernym/SemEval2018_task9_test'
+dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
+#dataset_dir = '/mnt/permanent/Language/English/Data/SemEval/2018/Hypernym/SemEval2018_task9_test'
 dataset_id = path_basename[0:2]
 sparse_dimensions = int(path_basename.split('_')[7])
 is_sg = '_sg' in path_basename
@@ -222,7 +223,7 @@ def calculate_features(query_word, gold_candidate, count_att_pairs=False):
     if query in word_frequencies and gold_candidate in word_frequencies:
         feature_vector['freq_ratios_log'] = np.log10(word_frequencies[query] / word_frequencies[gold_candidate])
     else:
-        features['freq_ratios_log'] = 0
+        feature_vector['freq_ratios_log'] = 0
         #print(query, gold_candidate, query in word_frequencies, query in word_frequencies and gold_candidate in word_frequencies)
     return feature_vector
 
@@ -300,7 +301,6 @@ for category in categories:
 
     if X.shape[0] == 0:
         models[category] = None
-        logging.info('Warning: joint model has to be used for {}\t{}'.format(category, list(zip(feature_names_used, joint_model.coef_[0]))))
     else:
         models[category].fit(X, y_per_category[category])
         backup_model = models[category]
