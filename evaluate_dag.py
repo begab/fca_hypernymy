@@ -37,7 +37,11 @@ if len(sys.argv) > 4:
 
 path_basename = ntpath.basename(path_to_dag)
 dataset_id = path_basename[0:2]
-input_hyperparams = '_'.join([p for p in path_basename.split('_')][0:-4])
+if dataset_id == '1A':
+    input_hyperparam_indices = [4, 6, 7, 8]
+else:
+    input_hyperparam_indices = [5, 7, 8, 9]
+input_hyperparams = '_'.join([str(path_basename.split('_')[i]) for i in input_hyperparam_indices])
 logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}\nmake test predictions: {}'.format(regularization, include_sparse_feats,path_to_dag, make_test_predictions))
 
 dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
@@ -290,8 +294,6 @@ for category in categories:
 backup_model = None
 models = {c: make_pipeline(LogisticRegression(C=regularization)) for c in categories}
 for category in categories:
-    logging.info(category)
-
     sparse_data, sparse_indices, sparse_ptrs = [], [], [0]
     for basis_pairs in features['basis_combinations'][category]:
         sparse_data.extend(len(basis_pairs) * [1.])
@@ -328,7 +330,7 @@ def make_predictions(queries, out_file_name):
 
     for i, query_tuple in zip(range(len(queries)), queries):
         #logging.info(query_tuple, hypernyms)
-        if i % 50 == 0:
+        if i % 250 == 0:
             logging.debug('{} predictions made'.format(i))
         query, query_type = query_tuple[0], query_tuple[1]
         if query not in w2i:
@@ -371,10 +373,13 @@ metrics = ['MAP', 'MRR', 'P@1', 'P@3', 'P@5', 'P@15']
 solution_file = os.path.join(
     dataset_dir, 'trial/gold',
     '{}.{}.trial.gold.txt'.format(dataset_id, dataset_mapping[dataset_id][0]))
+predictions_dir = './predictions'
+if not os.path.exists(predictions_dir):
+    os.mkdir(predictions_dir)
 pred_file_name = '{}_{}_{}_{}.predictions'.format(path_to_dag.replace('dots', 'predictions'), regularization, include_sparse_feats, input_hyperparams)
 make_predictions(dev_queries, pred_file_name)
 results = return_official_scores(solution_file, pred_file_name)
-print('{}\t{}\t{}\t{}'.format(regularization, include_sparse_feats, input_hyperparams, '\t'.join(['{:.3}'.format(results[m]) for m in metrics])))
+print('{}\t{}\t{}\t{}'.format('\t'.join(['{:.3}'.format(results[m]) for m in metrics]), regularization, include_sparse_feats, path_basename))
 
 ### provide a baseline predicting the most common etalon hypernyms per query type always ###
 out_file = open('{}_baseline.predictions'.format(dataset_id), 'w')
@@ -382,9 +387,8 @@ for query_tuple, hypernyms in zip(dev_queries, dev_golds):
     out_file.write('{}\n'.format('\t'.join([t[0] for t in gold_counter[query_tuple[1]].most_common(15)])))
 out_file.close()
 
-logging.info(":::::::::::::")
 results = return_official_scores(solution_file, out_file.name)
-print('{}\t{}\t{}\t{}'.format(dataset_id, '', '', '\t'.join(['{:.3}'.format(results[m]) for m in metrics])))
+print('{}\t{}'.format('\t'.join(['{:.3}'.format(results[m]) for m in metrics]), dataset_id))
 logging.info('')
 
 if make_test_predictions:
