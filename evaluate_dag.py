@@ -3,12 +3,14 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s: (%(lineno)s) %(lev
 import sys
 import ntpath
 import pickle
-import subprocess
 import numpy as np
 import networkx as nx
 import os
 import pygraphviz
 #import matplotlib.pyplot as plt
+
+from official_scorer import return_official_scores
+
 from collections import Counter, defaultdict
 from scipy.sparse import csr_matrix
 from scipy.sparse import hstack, vstack
@@ -20,24 +22,30 @@ from sklearn.model_selection import cross_validate
 from sklearn.pipeline import make_pipeline
 
 regularization = 1.0
-include_sparse_feats = False
+include_sparse_feats = True
 path_to_dag = 'dots/1A_UMBC_tokenized.txt_100_sg.vec.gz_True_200_0.4_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
-path_to_dag = 'dots/1B_it_itwac_tokenized.txt_100_sg.vec.gz_True_200_0.3_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
+make_test_predictions = False
+#path_to_dag = 'dots/1B_it_itwac_tokenized.txt_100_sg.vec.gz_True_200_0.3_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
 if len(sys.argv) > 1:
     regularization = float(sys.argv[1])
 if len(sys.argv) > 2:
     include_sparse_feats = sys.argv[2].lower() == 'true'
 if len(sys.argv) > 3:
     path_to_dag = sys.argv[3]
+if len(sys.argv) > 4:
+    make_test_predictions = sys.argv[4].lower() == 'true'
 
 path_basename = ntpath.basename(path_to_dag)
-input_hyperparams = '_'.join([str(path_basename.split('_')[i]) for i in [5, 7, 8, 9]])
-logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}'.format(regularization, include_sparse_feats,path_to_dag))
+dataset_id = path_basename[0:2]
+if dataset_id == '1A':
+    input_hyperparams = '_'.join([str(path_basename.split('_')[i-1]) for i in [5, 7, 8, 9]])
+else:
+    input_hyperparams = '_'.join([str(path_basename.split('_')[i]) for i in [5, 7, 8, 9]])
+logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}\nmake test predictions: {}'.format(regularization, include_sparse_feats,path_to_dag, make_test_predictions))
 
 dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
 #dataset_dir = '/mnt/permanent/Language/English/Data/SemEval/2018/Hypernym/SemEval2018_task9_test'
-dataset_id = path_basename[0:2]
-sparse_dimensions = int(path_basename.split('_')[7])
+sparse_dimensions = int(path_basename.split('_')[6 if dataset_id == '1A' else 7])
 is_sg = '_sg' in path_basename
 
 dataset_mapping = {
@@ -169,12 +177,12 @@ features = defaultdict(lambda: defaultdict(list))
 attribute_pair_freq = defaultdict(int)
 
 def calculate_features(query_word, gold_candidate, count_att_pairs=False):
-    query_vec = embeddings[w2i[query]]
+    query_vec = embeddings[w2i[query_word]]
     query_tokens_l = query_word.lower().split('_')
     query_tokens = set(query_tokens_l)
     query_in_dag = query_word in deepest_occurrence
-    query_location = deepest_occurrence[query][0] if query_in_dag else 0
-    query_attributes = set(words_to_attributes[query] if query_in_dag else [])
+    query_location = deepest_occurrence[query_word][0] if query_in_dag else 0
+    query_attributes = set(words_to_attributes[query_word] if query_in_dag else [])
     #if query_in_dag:
     #    own_query_words = get_own_words(dag, query_location)
     #else: # if the query is not in the dag, it means that it had no nonzero coefficient in its representation
@@ -214,17 +222,17 @@ def calculate_features(query_word, gold_candidate, count_att_pairs=False):
     feature_vector['right_above_in_dag'] = 1 if dag.has_edge('node{}'.format(gold_candidate_location), 'node{}'.format(query_location)) else 0
     feature_vector['difference_length'] = np.linalg.norm(query_vec - gold_candidate_vec)
     feature_vector['length_ratios'] = np.linalg.norm(query_vec) / np.linalg.norm(gold_candidate_vec)
-    feature_vector['cosines'] = unit_embeddings[w2i[query]].dot(unit_embeddings[w2i[gold_candidate]])
+    feature_vector['cosines'] = unit_embeddings[w2i[query_word]].dot(unit_embeddings[w2i[gold_candidate]])
     attribute_intersection_size = len(query_attributes & gold_candidate_attributes)
     attribute_union_size = len(query_attributes | gold_candidate_attributes)
     feature_vector['attribute_differenceA'] = len(query_attributes - gold_candidate_attributes)
     feature_vector['attribute_differenceB'] = len(gold_candidate_attributes - query_attributes)
     feature_vector['attributes_intersect'] = 1 if attribute_intersection_size > 0 else 0
-    if query in word_frequencies and gold_candidate in word_frequencies:
-        feature_vector['freq_ratios_log'] = np.log10(word_frequencies[query] / word_frequencies[gold_candidate])
+    if query_word in word_frequencies and gold_candidate in word_frequencies:
+        feature_vector['freq_ratios_log'] = np.log10(word_frequencies[query_word] / word_frequencies[gold_candidate])
     else:
         feature_vector['freq_ratios_log'] = 0
-        #print(query, gold_candidate, query in word_frequencies, query in word_frequencies and gold_candidate in word_frequencies)
+        #print(query_word, gold_candidate, query_word in word_frequencies, query_word in word_frequencies and gold_candidate in word_frequencies)
     return feature_vector
 
 
@@ -314,50 +322,62 @@ for category in categories:
     if models[category] is None:
         models[category] = backup_model
 
-true_class_index = {query_type:[i for i,c in enumerate(models[query_type].classes_) if c][0] for query_type in categories}
-pred_file = open('{}_{}_{}_{}.predictions'.format(path_to_dag.replace('dots', 'predictions'), regularization, include_sparse_feats, input_hyperparams), 'w')
 
+def make_predictions(queries, out_file_name):
+    pred_file = open(out_file_name, 'w')
+    true_class_index = {query_type:[i for i,c in enumerate(models[query_type].classes_) if c][0] for query_type in categories}
 
-for i, query_tuple in zip(range(len(dev_queries)), dev_queries):
-    #logging.info(query_tuple, hypernyms)
-    query, query_type = query_tuple[0], query_tuple[1]
-    if query not in w2i:
-        for x in gold_counter[query_type].most_common(15):
-            pred_file.write(x[0].replace('_', ' ') + '\t')
-        pred_file.write('\n')
-        continue
-
-    possible_hypernyms = []
-    possible_candidates = [h for h in gold_counter[query_type]]  # TODO shall we regard all the vocabulary as a potential hypernym?
-    for gold_candidate in possible_candidates:
-        if gold_candidate not in w2i:
+    for i, query_tuple in zip(range(len(queries)), queries):
+        #logging.info(query_tuple, hypernyms)
+        if i % 50 == 0:
+            logging.debug('{} predictions made'.format(i))
+        query, query_type = query_tuple[0], query_tuple[1]
+        if query not in w2i:
+            for x in gold_counter[query_type].most_common(15):
+                pred_file.write(x[0].replace('_', ' ') + '\t')
+            pred_file.write('\n')
             continue
-        sparse_data, sparse_indices = [], [] 
-        # sparse_... lists contain data for the whole mx, not just for attr pairs
-        feature_vector = calculate_features(query, gold_candidate)
-        for feature_index, feature_name in enumerate(feature_names_used):
-            sparse_data.append(feature_vector[feature_name])
-            sparse_indices.append(feature_index)
 
-        if include_sparse_feats:
-            for basis_pair in feature_vector['basis_combinations']:
-                sparse_data.append(1)
-                sparse_indices.append(len(feature_names_used) + basis_pair[0] * sparse_dimensions + basis_pair[1])
-        num_of_features = len(feature_names_used)
-        num_of_features += sparse_dimensions**2 if include_sparse_feats else 0
-        features_to_rank = csr_matrix((sparse_data, sparse_indices, [0, len(sparse_data)]), shape=(1, num_of_features))
-        possible_hypernym_score = models[query_type].predict_proba(features_to_rank)[0,true_class_index[query_type]]
-        possible_hypernyms.append((gold_candidate, possible_hypernym_score))
+        possible_hypernyms = []
+        possible_candidates = [h for h in gold_counter[query_type]]  # TODO shall we regard all the vocabulary as a potential hypernym?
+        for gold_candidate in possible_candidates:
+            if gold_candidate not in w2i:
+                continue
+            sparse_data, sparse_indices = [], [] 
+            # sparse_... lists contain data for the whole mx, not just for attr pairs
+            feature_vector = calculate_features(query, gold_candidate)
+            for feature_index, feature_name in enumerate(feature_names_used):
+                sparse_data.append(feature_vector[feature_name])
+                sparse_indices.append(feature_index)
 
-    sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
-    sorted_hypernyms = sorted(sorted_hypernyms, 
-                              key=lambda p:word_frequencies[p[0]], reverse=True)
-    for prediction in sorted_hypernyms:
-        pred_file.write(prediction[0].replace('_', ' ') + '\t')
-        #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
-    pred_file.write('\n')
-pred_file.close()
+            if include_sparse_feats:
+                for basis_pair in feature_vector['basis_combinations']:
+                    sparse_data.append(1)
+                    sparse_indices.append(len(feature_names_used) + basis_pair[0] * sparse_dimensions + basis_pair[1])
+            num_of_features = len(feature_names_used)
+            num_of_features += sparse_dimensions**2 if include_sparse_feats else 0
+            features_to_rank = csr_matrix((sparse_data, sparse_indices, [0, len(sparse_data)]), shape=(1, num_of_features))
+            possible_hypernym_score = models[query_type].predict_proba(features_to_rank)[0,true_class_index[query_type]]
+            possible_hypernyms.append((gold_candidate, possible_hypernym_score))
 
+        sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
+        sorted_hypernyms = sorted(sorted_hypernyms, 
+                                  key=lambda p:word_frequencies[p[0]], reverse=True)
+        for prediction in sorted_hypernyms:
+            pred_file.write(prediction[0].replace('_', ' ') + '\t')
+            #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
+        pred_file.write('\n')
+    pred_file.close()
+
+
+metrics = ['MAP', 'MRR', 'P@1', 'P@3', 'P@5', 'P@15']
+solution_file = os.path.join(
+    dataset_dir, 'trial/gold',
+    '{}.{}.trial.gold.txt'.format(dataset_id, dataset_mapping[dataset_id][0]))
+pred_file_name = '{}_{}_{}_{}.predictions'.format(path_to_dag.replace('dots', 'predictions'), regularization, include_sparse_feats, input_hyperparams)
+make_predictions(dev_queries, pred_file_name)
+results = return_official_scores(solution_file, pred_file_name)
+print('{}\t{}\t{}\t{}'.format(regularization, include_sparse_feats, input_hyperparams, '\t'.join(['{:.3}'.format(results[m]) for m in metrics])))
 
 ### provide a baseline predicting the most common etalon hypernyms per query type always ###
 out_file = open('{}_baseline.predictions'.format(dataset_id), 'w')
@@ -365,53 +385,12 @@ for query_tuple, hypernyms in zip(dev_queries, dev_golds):
     out_file.write('{}\n'.format('\t'.join([t[0] for t in gold_counter[query_tuple[1]].most_common(15)])))
 out_file.close()
 
-solution_file = os.path.join(
-    dataset_dir, 'trial/gold',
-    '{}.{}.trial.gold.txt'.format(dataset_id, dataset_mapping[dataset_id][0]))
-subprocess.call(['python2', 'official-scorer.py', solution_file, pred_file.name])
 logging.info(":::::::::::::")
-subprocess.call(['python2', 'official-scorer.py', solution_file, out_file.name])
+results = return_official_scores(solution_file, out_file.name)
+print('{}\t{}\t{}\t{}'.format(dataset_id, '', '', '\t'.join(['{:.3}'.format(results[m]) for m in metrics])))
 logging.info('')
 
-
-pred_file = open('{}.{}_{}_{}_{}.output.txt'.format(dataset_id, dataset_mapping[dataset_id][0], regularization, include_sparse_feats, input_hyperparams), 'w')
-for i, query_tuple in zip(range(len(test_queries)), test_queries):
-    if i % 50 == 0:
-        logging.debug('{} test predictions made'.format(i))
-    query, query_type = query_tuple[0], query_tuple[1]
-    if query not in w2i:
-        for x in gold_counter[query_type].most_common(15):
-            pred_file.write(x[0].replace('_', ' ') + '\t')
-        pred_file.write('\n')
-        continue
-
-    possible_hypernyms = []
-    possible_candidates = [h for h in gold_counter[query_type]]  # TODO shall we regard all the vocabulary as a potential hypernym?
-    for gold_candidate in possible_candidates:
-        if gold_candidate not in w2i:
-            continue
-        sparse_data, sparse_indices = [], [] 
-        # sparse_... lists contain data for the whole mx, not just for attr pairs
-        feature_vector = calculate_features(query, gold_candidate)
-        for feature_index, feature_name in enumerate(feature_names_used):
-            sparse_data.append(feature_vector[feature_name])
-            sparse_indices.append(feature_index)
-
-        if include_sparse_feats:
-            for basis_pair in feature_vector['basis_combinations']:
-                sparse_data.append(1)
-                sparse_indices.append(len(feature_names_used) + basis_pair[0] * sparse_dimensions + basis_pair[1])
-        num_of_features = len(feature_names_used)
-        num_of_features += sparse_dimensions**2 if include_sparse_feats else 0
-        features_to_rank = csr_matrix((sparse_data, sparse_indices, [0, len(sparse_data)]), shape=(1, num_of_features))
-        possible_hypernym_score = models[query_type].predict_proba(features_to_rank)[0,true_class_index[query_type]]
-        possible_hypernyms.append((gold_candidate, possible_hypernym_score))
-
-    sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
-    sorted_hypernyms = sorted(sorted_hypernyms, 
-                              key=lambda p:word_frequencies[p[0]], reverse=True)
-    for prediction in sorted_hypernyms:
-        pred_file.write(prediction[0].replace('_', ' ') + '\t')
-        #logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
-    pred_file.write('\n')
-pred_file.close()
+if make_test_predictions:
+    pred_file_name = '{}.{}_{}_{}_{}.output.txt'.format(dataset_id, dataset_mapping[dataset_id][0], regularization, include_sparse_feats, input_hyperparams)
+    make_predictions(test_queries, pred_file_name)
+    #results = return_official_scores(solution_file, pred_file_name)
