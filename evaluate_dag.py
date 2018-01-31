@@ -1,5 +1,4 @@
 import logging
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s")
 import sys
 import ntpath
 import pickle
@@ -20,6 +19,10 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate
 from sklearn.pipeline import make_pipeline
+
+logging.basicConfig(
+    level=logging.DEBUG, 
+    format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s")
 
 regularization = 1.0
 include_sparse_feats = True
@@ -311,7 +314,7 @@ for category in categories:
     else:
         models[category].fit(X, y_per_category[category])
         backup_model = models[category]
-        logging.info((category, '  '.join( 
+        logging.info((category, '  '.join(
             '{} {:.2}'.format(fea, coeff) for fea, coeff in sorted(list(zip(
                 feature_names_used + ['{}_{}'.format(i,j) for i in range(sparse_dimensions) for j in range(sparse_dimensions)],
                 models[category].steps[0][1].coef_[0])),
