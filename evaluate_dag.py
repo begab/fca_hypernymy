@@ -5,30 +5,26 @@ import pickle
 import numpy as np
 import networkx as nx
 import os
-import pygraphviz
-#import matplotlib.pyplot as plt
 
 from official_scorer import return_official_scores
 
 from collections import Counter, defaultdict
 from scipy.sparse import csr_matrix
-from scipy.sparse import hstack, vstack
+from scipy.sparse import hstack
 
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_validate
 from sklearn.pipeline import make_pipeline
 
 logging.basicConfig(
-    level=logging.DEBUG, 
+    level=logging.DEBUG,
     format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s")
 
 regularization = 1.0
 include_sparse_feats = True
-path_to_dag = 'dots/1A_UMBC_tokenized.txt_100_sg.vec.gz_True_200_0.4_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
+path_to_dag = 'dots/1A_UMBC_tokenized.txt_100_sg.vec.gz_'\
+    'True_200_0.4_unit_True_vocabulary_filtered.alph.reduced2_'\
+    'more_permissive.dot'
 make_test_predictions = False
-#path_to_dag = 'dots/1B_it_itwac_tokenized.txt_100_sg.vec.gz_True_200_0.3_unit_True_vocabulary_filtered.alph.reduced2_more_permissive.dot'
 if len(sys.argv) > 1:
     regularization = float(sys.argv[1])
 if len(sys.argv) > 2:
@@ -44,21 +40,30 @@ if dataset_id == '1A':
     input_hyperparam_indices = [4, 6, 7, 8]
 else:
     input_hyperparam_indices = [5, 7, 8, 9]
-input_hyperparams = '_'.join([str(path_basename.split('_')[i]) for i in input_hyperparam_indices])
-logging.debug('Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}\nmake test predictions: {}'.format(regularization, include_sparse_feats,path_to_dag, make_test_predictions))
-
+input_hyperparams = '_'.join([str(path_basename.split('_')[i])
+                              for i in input_hyperparam_indices])
+logging.debug(
+    'Regularization: {}\ninclude_sparse_feats: {}\nInput dag: {}\n'
+    'make test predictions: {}'.format(
+        regularization, include_sparse_feats, path_to_dag,
+        make_test_predictions))
 dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
-#dataset_dir = '/mnt/permanent/Language/English/Data/SemEval/2018/Hypernym/SemEval2018_task9_test'
-sparse_dimensions = int(path_basename.split('_')[6 if dataset_id == '1A' else 7])
+"""
+dataset_dir = '/mnt/permanent/Language/English/Data/SemEval/2018/Hypernym/
+SemEval2018_task9_test'
+"""
+sparse_dimensions = int(path_basename.split('_')[6 if dataset_id == '1A'
+                                                 else 7])
 is_sg = '_sg' in path_basename
 
 dataset_mapping = {
-    '1A':['english', 'UMBC'],
-    '1B':['italian', 'it_itwac'],
-    '1C':['spanish', 'es_1Billion'],
-    '2A':['medical', 'med_pubmed'],
-    '2B':['music', 'music_bioreviews']
+    '1A': ['english', 'UMBC'],
+    '1B': ['italian', 'it_itwac'],
+    '1C': ['spanish', 'es_1Billion'],
+    '2A': ['medical', 'med_pubmed'],
+    '2B': ['music', 'music_bioreviews']
 }
+
 
 def generate_file_names():
     data_file = '{}/training/data/{}.{}.training.data.txt'.format(
@@ -76,36 +81,46 @@ def generate_file_names():
         dataset_id,
         dataset_mapping[dataset_id][0]
     )
-    frequency_file = '{}/SemEval2018_Frequency_lists/{}_{}_frequencylist.txt'.format(
+    frequency_file = '{}/SemEval2018_Frequency_lists/'
+    '{}_{}_frequencylist.txt'.format(
         dataset_dir,
         dataset_id,
         dataset_mapping[dataset_id][0]
     )
     return data_file, gold_file, vocab_file, frequency_file
 
+
 train_data_file, train_gold_file, vocab, freq_file = generate_file_names()
-dev_data_file, dev_gold_file = train_data_file.replace('training', 'trial'), train_gold_file.replace('training', 'trial')
+dev_data_file = train_data_file.replace('training', 'trial')
+dev_gold_file = train_gold_file.replace('training', 'trial')
 test_data_file = train_data_file.replace('training', 'test')
 
-train_queries = [(l.split('\t')[0].replace(' ', '_'), l.split('\t')[1].strip()) for l in open(train_data_file)]
-train_golds = [
-    [x.replace(' ', '_') for x in line.strip().split('\t')] for line in open(train_gold_file)
-]
+
+def get_queries(data_file, gold_file):  # TODO train, dev, test
+    queries = [(l.split('\t')[0].replace(' ', '_'), l.split('\t')[1].strip())
+               for l in open(data_file)]
+    if gold_file:
+        golds = [[x.replace(' ', '_') for x in line.strip().split('\t')]
+                 for line in open(gold_file)]
+    else:
+        gold_file = None
+    return queries, golds
+
+
+train_queries, train_golds = get_queries(train_data_file, train_gold_file)
 
 gold_counter = defaultdict(Counter)
 for tq, tgs in zip(train_queries, train_golds):
     gold_counter[tq[1]].update(tgs)
 
-dev_queries = [(l.split('\t')[0].replace(' ', '_'), l.split('\t')[1].strip()) for l in open(dev_data_file)]
-dev_golds = [
-    [x.replace(' ', '_') for x in line.strip().split('\t')] for line in open(dev_gold_file)
-]
+dev_queries, dev_golds = get_queries(dev_data_file, dev_gold_file)
 
-test_queries = [(l.split('\t')[0].replace(' ', '_'), l.split('\t')[1].strip()) for l in open(test_data_file)]
+test_queries, _ = get_queries(test_data_file, None)
 
-# read in useful data re the data
-i2w = {i:w.strip() for i,w in enumerate(open('data/{}.vocab'.format(dataset_id)))}
-w2i = {v:k for k,v in i2w.items()}
+# read in useful data re the data (indices and freqiecies)
+i2w = {i: w.strip() for i, w in enumerate(open('data/{}.vocab'.format(
+    dataset_id)))}
+w2i = {v: k for k, v in i2w.items()}
 word_frequencies = {}
 for l in open(freq_file):
     word = l.split('\t')[0].replace(' ', '_')
@@ -114,10 +129,15 @@ for l in open(freq_file):
         word_frequencies[word.lower()] = freq
     word_frequencies[word] = freq
 
-if dataset_id == '1B':  # quick fix to overcome the fact that the freqiecy file and the training data contains this word with different capitalization
+if dataset_id == '1B':
+    """
+    quick fix to overcome the fact that the freqiecy file and the training data
+    contains this word with different capitalization
+    """
     word_frequencies['equazione_di_Bernoulli'] = 13
 
-embedding_file = 'dense_embeddings/{}_sg_vocab_filtered.emb'.format(dataset_id, 'sg' if is_sg else 'cbow', 'rb')
+embedding_file = 'dense_embeddings/{}_sg_vocab_filtered.emb'.format(
+    dataset_id, 'sg' if is_sg else 'cbow', 'rb')
 embeddings = pickle.load(open(embedding_file, 'rb'))
 unit_embeddings = embeddings.copy()
 model_row_norms = np.sqrt((unit_embeddings**2).sum(axis=1))[:, np.newaxis]
@@ -125,26 +145,33 @@ unit_embeddings /= model_row_norms
 
 dag = nx.drawing.nx_agraph.read_dot(path_to_dag)
 
-deepest_occurrence = {}    # dict mapping words to their location according to their most specific concept
-nodes_to_attributes = {}   # dict containing which neurons are active for a given node
-nodes_to_words = {}        # dict containing all the words located at a given node
-words_to_nodes = defaultdict(set)        # a dict containing all the nodes a word is assigned to
-words_to_attributes = {}   # dict containing the full set of basis active for a given word
+deepest_occurrence = defaultdict(lambda: [0])  # {word: most specific location}
+nodes_to_attributes = {}   # {node: active neurons}
+nodes_to_words = {}        # {node: all the words located at it}
+words_to_nodes = defaultdict(set)   # {word: all the nodes it is assigned to}
+words_to_attributes = {}   # {word: the full set of basis active for it}
 for n in dag.nodes(data=True):
     words = n[1]['label'].split('|')[1].split('\\n')
     node_id = int(n[1]['label'].split('|')[0])
-    attributes = [int(att.replace('n', '')) for att in n[1]['label'].split('|')[2].split('\\n') if len(att.strip())>0]
+    attributes = [
+        int(att.replace('n', ''))
+        for att in n[1]['label'].split('|')[2].split('\\n')
+        if len(att.strip()) > 0]
     nodes_to_attributes[node_id] = attributes
     nodes_to_words[node_id] = set(words)
 
     for w in words:
         words_to_nodes[w].add(node_id)
-        if w not in deepest_occurrence or deepest_occurrence[w][2] < len(attributes):
+        if (w not in deepest_occurrence or deepest_occurrence[w][2] <
+                len(attributes)):
             deepest_occurrence[w] = (node_id, len(words), len(attributes))
             words_to_attributes[w] = attributes
 
+
 def get_children_words(graph, node_id):
-    return [nodes_to_words[int(n.replace('node', ''))] for n in graph['node{}'.format(node_id)].keys()]
+    return [nodes_to_words[int(n.replace('node', ''))]
+            for n in graph['node{}'.format(node_id)].keys()]
+
 
 def get_own_words(graph, node_id):
     own_words = nodes_to_words[node_id].copy()
@@ -154,6 +181,7 @@ def get_own_words(graph, node_id):
     own_words -= to_remove
     return own_words
 
+
 def update_dag_based_features(features, query_type, gold, own_query_words):
     if gold in own_query_words:
         features['dag_shortest_path'][query_type].append(0)
@@ -161,24 +189,36 @@ def update_dag_based_features(features, query_type, gold, own_query_words):
         features['dag_number_of_paths'][query_type].append(1)
     else:
         gold_location = deepest_occurrence[gold][0] if gold_in_dag else 0
-        all_paths = list(nx.all_simple_paths(dag, 'node{}'.format(gold_location), 'node{}'.format(query_location)))
+        # TODO undefined names 'gold_in_dag', 'query_location'
+        all_paths = list(nx.all_simple_paths(
+            dag, 'node{}'.format(gold_location),
+            'node{}'.format(query_location)))
         if len(all_paths) > 0:
-            features['dag_shortest_path'][query_type].append(min([len(p)-1 for p in all_paths]))
-            features['dag_avg_path_len'][query_type].append(np.mean([len(p)-1 for p in all_paths]))
+            features['dag_shortest_path'][query_type].append(
+                min([len(p)-1 for p in all_paths]))
+            features['dag_avg_path_len'][query_type].append(
+                np.mean([len(p)-1 for p in all_paths]))
             features['dag_number_of_paths'][query_type].append(len(all_paths))
         else:
-            all_paths = list(nx.all_simple_paths(dag, 'node{}'.format(query_location), 'node{}'.format(gold_location)))
+            all_paths = list(nx.all_simple_paths(
+                dag, 'node{}'.format(query_location),
+                'node{}'.format(gold_location)))
             if len(all_paths) == 0:
                 features['dag_shortest_path'][query_type].append(-100)
                 features['dag_avg_path_len'][query_type].append(-100)
                 features['dag_number_of_paths'][query_type].append(0)
             else:
-                features['dag_shortest_path'][query_type].append(-min([len(p)-1 for p in all_paths]))
-                features['dag_avg_path_len'][query_type].append(-np.mean([len(p)-1 for p in all_paths]))
-                features['dag_number_of_paths'][query_type].append(len(all_paths))
+                features['dag_shortest_path'][query_type].append(
+                    -min([len(p)-1 for p in all_paths]))
+                features['dag_avg_path_len'][query_type].append(
+                    -np.mean([len(p)-1 for p in all_paths]))
+                features['dag_number_of_paths'][query_type].append(
+                    len(all_paths))
+
 
 features = defaultdict(lambda: defaultdict(list))
 attribute_pair_freq = defaultdict(int)
+
 
 def calculate_features(query_word, gold_candidate, count_att_pairs=False):
     query_vec = embeddings[w2i[query_word]]
@@ -186,28 +226,32 @@ def calculate_features(query_word, gold_candidate, count_att_pairs=False):
     query_tokens = set(query_tokens_l)
     query_in_dag = query_word in deepest_occurrence
     query_location = deepest_occurrence[query_word][0] if query_in_dag else 0
-    query_attributes = set(words_to_attributes[query_word] if query_in_dag else [])
-    #if query_in_dag:
+    query_attributes = set(words_to_attributes[query_word] if query_in_dag
+                           else [])
+    # if query_in_dag:
     #    own_query_words = get_own_words(dag, query_location)
-    #else: # if the query is not in the dag, it means that it had no nonzero coefficient in its representation
+    # else:
+    #    # In this case, the query had no nonzero coefficient
     #    own_query_words = set(w2i.keys()) - deepest_occurrence.keys()
 
     gold_candidate_vec = embeddings[w2i[gold_candidate]]
     gold_candidate_tokens_l = gold_candidate.lower().split('_')
     gold_candidate_tokens = set(gold_candidate_tokens_l)
     gold_candidate_in_dag = gold_candidate in deepest_occurrence
-    gold_candidate_location = deepest_occurrence[gold_candidate][0] if gold_candidate_in_dag else 0
-    gold_candidate_attributes = set(words_to_attributes[gold_candidate] if gold_candidate_in_dag else [])
+    gold_candidate_location = deepest_occurrence[gold_candidate][0]
+    gold_candidate_attributes = set(
+        words_to_attributes[gold_candidate] if gold_candidate_in_dag else [])
 
     feature_vector = {}
+    # We use 79-length lines in most of the files (following PEP8), except for
+    # the specification of feature_vector values, where long lines remain.
     feature_vector['basis_combinations'] = []
     for q_att in query_attributes:
         for gc_att in gold_candidate_attributes:
             feature_vector['basis_combinations'].append((q_att, gc_att))
 
-
-    feature_vector['is_frequent_hypernym'] = 1 if gold_candidate in frequent_hypernyms[query_type] else 0
-    feature_vector['has_textual_overlap'] = 1 if len(gold_candidate_tokens & query_tokens) > 0 else 0
+    feature_vector['is_frequent_hypernym'] = int(gold_candidate in frequent_hypernyms[query_type])
+    feature_vector['has_textual_overlap'] = int(len(gold_candidate_tokens & query_tokens) > 0)
 
     if count_att_pairs:
         for q_att in query_attributes:
@@ -215,40 +259,46 @@ def calculate_features(query_word, gold_candidate, count_att_pairs=False):
                 attribute_pair_freq[q_att, c_att] += 1
 
     for name, ind in [('first', 0), ('last', -1)]:
-        feature_vector['cand_is_{}_w'.format(name)] = int(
-                query_tokens_l[ind] == gold_candidate)
-        feature_vector['same_{}_w'.format(name)] = int(
-            query_tokens_l[ind] == gold_candidate_tokens_l[ind])
+        feature_vector['cand_is_{}_w'.format(name)] = int(query_tokens_l[ind] == gold_candidate)
+        feature_vector['same_{}_w'.format(name)] = int(query_tokens_l[ind] == gold_candidate_tokens_l[ind])
 
-    #update_dag_based_features(features, query_type, gold, own_query_words)
-    feature_vector['same_dag_position'] = 1 if query_location == gold_candidate_location else 0
-    feature_vector['right_below_in_dag'] = 1 if dag.has_edge('node{}'.format(query_location), 'node{}'.format(gold_candidate_location)) else 0
-    feature_vector['right_above_in_dag'] = 1 if dag.has_edge('node{}'.format(gold_candidate_location), 'node{}'.format(query_location)) else 0
+    # update_dag_based_features(features, query_type, gold, own_query_words)
+    feature_vector['same_dag_position'] = int(query_location == gold_candidate_location)
+    feature_vector['right_below_in_dag'] = int(dag.has_edge('node{}'.format(query_location), 'node{}'.format(gold_candidate_location)))
+    feature_vector['right_above_in_dag'] = int(dag.has_edge('node{}'.format(gold_candidate_location), 'node{}'.format(query_location)))
     feature_vector['difference_length'] = np.linalg.norm(query_vec - gold_candidate_vec)
     feature_vector['length_ratios'] = np.linalg.norm(query_vec) / np.linalg.norm(gold_candidate_vec)
     feature_vector['cosines'] = unit_embeddings[w2i[query_word]].dot(unit_embeddings[w2i[gold_candidate]])
     attribute_intersection_size = len(query_attributes & gold_candidate_attributes)
-    attribute_union_size = len(query_attributes | gold_candidate_attributes)
+    # attribute_union_size = len(query_attributes | gold_candidate_attributes)
     feature_vector['attribute_differenceA'] = len(query_attributes - gold_candidate_attributes)
     feature_vector['attribute_differenceB'] = len(gold_candidate_attributes - query_attributes)
-    feature_vector['attributes_intersect'] = 1 if attribute_intersection_size > 0 else 0
+    feature_vector['attributes_intersect'] = int(attribute_intersection_size > 0)
     if query_word in word_frequencies and gold_candidate in word_frequencies:
         feature_vector['freq_ratios_log'] = np.log10(word_frequencies[query_word] / word_frequencies[gold_candidate])
     else:
         feature_vector['freq_ratios_log'] = 0
-        #print(query_word, gold_candidate, query_word in word_frequencies, query_word in word_frequencies and gold_candidate in word_frequencies)
+        # logging.debug((query_word, gold_candidate))
     return feature_vector
 
 
 training_pairs = defaultdict(list)
 
 categories = ['Concept', 'Entity']
-very_frequent_hypernyms = {category: set([h for h,f in gold_counter[category].most_common(10)]) for category in categories}
-frequent_hypernyms = {category: set([h for h,f in gold_counter[category].most_common()]) for category in categories}
+very_frequent_hypernyms = {
+    category: set([h for h, f in gold_counter[category].most_common(10)])
+    for category in categories}
+frequent_hypernyms = {
+    category: set([h for h, f in gold_counter[category].most_common()])
+    for category in categories}
 np.random.seed(400)
 missed_query, missed_hypernyms = 0, 0
-for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, train_golds):
-    #if i % 100 == 0:
+# TODO the following line may be replaced to
+# for i, (query_tuple, hypernyms) in enumerate(zip(train_queries,
+# train_golds)):
+for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries,
+                                     train_golds):
+    # if i % 100 == 0:
     #    logging.info('{} training cases covered.'.format(i))
     query, query_type = query_tuple[0], query_tuple[1]
     if query not in w2i:
@@ -256,9 +306,13 @@ for i, query_tuple, hypernyms in zip(range(len(train_queries)), train_queries, t
         missed_hypernyms += len(hypernyms)
         continue
 
-    potential_negative_samples = [h for h in gold_counter[query_type] if h not in hypernyms and h in word_frequencies]
+    potential_negative_samples = [
+        h for h in gold_counter[query_type]
+        if h not in hypernyms and h in word_frequencies]
     if len(potential_negative_samples) > 0:
-        negative_samples = np.random.choice(potential_negative_samples, size=min(50, len(potential_negative_samples)), replace=False)
+        negative_samples = np.random.choice(
+            potential_negative_samples, size=min(
+                50, len(potential_negative_samples)), replace=False)
     else:
         negative_samples = []
 
@@ -281,6 +335,7 @@ def logg_attribute_pair_hist():
                   sorted(attribute_pair_hist.items(), key=lambda item: item[1],
                          reverse=True)))
 
+
 X_per_category = {c: [] for c in categories}
 y_per_category = {}
 attribute_pair_to_ind = {p: i for i, p in enumerate(attribute_pair_freq)}
@@ -295,17 +350,23 @@ for category in categories:
             X_per_category[category].append(features[feature][category])
 
 backup_model = None
-models = {c: make_pipeline(LogisticRegression(C=regularization)) for c in categories}
+models = {c: make_pipeline(LogisticRegression(C=regularization))
+          for c in categories}
 for category in categories:
     sparse_data, sparse_indices, sparse_ptrs = [], [], [0]
     for basis_pairs in features['basis_combinations'][category]:
         sparse_data.extend(len(basis_pairs) * [1.])
-        sparse_indices.extend([basis_pair[0] * sparse_dimensions + basis_pair[1] for basis_pair in basis_pairs])
+        sparse_indices.extend([
+            basis_pair[0] * sparse_dimensions + basis_pair[1]
+            for basis_pair in basis_pairs])
         sparse_ptrs.append(len(sparse_indices))
-    sparse_features = csr_matrix((sparse_data, sparse_indices, sparse_ptrs), shape=(len(sparse_ptrs)-1, sparse_dimensions**2))
+    sparse_features = csr_matrix(
+        (sparse_data, sparse_indices, sparse_ptrs),
+        shape=(len(sparse_ptrs)-1, sparse_dimensions**2))
 
     if include_sparse_feats:
-        X = hstack([csr_matrix(np.array(X_per_category[category]).T), sparse_features])
+        X = hstack([csr_matrix(np.array(X_per_category[category]).T),
+                    sparse_features])
     else:
         X = np.array(X_per_category[category]).T
 
@@ -314,10 +375,16 @@ for category in categories:
     else:
         models[category].fit(X, y_per_category[category])
         backup_model = models[category]
+        # TODO comments by Makrai
+        #   * the order of {}_{}s should conform attribute_pair_to_ind.
+        #       Not sure.
+        #   * can we just feature_names_used += [{}_{} for ...]?
         logging.info((category, '  '.join(
-            '{} {:.2}'.format(fea, coeff) for fea, coeff in sorted(list(zip(
-                feature_names_used + ['{}_{}'.format(i,j) for i in range(sparse_dimensions) for j in range(sparse_dimensions)],
-                models[category].steps[0][1].coef_[0])),
+            '{} {:.2}'.format(fea, coeff) for fea, coeff in sorted(
+                list(zip(feature_names_used + [
+                    '{}_{}'.format(i, j) for i in range(sparse_dimensions)
+                    for j in range(sparse_dimensions)],
+                         models[category].steps[0][1].coef_[0])),
                 key=lambda p: abs(p[1]), reverse=True)[0:20])))
 
 for category in categories:
@@ -329,10 +396,13 @@ def make_predictions(queries, out_file_name):
     pred_file = open(out_file_name, 'w')
     num_of_features = len(feature_names_used)
     num_of_features += sparse_dimensions**2 if include_sparse_feats else 0
-    true_class_index = {query_type:[i for i,c in enumerate(models[query_type].classes_) if c][0] for query_type in categories}
+    true_class_index = {
+        query_type: [i for i, c in enumerate(models[query_type].classes_)
+                     if c][0]
+        for query_type in categories}
 
     for i, query_tuple in zip(range(len(queries)), queries):
-        #logging.info(query_tuple, hypernyms)
+        # logging.info(query_tuple, hypernyms)
         if i % 250 == 0:
             logging.debug('{} predictions made'.format(i))
         query, query_type = query_tuple[0], query_tuple[1]
@@ -344,7 +414,8 @@ def make_predictions(queries, out_file_name):
 
         possible_hypernyms = []
         sparse_data, sparse_indices, sparse_ptrs = [], [], [0]
-        possible_candidates = [h for h in gold_counter[query_type]]  # TODO shall we regard all the vocabulary as a potential hypernym?
+        possible_candidates = [h for h in gold_counter[query_type]]  # TODO
+        # shall we regard all the vocabulary as a potential hypernym?
         for gold_candidate in possible_candidates:
             if gold_candidate not in w2i:
                 continue
@@ -356,18 +427,27 @@ def make_predictions(queries, out_file_name):
 
             if include_sparse_feats:
                 basis_pairs = feature_vector['basis_combinations']
-                sparse_data.extend(len(basis_pairs) *[1])
-                sparse_indices.extend([len(feature_names_used) + basis_pair[0] * sparse_dimensions + basis_pair[1] for basis_pair in basis_pairs])
+                sparse_data.extend(len(basis_pairs) * [1])
+                sparse_indices.extend([
+                    len(feature_names_used) + basis_pair[0] * sparse_dimensions
+                    + basis_pair[1] for basis_pair in basis_pairs])
             sparse_ptrs.append(len(sparse_data))
-        features_to_rank = csr_matrix((sparse_data, sparse_indices, sparse_ptrs), shape=(len(possible_hypernyms), num_of_features))
-        possible_hypernym_scores = models[query_type].predict_proba(features_to_rank)[:,true_class_index[query_type]]
-        possible_hypernyms = [(h,s) for h,s in zip(possible_hypernyms, possible_hypernym_scores)]
+        features_to_rank = csr_matrix(
+            (sparse_data, sparse_indices, sparse_ptrs),
+            shape=(len(possible_hypernyms), num_of_features))
+        possible_hypernym_scores = models[query_type].predict_proba(
+            features_to_rank)[:, true_class_index[query_type]]
+        possible_hypernyms = [(h, s) for h, s in zip(
+            possible_hypernyms, possible_hypernym_scores)]
 
-        sorted_hypernyms = sorted(possible_hypernyms, key=lambda x:x[1])[-15:]
-        sorted_hypernyms = sorted(sorted_hypernyms, key=lambda p:word_frequencies[p[0]], reverse=True)
+        sorted_hypernyms = sorted(possible_hypernyms, key=lambda x: x[1])[-15:]
+        sorted_hypernyms = sorted(
+            sorted_hypernyms, key=lambda p: word_frequencies[p[0]],
+            reverse=True)
         for prediction in sorted_hypernyms:
             pred_file.write(prediction[0].replace('_', ' ') + '\t')
-            ##logging.info('\t\t', possible_hypernyms[prediction_index].replace('_', ' '))
+            # logging.debug('\t\t',
+            # possible_hypernyms[prediction_index].replace('_', ' '))
         pred_file.write('\n')
     pred_file.close()
 
@@ -379,22 +459,32 @@ solution_file = os.path.join(
 predictions_dir = './predictions'
 if not os.path.exists(predictions_dir):
     os.mkdir(predictions_dir)
-pred_file_name = '{}_{}_{}_{}.predictions'.format(path_to_dag.replace('dots', 'predictions'), regularization, include_sparse_feats, input_hyperparams)
+pred_file_name = '{}_{}_{}_{}.predictions'.format(
+    path_to_dag.replace('dots', 'predictions'), regularization,
+    include_sparse_feats, input_hyperparams)
 make_predictions(dev_queries, pred_file_name)
 results = return_official_scores(solution_file, pred_file_name)
-print('{}\t{}\t{}\t{}'.format('\t'.join(['{:.3}'.format(results[m]) for m in metrics]), regularization, include_sparse_feats, path_basename))
+print('{}\t{}\t{}\t{}'.format(
+    '\t'.join(['{:.3}'.format(results[m]) for m in metrics]), regularization,
+    include_sparse_feats, path_basename))
 
-### provide a baseline predicting the most common etalon hypernyms per query type always ###
+"""
+provide a baseline predicting the most common training hypernyms per query type
+"""
 out_file = open('{}_baseline.predictions'.format(dataset_id), 'w')
 for query_tuple, hypernyms in zip(dev_queries, dev_golds):
-    out_file.write('{}\n'.format('\t'.join([t[0] for t in gold_counter[query_tuple[1]].most_common(15)])))
+    out_file.write('{}\n'.format('\t'.join([
+        t[0] for t in gold_counter[query_tuple[1]].most_common(15)])))
 out_file.close()
 
 results = return_official_scores(solution_file, out_file.name)
-print('{}\t{}'.format('\t'.join(['{:.3}'.format(results[m]) for m in metrics]), dataset_id))
+print('{}\t{}'.format(
+    '\t'.join(['{:.3}'.format(results[m]) for m in metrics]), dataset_id))
 logging.info('')
 
 if make_test_predictions:
-    pred_file_name = '{}.{}_{}_{}_{}.output.txt'.format(dataset_id, dataset_mapping[dataset_id][0], regularization, include_sparse_feats, input_hyperparams)
+    pred_file_name = '{}.{}_{}_{}_{}.output.txt'.format(
+        dataset_id, dataset_mapping[dataset_id][0], regularization,
+        include_sparse_feats, input_hyperparams)
     make_predictions(test_queries, pred_file_name)
-    #results = return_official_scores(solution_file, pred_file_name)
+    # results = return_official_scores(solution_file, pred_file_name)
