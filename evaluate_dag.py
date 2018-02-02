@@ -22,10 +22,10 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--subtask', dest='dataset_id', default='1A')
     parser.add_argument('--dense_archit', default='sg', choices=['sg', 'cbow'])
-    parser.add_argument('--sparse_dim', default=200)  # TODO Sparta
+    parser.add_argument('--sparse_dimensions', default=200)  # TODO Sparta
     parser.add_argument('--sparse_density', default=.3)
-    parser.add_argument('--sparse-old',
-                        action='store_false', dest='sparse_new')
+    parser.add_argument('--sparse-new',
+                        action='store_true', dest='sparse_new')
     parser.add_argument('--not-include-sparse-feats',
                         action='store_false', dest='include_sparse_feats')
     parser.add_argument('--regularization', type=float, nargs=1, default=1.0)
@@ -48,11 +48,11 @@ class ThreeHundredSparsians():
         self.read_background_word_freq()
         self.get_embed()
         self.get_dag()
+        self.attr_pair_freq = defaultdict(int)
         self.get_training_pairs()
         self.train()
         self.init_eval()
         self.make_baseline()
-        self.attr_pair_freq = defaultdict(int)
         self.test()
 
     def init_get_task_data(self):
@@ -68,7 +68,7 @@ class ThreeHundredSparsians():
             'vocabulary_filtered{}.alph.reduced2_more_permissive.dot'.format(
                 self.args.dataset_id,
                 self.dataset_mapping[self.args.dataset_id][1],
-                self.args.dense_archit, self.args.sparse_dim,
+                self.args.dense_archit, self.args.sparse_dimensions,
                 self.args.sparse_density,
                 'NEW' if self.args.sparse_new else ''))
 
@@ -146,9 +146,18 @@ class ThreeHundredSparsians():
         self.unit_embeddings /= model_row_norms
 
     def get_dag(self):
-        logging.debug('Reading concept graph...')
-        self.dag = nx.drawing.nx_agraph.read_dot(
-            os.path.join(self.task_dir, 'dots', self.dag_basename))
+        root, ext = os.path.splitext(self.dag_basename)
+        gpickle_fn = os.path.join(self.task_dir, 'gpickle',
+                                  '{}.gpickle'.format(root))
+        # TODO mkdir gpickle, {dev,test}/{predictions,metrics}
+        if os.path.exists(gpickle_fn):
+            logging.info('Loading gpickle...') 
+            self.dag = nx.read_gpickle(gpickle_fn)
+        else:
+            logging.info('Reading dot file...') 
+            self.dag = nx.drawing.nx_agraph.read_dot(
+                os.path.join(self.task_dir, 'dots', self.dag_basename))
+            nx.write_gpickle(self.dag, gpickle_fn)
         #  TODO gpickle 
         logging.info('Populating dag dicts...')
         self.deepest_occurrence = defaultdict(lambda: [0])
@@ -158,9 +167,9 @@ class ThreeHundredSparsians():
         words_to_nodes = defaultdict(set)   # {w: the nodes it is assigned to}
         self.words_to_attributes = {}  # {word: the set of bases active for it}
         for i, n in enumerate(self.dag.nodes(data=True)):
-            if not i % 10000:
-                logging.info((i, n))
             words = n[1]['label'].split('|')[1].split('\\n')
+            if not i % 100000:
+                logging.info((i, words))
             node_id = int(n[1]['label'].split('|')[0])
             attributes = [
                 int(att.replace('n', ''))
@@ -346,7 +355,7 @@ class ThreeHundredSparsians():
 
     def make_predictions(self, queries, out_file_name):
         num_of_features = len(self.feat_names_used)
-        num_of_features += self.args.sparse_dimensions**2 if include_sparse_feats else 0
+        num_of_features += self.args.sparse_dimensions**2 if self.args.include_sparse_feats else 0
         # TODO do we need so many?
         true_class_index = {
             query_type: [
@@ -416,9 +425,9 @@ class ThreeHundredSparsians():
             '{}.{}.trial.gold.txt'.format(
                 self.args.dataset_id,
                 self.dataset_mapping[self.args.dataset_id][0]))
-        predictions_dir = './predictions'
-        if not os.path.exists(predictions_dir):
-            os.mkdir(predictions_dir)
+        #  predictions_dir = './predictions' TODO separately for dev, test
+        #  if not os.path.exists(predictions_dir):
+        #    os.mkdir(predictions_dir)
         self.metrics = ['MAP', 'MRR', 'P@1', 'P@3', 'P@5', 'P@15']
 
     def make_baseline(self):
@@ -435,21 +444,21 @@ class ThreeHundredSparsians():
 
     def write_metrics(self, prediction_filen, metric_filen):
         results = return_official_scores(self.gold_file, prediction_filen)
-        for res in results.items():
-            logging.info(res)
+        for item_ in results.items():
+            logging.info('{} {:.3}'.format(*item_))
         with open(metric_filen, mode='w') as metric_file:
             metric_file.write('{}\t{}\t{}\t{}'.format(
-                '\t'.join('{:.3}' for _ in range(len(results))).format(
-                    results[mtk] for mtk in self.metrics),
+                '\t'.join('{:.3}'.format(results[mtk]) 
+                          for mtk in self.metrics),
                 self.args.regularization, self.args.include_sparse_feats,
                 self.dag_basename))
 
     def test(self):
         def get_out_filen(dev_or_test, pred_or_met):
             return '{}.{}_{}_{}.{}.output.txt'.format(
-                os.path.join(self.task_dir, dev_or_test, pred_or_met,
-                             self.dataset_id),
-                #  self.dataset_mapping[self.args.dataset_id][0],
+                os.path.join(self.task_dir, 'results', dev_or_test,
+                             pred_or_met, self.args.dataset_id),
+                self.dataset_mapping[self.args.dataset_id][0],
                 self.dag_basename,
                 self.args.include_sparse_feats,
                 self.args.regularization,
