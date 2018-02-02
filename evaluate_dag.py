@@ -46,19 +46,12 @@ class ThreeHundredSparsians():
         self.categories = ['Concept', 'Entity']
         self.get_train_hyp_freq()
         self.read_background_word_freq()
-        logging.debug('')
         self.get_embed()
-        logging.debug('')
         self.get_dag()
-        logging.debug('')
         self.get_training_pairs()
-        logging.debug('')
         self.train()
-        logging.debug('')
         self.init_eval()
-        logging.debug('')
         self.make_baseline()
-        logging.debug('')
         self.attr_pair_freq = defaultdict(int)
         self.test()
 
@@ -110,7 +103,6 @@ class ThreeHundredSparsians():
         self.test_queries, _ = self.get_queries('test')
 
     def get_train_hyp_freq(self):
-        logging.info('Counting training hypernyms...')
         self.gold_counter = defaultdict(Counter)
         for tq, tgs in zip(self.train_queries, self.train_golds):
             self.gold_counter[tq[1]].update(tgs)
@@ -128,8 +120,6 @@ class ThreeHundredSparsians():
         self.word_frequencies = {}
         for i, l in enumerate(open(self.frequency_file)):
             word = l.split('\t')[0].replace(' ', '_')
-            if not i % 1000:
-                logging.info(i, word)
             freq = int(l.split('\t')[1])
             if word.lower() not in self.word_frequencies:
                 self.word_frequencies[word.lower()] = freq
@@ -142,7 +132,6 @@ class ThreeHundredSparsians():
             self.word_frequencies['equazione_di_Bernoulli'] = 13
 
     def get_embed(self):
-        logging.info('Fetching embedding...')
         i2w = {i: w.strip() for i, w in enumerate(open('data/{}.vocab'.format(
             self.args.dataset_id)))}
         self.w2i = {v: k for k, v in i2w.items()}
@@ -151,19 +140,17 @@ class ThreeHundredSparsians():
             '{}_{}_vocab_filtered.emb'.format(
                 self.args.dataset_id, self.args.dense_archit))
         self.embeddings = pickle.load(open(embedding_file, 'rb'))
-        logging.debug('')
         self.unit_embeddings = self.embeddings.copy()
-        logging.debug('')
         model_row_norms = np.sqrt((self.unit_embeddings**2).sum(
             axis=1))[:, np.newaxis]
-        logging.debug('')
         self.unit_embeddings /= model_row_norms
 
     def get_dag(self):
-        logging.debug('Fetching concept graph...')
+        logging.debug('Reading concept graph...')
         self.dag = nx.drawing.nx_agraph.read_dot(
             os.path.join(self.task_dir, 'dots', self.dag_basename))
-
+        #  TODO gpickle 
+        logging.info('Populating dag dicts...')
         self.deepest_occurrence = defaultdict(lambda: [0])
         # deepest_occurrence = {w: most specific location}
         nodes_to_attributes = {}   # {node: active neurons}
@@ -171,7 +158,7 @@ class ThreeHundredSparsians():
         words_to_nodes = defaultdict(set)   # {w: the nodes it is assigned to}
         self.words_to_attributes = {}  # {word: the set of bases active for it}
         for i, n in enumerate(self.dag.nodes(data=True)):
-            if not i % 1000:
+            if not i % 10000:
                 logging.info((i, n))
             words = n[1]['label'].split('|')[1].split('\\n')
             node_id = int(n[1]['label'].split('|')[0])
@@ -290,7 +277,7 @@ class ThreeHundredSparsians():
                 training_pairs[query_type].append((query, gold_candidate))
                 self.train_feats['class_label'][query_type].append(
                     gold_candidate in hypernyms)
-                for feat_name, feat_val in self.calculate_self.train_feats(
+                for feat_name, feat_val in self.calculate_features(
                         query, gold_candidate, query_type,
                         count_att_pairs=True).items():
                     self.train_feats[feat_name][query_type].append(feat_val)
