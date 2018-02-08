@@ -26,8 +26,8 @@ def get_args():
     parser.add_argument('--sparse_density', default=.3)
     parser.add_argument(
         '--sparse-new', action='store_true', dest='sparse_new',
-        help='sparse bases extracted from the dense embedding by a heuristic
-        procedure similar to Gram-Schmidt orthogonalization')
+        help='sparse bases extracted from the dense embedding by a heuristic '
+        'procedure similar to Gram-Schmidt orthogonalization')
     # a submission-be nem ilyenek kerültek
     # TODO érdemben meggyőződni róla h akkor ez most jó-e vagy sem 
     parser.add_argument('--not-include-sparse-feats',
