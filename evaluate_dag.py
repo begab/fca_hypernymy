@@ -24,8 +24,12 @@ def get_args():
     parser.add_argument('--dense_archit', default='sg', choices=['sg', 'cbow'])
     parser.add_argument('--sparse_dimensions', default=200)  # TODO Sparta
     parser.add_argument('--sparse_density', default=.3)
-    parser.add_argument('--sparse-new',
-                        action='store_true', dest='sparse_new')
+    parser.add_argument(
+        '--sparse-new', action='store_true', dest='sparse_new',
+        help='sparse bases extracted from the dense embedding by a heuristic
+        procedure similar to Gram-Schmidt orthogonalization')
+    # a submission-be nem ilyenek kerültek
+    # TODO érdemben meggyőződni róla h akkor ez most jó-e vagy sem 
     parser.add_argument('--not-include-sparse-feats',
                         action='store_false', dest='include_sparse_feats')
     parser.add_argument('--regularization', type=float, nargs=1, default=[1.0])
