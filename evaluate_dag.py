@@ -321,7 +321,7 @@ class ThreeHundredSparsians():
                     X_per_category[category].append(
                         self.train_feats[feature][category])
 
-        backup_model = None
+        fallback_model = None
         self.models = {
             c: make_pipeline(LogisticRegression(C=self.regularization))
             for c in self.categories}
@@ -338,7 +338,7 @@ class ThreeHundredSparsians():
                 self.models[category] = None
             else:
                 self.models[category].fit(X, y_per_category[category])
-                backup_model = self.models[category]  # mármint fallback?
+                fallback_model = self.models[category]  # mármint fallback?
                 logging.info((category, '  '.join(
                     '{} {:.2}'.format(fea, coeff) for fea, coeff in sorted(
                         list(zip(self.feat_names_used + [
@@ -350,7 +350,7 @@ class ThreeHundredSparsians():
 
         for category in self.categories:
             if self.models[category] is None:
-                self.models[category] = backup_model
+                self.models[category] = fallback_model
 
     def make_predictions(self, queries, out_file_name):
         num_of_features = len(self.feat_names_used)
