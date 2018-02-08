@@ -28,7 +28,7 @@ def get_args():
                         action='store_true', dest='sparse_new')
     parser.add_argument('--not-include-sparse-feats',
                         action='store_false', dest='include_sparse_feats')
-    parser.add_argument('--regularization', type=float, nargs=1, default=1.0)
+    parser.add_argument('--regularization', type=float, nargs=1, default=[1.0])
     parser.add_argument('--make_test_predictions', action='store_true')
     parser.add_argument('--file_struct', choices=['szeged', 'sztaki'],
                         default='szeged')
@@ -153,10 +153,10 @@ class ThreeHundredSparsians():
             os.makedirs(gpickle_dir)
         gpickle_fn = os.path.join(gpickle_dir, '{}.gpickle'.format(root))
         if os.path.exists(gpickle_fn):
-            logging.info('Loading gpickle...') 
+            logging.info('Loading gpickle...')
             self.dag = nx.read_gpickle(gpickle_fn)
         else:
-            logging.info('Reading dot file...') 
+            logging.info('Reading dot file...')
             self.dag = nx.drawing.nx_agraph.read_dot(
                 os.path.join(self.task_dir, 'dots', self.dag_basename))
             nx.write_gpickle(self.dag, gpickle_fn)
@@ -439,7 +439,7 @@ class ThreeHundredSparsians():
             logging.info('{} {:.3}'.format(met, results[met]))
         with open(metric_filen, mode='w') as metric_file:
             metric_file.write('{}\t{}\t{}\t{}'.format(
-                '\t'.join('{:.3}'.format(results[mtk]) 
+                '\t'.join('{:.3}'.format(results[mtk])
                           for mtk in self.metrics),
                 self.regularization, self.args.include_sparse_feats,
                 self.dag_basename))
@@ -449,7 +449,7 @@ class ThreeHundredSparsians():
             out_dir = os.path.join(self.task_dir, 'results', dev_or_test,
                                    pred_or_met)
             if not os.path.exists(out_dir):
-                os.makedirs(out_dir) 
+                os.makedirs(out_dir)
             return '{}.{}_{}_{}.{}.output.txt'.format(
                 os.path.join(out_dir, self.args.dataset_id),
                 self.dataset_mapping[self.args.dataset_id][0],
