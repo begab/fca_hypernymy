@@ -39,6 +39,7 @@ class ThreeHundredSparsians():
     def __init__(self, args):
         self.args = args
         logging.debug(args)
+        self.regularization = self.args.regularization[0]
 
     def main(self):
         self.init_get_task_data()
@@ -147,9 +148,10 @@ class ThreeHundredSparsians():
 
     def get_dag(self):
         root, ext = os.path.splitext(self.dag_basename)
-        gpickle_fn = os.path.join(self.task_dir, 'gpickle',
-                                  '{}.gpickle'.format(root))
-        # TODO mkdir gpickle, {dev,test}/{predictions,metrics}
+        gpickle_dir = os.path.join(self.task_dir, 'gpickle')
+        if not os.path.exists(gpickle_dir):
+            os.makedirs(gpickle_dir)
+        gpickle_fn = os.path.join(gpickle_dir, '{}.gpickle'.format(root))
         if os.path.exists(gpickle_fn):
             logging.info('Loading gpickle...') 
             self.dag = nx.read_gpickle(gpickle_fn)
@@ -158,7 +160,6 @@ class ThreeHundredSparsians():
             self.dag = nx.drawing.nx_agraph.read_dot(
                 os.path.join(self.task_dir, 'dots', self.dag_basename))
             nx.write_gpickle(self.dag, gpickle_fn)
-        #  TODO gpickle 
         logging.info('Populating dag dicts...')
         self.deepest_occurrence = defaultdict(lambda: [0])
         # deepest_occurrence = {w: most specific location}
@@ -306,8 +307,6 @@ class ThreeHundredSparsians():
 
         X_per_category = {c: [] for c in self.categories}
         y_per_category = {}
-        # TODO attribute_pair_to_ind = {p: i for i, p in
-        # enumerate(self.attr_pair_freq)}
         for category in self.categories:
             self.feat_names_used = []
             for feature in sorted(self.train_feats):
@@ -320,7 +319,7 @@ class ThreeHundredSparsians():
 
         backup_model = None
         self.models = {
-            c: make_pipeline(LogisticRegression(C=self.args.regularization))
+            c: make_pipeline(LogisticRegression(C=self.regularization))
             for c in self.categories}
         for category in self.categories:
             sparse_features = get_sparse_mx(
@@ -336,10 +335,6 @@ class ThreeHundredSparsians():
             else:
                 self.models[category].fit(X, y_per_category[category])
                 backup_model = self.models[category]  # mármint fallback?
-                # TODO comments by Makrai
-                #   * the order of {}_{}s should conform attribute_pair_to_ind.
-                #       Not sure.
-                #   * can we just self.feat_names_used += [{}_{} for ...]?
                 logging.info((category, '  '.join(
                     '{} {:.2}'.format(fea, coeff) for fea, coeff in sorted(
                         list(zip(self.feat_names_used + [
@@ -356,7 +351,6 @@ class ThreeHundredSparsians():
     def make_predictions(self, queries, out_file_name):
         num_of_features = len(self.feat_names_used)
         num_of_features += self.args.sparse_dimensions**2 if self.args.include_sparse_feats else 0
-        # TODO do we need so many?
         true_class_index = {
             query_type: [
                 i for i, c in enumerate(self.models[query_type].classes_)
@@ -425,9 +419,6 @@ class ThreeHundredSparsians():
             '{}.{}.trial.gold.txt'.format(
                 self.args.dataset_id,
                 self.dataset_mapping[self.args.dataset_id][0]))
-        #  predictions_dir = './predictions' TODO separately for dev, test
-        #  if not os.path.exists(predictions_dir):
-        #    os.mkdir(predictions_dir)
         self.metrics = ['MAP', 'MRR', 'P@1', 'P@3', 'P@5', 'P@15']
 
     def make_baseline(self):
@@ -444,24 +435,27 @@ class ThreeHundredSparsians():
 
     def write_metrics(self, prediction_filen, metric_filen):
         results = return_official_scores(self.gold_file, prediction_filen)
-        for item_ in results.items():
-            logging.info('{} {:.3}'.format(*item_))
+        for met in self.metrics:
+            logging.info('{} {:.3}'.format(met, results[met]))
         with open(metric_filen, mode='w') as metric_file:
             metric_file.write('{}\t{}\t{}\t{}'.format(
                 '\t'.join('{:.3}'.format(results[mtk]) 
                           for mtk in self.metrics),
-                self.args.regularization, self.args.include_sparse_feats,
+                self.regularization, self.args.include_sparse_feats,
                 self.dag_basename))
 
     def test(self):
         def get_out_filen(dev_or_test, pred_or_met):
+            out_dir = os.path.join(self.task_dir, 'results', dev_or_test,
+                                   pred_or_met)
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir) 
             return '{}.{}_{}_{}.{}.output.txt'.format(
-                os.path.join(self.task_dir, 'results', dev_or_test,
-                             pred_or_met, self.args.dataset_id),
+                os.path.join(out_dir, self.args.dataset_id),
                 self.dataset_mapping[self.args.dataset_id][0],
                 self.dag_basename,
                 self.args.include_sparse_feats,
-                self.args.regularization,
+                self.regularization,
             )
         def eval_on(phase, queries):
             pred_file_name = get_out_filen(phase, 'predictions')
@@ -498,7 +492,7 @@ class ThreeHundredSparsians():
         return own_words
 
     def update_dag_based_features(self, features, query_type, gold, own_query_words):
-        # TODO amikor további self.dag-ból jövő jellemzőket is kipróbálunk
+        # TODO további self.dag-ból jövő jellemzőket is kipróbálni
         """
         ez a metódus teljesen halott kód
         még a logreges kísérletek elején használágattam, de a dag-beli
