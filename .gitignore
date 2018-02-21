@@ -3,6 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+*.log
+*.aux
+*.out
+*.pdf
+*.blg
+*.bbl
+
 *.txt
 *.gz
 *.zip
@@ -16,6 +23,7 @@ __pycache__/
 *.emb
 dense_embeddings/
 predictions/
+alphas/
 .idea
 
 # C extensions

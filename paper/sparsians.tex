@@ -1,0 +1,100 @@
+%
+% File naaclhlt2018.tex
+%
+%% Based on the style files for NAACL-HLT 2018, which were
+%% Based on the style files for ACL-2015, with some improvements
+%%  taken from the NAACL-2016 style
+%% Based on the style files for ACL-2014, which were, in turn,
+%% based on ACL-2013, ACL-2012, ACL-2011, ACL-2010, ACL-IJCNLP-2009,
+%% EACL-2009, IJCNLP-2008...
+%% Based on the style files for EACL 2006 by 
+%%e.agirre@ehu.es or Sergi.Balari@uab.es
+%% and that of ACL 08 by Joakim Nivre and Noah Smith
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[hyperref]{naaclhlt2018}
+\usepackage{times}
+\usepackage{latexsym}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{url}
+
+\aclfinalcopy % Uncomment this line for all SemEval submissions
+
+%\setlength\titlebox{5cm}
+% You can expand the titlebox if you need extra space
+% to show all the authors. Please do not make the titlebox
+% smaller than 5cm (the original size); we will check this
+% in the camera-ready version and ask you to change it back.
+
+\newcommand\BibTeX{B{\sc ib}\TeX}
+
+%Title format for system description papers by task participants
+\title{[SystemName] at SemEval-2018 Task 9: Employing Sparse Word Representations for Hypernym Discovery}
+%Title format for task description papers by task organizers
+%\title{SemEval-2018 Task [TaskNumber]:  [Task Name]}
+
+
+
+
+
+\author{First Author \\
+  Affiliation / Address line 1 \\
+  Affiliation / Address line 2 \\
+  Affiliation / Address line 3 \\
+  {\tt email@domain} \\\And
+  Second Author \\
+  Affiliation / Address line 1 \\
+  Affiliation / Address line 2 \\
+  Affiliation / Address line 3 \\
+  {\tt email@domain} \\}
+
+\date{}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+  This document contains the instructions for preparing a submission or camera-ready
+  manuscript for the proceedings of Semeval-2018. The document itself
+  conforms to its own specifications, and is therefore an example of
+  what your manuscript should look like. These instructions should be
+  used for both papers submitted for review and for final versions of
+  accepted papers.  Authors are asked to conform to all the directions
+  reported in this document.
+\end{abstract}
+
+\section{Introduction}
+
+
+
+\section{Introduction}
+
+
+For further details of the shared task see
+\cite{semeval2018task9}.
+
+Our source code in available at \url{https://github.com/begab/fca_hypernymy}.
+
+%\section{Related work} bele fog ez férni 4 oldalba? ha kevés lesz a hely, akkor ezen lehet fogni
+
+\section{Our methodology}
+We used the popular skip-gram (SG) and continuous-bag-of-words (CBOW) approaches \cite{DBLP:journals/corr/abs-1301-3781} to train $d=100$ dimensional dense distributed word representations for each sub-corpora. For some subcorpus $x$, we denote the embedding matrix as $W_x \in \mathbb{R}^{\lvert V_x \rvert \times d}$ with $\lvert V_x \rvert$ denoting the size of the vocabulary and $d$ is set to 100 as stated previously.
+
+As a subsequent step we turn the dense vectorial word representations into sparse word vectors akin to \citet{TACL1063} by solving for
+\begin{equation}
+\min\limits_{D \in \mathcal{C}, \alpha \in \mathbb{R}_{\geq0}} \lVert D\alpha - W \rVert_F + \lambda \lVert \alpha \rVert_1,
+\label{nonneg_SPAMS_objective}
+\end{equation}
+where $\mathcal{C}$ is the convex set of matrices containing only such vectors whose norm does not exceeds $1$ and $\alpha$ contains the sparse coefficients encoding which basis vectors from $D$ takes part in the reconstruction of the vectorial representation of some element of the vocabulary. The only difference compared to \cite{TACL1063} is that here we ensure a non-negativity constraint over the elements of $\alpha$.
+
+\section{Experimental results}
+
+\section{Conclusion}
+
+Formal concept analysis \citet{2010378} \footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}
+
+\bibliography{semeval2018}
+\bibliographystyle{acl_natbib}
+
+\end{document}
