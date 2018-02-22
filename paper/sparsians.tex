@@ -7,11 +7,14 @@
 %% Based on the style files for ACL-2014, which were, in turn,
 %% based on ACL-2013, ACL-2012, ACL-2011, ACL-2010, ACL-IJCNLP-2009,
 %% EACL-2009, IJCNLP-2008...
-%% Based on the style files for EACL 2006 by 
+%% Based on the style files for EACL 2006 by
 %%e.agirre@ehu.es or Sergi.Balari@uab.es
 %% and that of ACL 08 by Joakim Nivre and Noah Smith
 
-\documentclass[11pt,a4paper]{article}
+\documentclass[11pt,a4paper]{article} 
+\usepackage{lmodern}
+\usepackage[T1]{fontenc} 
+\usepackage[utf8]{inputenc}
 \usepackage[hyperref]{naaclhlt2018}
 \usepackage{times}
 \usepackage{latexsym}
@@ -19,10 +22,11 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{url}
+%\usepackage{amsmath}
 
 \aclfinalcopy % Uncomment this line for all SemEval submissions
 
-%\setlength\titlebox{5cm}
+\setlength\titlebox{3in}
 % You can expand the titlebox if you need extra space
 % to show all the authors. Please do not make the titlebox
 % smaller than 5cm (the original size); we will check this
@@ -31,20 +35,21 @@
 \newcommand\BibTeX{B{\sc ib}\TeX}
 
 %Title format for system description papers by task participants
-\title{[SystemName] at SemEval-2018 Task 9: Employing Sparse Word Representations for Hypernym Discovery}
+\title{[300-sparsians] at SemEval-2018 Task 9: Employing Sparse Word Representations for Hypernym Discovery}
+% TODO Sparse Word Vectors and Concept Lattices for ...
 %Title format for task description papers by task organizers
 %\title{SemEval-2018 Task [TaskNumber]:  [Task Name]}
 
-
-
-
-
-\author{First Author \\
-  Affiliation / Address line 1 \\
-  Affiliation / Address line 2 \\
-  Affiliation / Address line 3 \\
-  {\tt email@domain} \\\And
-  Second Author \\
+\author{Gábor Berend \\
+Department of Informatics \\ University of Szeged \\
+Árpád tér 2, H6720 Szeged, Hungary \\
+{\tt berendg@inf.u-szeged.hu} \\\And
+  Márton Makrai  \\ % TODO sorrend?
+  Institute for Linguistics \\
+  Hungarian Academy of Sciences \\
+  Benczúr u. 33, H1068 Budapest, Hungary \\
+  {\tt makrai.marton@nytud.mta.hu} \\\AND
+  Péter Földiák \\
   Affiliation / Address line 1 \\
   Affiliation / Address line 2 \\
   Affiliation / Address line 3 \\
@@ -53,23 +58,102 @@
 \date{}
 
 \begin{document}
+
+% Tudom, hogy hatékonyabb alulról fölfelé írni egy cikket, de nekem ez a
+% mániám, hogy le kell írnonom néhány hangzatos kezdőmondatot, hogy beállítsam
+% a hangulatomat.
 \maketitle
+
+\vspace{1cm}
+
 \begin{abstract}
-  This document contains the instructions for preparing a submission or camera-ready
-  manuscript for the proceedings of Semeval-2018. The document itself
-  conforms to its own specifications, and is therefore an example of
-  what your manuscript should look like. These instructions should be
-  used for both papers submitted for review and for final versions of
-  accepted papers.  Authors are asked to conform to all the directions
-  reported in this document.
+  We apply a concept hierarchy obtained from a word embedding by combining the
+  methods of sparse coding and formal concept analysis (concept lattices).
+  Our experiments place first in four subtasks (e.g.~the music entities
+  subtask).
 \end{abstract}
 
 \section{Introduction}
 
+The idea of acquiring concept hierarchies from a text corpus with the tools of
+Formal Concept Analysis (FCA) is relatively new \citep{Cimiano:2005}. Here we
+combine this approach with sparse word representations \citep{Faruqui:2015},
+thus indirectly exploiting successful word embedding techniques
+\citep{Mikolov:2013d}.
+
+\dots % TODO
+
+Natural language phenomena are extremely sparse by their nature, whereas
+continuous word embeddings employ dense representations of words. Turning
+these dense representations into a much sparser form can help in focusing on
+most salient parts of word representations \citep{Faruqui:2015,Berend:2016}.
+
+\newcommand{\abconc}{$\langle A, B\rangle$}
 
 
-\section{Introduction}
 
+Formal Concept Analysis (FCA) is the mathematization of \emph{concept} and conceptual
+hierarchy \citep{Ganter:1999,Endres:2008}. % vagy 2009
+An FCA context $K = \langle G, M, I\rangle$ is comprised of
+a set of \emph{objects} $G$, a set of \emph{attributes} $M$ and
+a binary relation $I \subseteq G \times M$ between members of $G$ and $M$.
+In our application, the members of $G$ are word, whereas
+the members of $M$ are the sparse coding coordinate indices.
+Relation $I$ contains a pair $\langle a, b\rangle$
+if the $b$th coordinate of the sparse vector for word $a \in G$ is non-zero,
+% It is customary to represent the context as a cross table, where the
+% row(column) headings are the object(attribute) names.  For each pair (g, m) ∈
+% I, the corresponding cell in the cross table has an “×”.
+% TODO example
+We define the prime operator $'$ both for objects and attributes in a dual way:
+given $A\subseteq G$ and $B \subseteq M$,
+$A'$ is defined as $\{ b\in M\mid \forall a\in A, \langle a,b \rangle \in I\}$
+i.e.~the shared attributes of objects in $A$, and
+$B'$ is defined as $\{ a\in G\mid \forall b\in B, \langle a,b \rangle \in I\}$
+i.e.~the objects in $G$ that have all the attributes in $B$.
+A formal concept in a context $K$ is a pair \abconc
+such that $A' = B$ and $B' = A$.
+$G$ is called the extent and $B$ is the intent of the concept.
+%IB(K) denotes the set of all concepts of the context K.
+\footnote{
+  Those who are familiar with closure operators may note that the double
+  application of $'$ is a closure operator both on objects and attributes: with
+  notation $\bar S=S''$, for either $S\subseteq G$ or $S\subseteq M$ we have
+  $S\subseteq \bar S$ and $\bar{\bar S}=S$. Thus the following conditions are
+  equivalent for all $A\subseteq G$ and $B\subseteq M$:
+  \begin{itemize}
+    \item \abconc~is a concept
+    \item $A$ is a closed set with respect to $\bar .$
+      and $B=A'$
+    \item $B$ is a closed set with respect to $\bar .$ and $A=B'$
+  \end{itemize}
+}
+For a lattice representation of the relationships between concepts, one defines
+an order on $K$:
+if $\langle A_1 , B_1 \rangle$ and $\langle A_2 , B_2 \rangle$ are concepts of
+a context, $\langle A_1 , B_1 \rangle$ is a \emph{subconcept} of $\langle A_2 , B_2
+\rangle$ if $A_1 \subseteq A_2 $ which is equivalent to $B_1 \supseteq B_2 $.  In this case
+%, $\langle A_2 , B_2 \rangle$ is a \emph{superconcept} of $\langle A_1 , B_1 \rangle$
+%and
+we write $\langle A_1 , B_1 \rangle \le \langle A_2 , B_2 \rangle$.
+% The relation $\le$ is called the \emph{order} of the concepts.
+
+$K$ and the concept order form a %complete
+lattice.  The concept lattice of the context in Table 1, with \emph{full and reduced
+% TODO figure
+labelling}, is shown in \ref{fig:monkeylattice}.
+Full labelling means that a concept node is depicted with its full extent and
+intent. A reduced labelled concept lattice shows an object only in the smallest
+(w.r.t. $\le$) concept of whose extent the object is a member.
+% This concept is called the object concept, or the concept that introduces the
+% object.
+Likewise, an attribute is shown only in the largest concept of whose intent the
+attribute is a member.%, the attribute concept, which introduces the attribute.
+% The closedness of extents and intents has an important consequence for
+% neuroscientific applications. Adding attributes to M (e.g. responses of
+% additional neurons) will very probably grow IB(K). However, the original
+% concepts will be embedded as a substructure in the larger lattice, with their
+% ordering relationships preserved.
 
 For further details of the shared task see
 \cite{semeval2018task9}.
@@ -94,7 +178,7 @@ For the elements of the vocabulary we ran the formal concept analysis tool of \c
 
 \section{Conclusion}
 
-\bibliography{semeval2018}
+%\bibliography{semeval2018}%,../../paper/Common/Bib/ml}
 \bibliographystyle{acl_natbib}
 
 \end{document}
