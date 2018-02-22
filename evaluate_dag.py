@@ -45,12 +45,21 @@ def get_args():
 
     candidates_parser = parser.add_mutually_exclusive_group(required=False)
     candidates_parser.add_argument('--full-candidates',
-                                     dest='filter_candidates',
-                                     action='store_false')
+                                   dest='filter_candidates',
+                                   action='store_false')
     candidates_parser.add_argument('--filter-candidates',
-                                     dest='filter_candidates',
-                                     action='store_true')
+                                   dest='filter_candidates',
+                                   action='store_true')
     parser.set_defaults(filter_candidates=True)
+
+    gpickle_parser = parser.add_mutually_exclusive_group(required=False)
+    gpickle_parser.add_argument('--no-gpickle',
+                                dest='save_gpickle',
+                                action='store_false')
+    gpickle_parser.add_argument('--gpickle',
+                                dest='save_gpickle',
+                                action='store_true')
+    parser.set_defaults(save_gpickle=True)
 
     parser.add_argument('--regularization', type=float, nargs='+', default=[1.0])
     sparse_feats_parser = parser.add_mutually_exclusive_group(required=False)
@@ -189,7 +198,8 @@ class ThreeHundredSparsians():
             logging.info('Reading dot file...')
             self.dag = nx.drawing.nx_agraph.read_dot(
                 os.path.join(self.task_dir, 'dots', self.dag_basename))
-            nx.write_gpickle(self.dag, gpickle_fn)
+            if self.args.save_gpickle:
+                nx.write_gpickle(self.dag, gpickle_fn)
         logging.info('Populating dag dicts...')
         self.deepest_occurrence = defaultdict(lambda: [0])
         # deepest_occurrence = {w: most specific location}
@@ -496,34 +506,49 @@ class ThreeHundredSparsians():
                                       get_out_filen(phase, 'metrics'))
 
         results = eval_on(models, 'dev', self.dev_gold_file, self.dev_queries)
-        logging.info('{}\t{}\tDev_{}'.format(self.regularization,
-                                      '\t'.join([str(results[m]) for m in self.metrics]),
-                                      self.dag_basename))
+        res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
+        logging.info('{}\t{}\t{}\tDev_{}'.format(
+            self.regularization,
+            self.args.include_sparse_feats,
+            res_str,
+            self.dag_basename
+        ))
+
         baseline_file = self.make_baseline(self.dev_queries, self.dev_golds, False)
         results = self.write_metrics(self.dev_gold_file, baseline_file, None)
-        logging.info('{}\t{}\tDev_baseline'.format(self.regularization, '\t'.join(
-            [str(results[m]) for m in self.metrics])))
+        res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
+        logging.info('{}\t{}\t{}\tDev_baseline'.format(
+            self.regularization, self.args.include_sparse_feats, res_str))
+
         baseline_file = self.make_baseline(self.dev_queries, self.dev_golds, True)
         results = self.write_metrics(self.dev_gold_file, baseline_file, None)
-        logging.info('{}\t{}\tDev_upper'.format(self.regularization, '\t'.join(
-            [str(results[m]) for m in self.metrics])))
+        res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
+        logging.info('{}\t{}\t{}\tDev_upper'.format(
+            self.regularization, self.args.include_sparse_feats, res_str))
+
         if self.args.make_test_predictions:
             results = eval_on(models, 'test', self.test_gold_file, self.test_queries)
-            logging.info('{}\t{}\tTest_{}'.format(self.regularization,
-                                           '\t'.join([str(results[m]) for m in self.metrics]),
-                                           self.dag_basename))
+            res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
+            logging.info('{}\t{}\t{}\tTest_{}'.format(
+                self.regularization,
+                self.args.include_sparse_feats,
+                res_str,
+                self.dag_basename))
+
             baseline_file = self.make_baseline(self.test_queries, self.test_golds, False)
             results = self.write_metrics(self.test_gold_file, baseline_file, None)
-            logging.info('{}\t{}\tTest_baseline'.format(self.regularization, '\t'.join(
-                [str(results[m]) for m in self.metrics])))
+            res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
+            logging.info('{}\t{}\t{}\tTest_baseline'.format(
+                self.regularization, self.args.include_sparse_feats, res_str))
+
             baseline_file = self.make_baseline(self.test_queries, self.test_golds, True)
             results = self.write_metrics(self.test_gold_file, baseline_file, None)
-            logging.info('{}\t{}\tTest_upper'.format(self.regularization, '\t'.join(
-                [str(results[m]) for m in self.metrics])))
+            res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
+            logging.info('{}\t{}\t{}\tTest_upper'.format(
+                self.regularization, self.args.include_sparse_feats, res_str))
 
     """
     The rest of the class is attic.
-    """
 
     def logg_attribute_pair_hist(self):
         attribute_pair_hist = defaultdict(int)
@@ -545,6 +570,7 @@ class ThreeHundredSparsians():
             to_remove |= c
         own_words -= to_remove
         return own_words
+    """
 
     def update_dag_based_features(self, features, query_type, gold, own_query_words):
         # TODO további self.dag-ból jövő jellemzőket is kipróbálni
