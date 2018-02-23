@@ -88,60 +88,66 @@ continuous word embeddings employ dense representations of words. Turning
 these dense representations into a much sparser form can help in focusing on
 most salient parts of word representations \citep{Faruqui:2015,Berend:2016}.
 
-\newcommand{\abconc}{$\langle A, B\rangle$}
+\newcommand{\ob}{\ensuremath{\mathcal O}}
+\newcommand{\at}{\ensuremath{\mathcal A}}
+\newcommand{\inci}{\ensuremath{\mathcal I}}
+\newcommand{\oaconc}{\ensuremath{\langle O, A\rangle}}
 
-
+\ensuremath{\mathcal o}
 
 Formal Concept Analysis (FCA) is the mathematization of \emph{concept} and conceptual
 hierarchy \citep{Ganter:1999,Endres:2008}. % vagy 2009
-An FCA context $K = \langle G, M, I\rangle$ is comprised of
-a set of \emph{objects} $G$, a set of \emph{attributes} $M$ and
-a binary relation $I \subseteq G \times M$ between members of $G$ and $M$.
-In our application, the members of $G$ are word, whereas
-the members of $M$ are the sparse coding coordinate indices.
-Relation $I$ contains a pair $\langle a, b\rangle$
-if the $b$th coordinate of the sparse vector for word $a \in G$ is non-zero,
+An FCA context $C = \langle \ob, \at, \inci\rangle$ is comprised of
+a set of \emph{objects} $\ob$, a set of \emph{attributes} $\at$ and
+a binary incidency relation $\inci \subseteq \ob \times \at$ 
+between members of \ob and \at.
+In our application, the members of $\ob$ are words, whereas
+the members of $\at$ are the sparse coding coordinate indices.
+Relation $\inci$ contains a pair $\langle o, a\rangle$
+if the $a$th coordinate of the sparse vector for word $o \in \ob$ is non-zero,
 % It is customary to represent the context as a cross table, where the
 % row(column) headings are the object(attribute) names.  For each pair (g, m) ∈
-% I, the corresponding cell in the cross table has an “×”.
+% \inci, the corresponding cell in the cross table has an “×”.
 % TODO example
 We define the prime operator $'$ both for objects and attributes in a dual way:
-given $A\subseteq G$ and $B \subseteq M$,
-$A'$ is defined as $\{ b\in M\mid \forall a\in A, \langle a,b \rangle \in I\}$
-i.e.~the shared attributes of objects in $A$, and
-$B'$ is defined as $\{ a\in G\mid \forall b\in B, \langle a,b \rangle \in I\}$
-i.e.~the objects in $G$ that have all the attributes in $B$.
-A formal concept in a context $K$ is a pair \abconc
-such that $A' = B$ and $B' = A$.
-$G$ is called the extent and $B$ is the intent of the concept.
-%IB(K) denotes the set of all concepts of the context K.
-\footnote{
+given $O\subseteq \ob$ and $A \subseteq \at$,
+$O'$ is defined as $\{ a\in \at\mid \forall o\in O, \langle o,a \rangle \in \inci\}$
+i.e.~$O'$ contains the shared attributes of objects in $O$; and
+$A'$ is defined as $\{ o\in \ob\mid \forall a\in A, \langle o,a \rangle \in \inci\}$
+i.e.~$A'$ contains the objects in $\ob$ that have all the attributes in $A$.
+A formal concept in a context $C$ is a pair \oaconc~ such that $O' = A$ and $A' = O$.
+$O$ is called the extent and $A$ is the intent of the concept.\footnote{
+  %IB(C) denotes the set of all concepts of the context C.
   Those who are familiar with closure operators may note that the double
-  application of $'$ is a closure operator both on objects and attributes: with
-  notation $\bar S=S''$, for either $S\subseteq G$ or $S\subseteq M$ we have
-  $S\subseteq \bar S$ and $\bar{\bar S}=S$. Thus the following conditions are
-  equivalent for all $A\subseteq G$ and $B\subseteq M$:
+  application of $'$ is a closure operation both on objects and attributes: with
+  notation $\bar S=S''$, for either $S\subseteq \ob$ or $S\subseteq \at$ we have
+  $S\subseteq \bar S$ and $\bar{\bar S}=S$, and the following conditions are
+  equivalent for all $O\subseteq \ob$ and $A\subseteq \at$:
   \begin{itemize}
-    \item \abconc~is a concept
-    \item $A$ is a closed set with respect to $\bar .$
-      and $B=A'$
-    \item $B$ is a closed set with respect to $\bar .$ and $A=B'$
+    \item \oaconc~is a concept
+    \item $O$ is a closed set 
+      %with respect to $O\mapsto\bar O$
+      and $A=O'$
+    \item $A$ is a closed set 
+      %with respect to $A\mapsto\bar A$ 
+      and $O=A'$
   \end{itemize}
 }
 For a lattice representation of the relationships between concepts, one defines
-an order on $K$:
-if $\langle A_1 , B_1 \rangle$ and $\langle A_2 , B_2 \rangle$ are concepts of
-a context, $\langle A_1 , B_1 \rangle$ is a \emph{subconcept} of $\langle A_2 , B_2
+an order on $C$:
+if $\langle A_1 , B_1 \rangle$ and $\langle A_2 , B_2 \rangle$ are concepts in
+$C$, $\langle A_1 , B_1 \rangle$ is a \emph{subconcept} of $\langle A_2 , B_2
 \rangle$ if $A_1 \subseteq A_2 $ which is equivalent to $B_1 \supseteq B_2 $.  In this case
 %, $\langle A_2 , B_2 \rangle$ is a \emph{superconcept} of $\langle A_1 , B_1 \rangle$
 %and
 we write $\langle A_1 , B_1 \rangle \le \langle A_2 , B_2 \rangle$.
 % The relation $\le$ is called the \emph{order} of the concepts.
 
-$K$ and the concept order form a %complete
-lattice.  The concept lattice of the context in Table 1, with \emph{full and reduced
+$C$ and the concept order form a %complete
+lattice.  The concept lattice of the context in Table 1, with full and reduced
 % TODO figure
-labelling}, is shown in \ref{fig:monkeylattice}.
+% In-Close2 draws only reduced if I'm not mistaken.
+labelling, is shown in \ref{fig:monkeylattice}.
 Full labelling means that a concept node is depicted with its full extent and
 intent. A reduced labelled concept lattice shows an object only in the smallest
 (w.r.t. $\le$) concept of whose extent the object is a member.
@@ -150,8 +156,8 @@ intent. A reduced labelled concept lattice shows an object only in the smallest
 Likewise, an attribute is shown only in the largest concept of whose intent the
 attribute is a member.%, the attribute concept, which introduces the attribute.
 % The closedness of extents and intents has an important consequence for
-% neuroscientific applications. Adding attributes to M (e.g. responses of
-% additional neurons) will very probably grow IB(K). However, the original
+% neuroscientific applications. Adding attributes to \at (e.g. responses of
+% additional neurons) will very probably grow IB(C). However, the original
 % concepts will be embedded as a substructure in the larger lattice, with their
 % ordering relationships preserved.
 
