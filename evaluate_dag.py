@@ -29,7 +29,7 @@ def get_args():
         help='sparse bases extracted from the dense embedding by a heuristic '
         'procedure similar to Gram-Schmidt orthogonalization')
     # a submission-be nem ilyenek kerültek
-    # TODO érdemben meggyőződni róla h akkor ez most jó-e vagy sem 
+    # TODO érdemben meggyőződni róla h akkor ez most jó-e vagy sem
     parser.add_argument('--not-include-sparse-feats',
                         action='store_false', dest='include_sparse_feats')
     parser.add_argument('--regularization', type=float, nargs=1, default=[1.0])
@@ -50,9 +50,9 @@ class ThreeHundredSparsians():
         self.get_task_data()
         self.categories = ['Concept', 'Entity']
         self.get_train_hyp_freq()
-        self.read_background_word_freq()
         self.get_embed()
         self.get_dag()
+        self.read_background_word_freq()
         self.attr_pair_freq = defaultdict(int)
         self.get_training_pairs()
         self.train()
