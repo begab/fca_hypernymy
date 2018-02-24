@@ -163,7 +163,7 @@ Our source code in available at \url{https://github.com/begab/fca_hypernymy}.
 %\section{Related work} bele fog ez férni 4 oldalba? ha kevés lesz a hely, akkor ezen lehet fogni
 
 \section{Our methodology}
-We used the popular skip-gram (SG) and continuous-bag-of-words (CBOW) approaches \cite{DBLP:journals/corr/abs-1301-3781} to train $d=100$ dimensional dense distributed word representations for each sub-corpora. For some subcorpus $x$, we denote the embedding matrix as $W_x \in \mathbb{R}^{\lvert V_x \rvert \times d}$ with $\lvert V_x \rvert$ denoting the size of the vocabulary and $d$ is set to 100 as stated previously.
+We used the popular skip-gram (SG) and continuous-bag-of-words (CBOW) approaches \cite{Mikolov:2013f} to train $d=100$ dimensional dense distributed word representations for each sub-corpora. For some subcorpus $x$, we denote the embedding matrix as $W_x \in \mathbb{R}^{\lvert V_x \rvert \times d}$ with $\lvert V_x \rvert$ denoting the size of the vocabulary and $d$ is set to 100 as stated previously.
 
 As a subsequent step we turn the dense vectorial word representations into sparse word vectors akin to \citet{TACL1063} by solving for
 \begin{equation}
@@ -176,9 +176,27 @@ For the elements of the vocabulary we ran the formal concept analysis tool of \c
 
 \section{Experimental results}
 
+Table~\ref{table:upper} lists the best possible results we can achieve.
+
+\begin{table}
+	\centering
+	\begin{tabular}{c|ccc}
+		Subtask & MAP & MRR & P@1 \\ \hline 
+		1A & 0.542 & 0.748 & 0.670 \\
+		1B & 0.596 & 0.841 & 0.796 \\
+		1C & 0.624 & 0.839 & 0.776 \\
+		2A & 0.478 & 0.726 & 0.652 \\
+		2B & 0.459 & 0.744 & 0.650 \\
+	\end{tabular}
+	\label{table:upper}
+	\caption{Best possible results obtainable on the test set for our 
+submissions due to the filtration of the possible set of gold hypernyms 
+we apply in order to speed up the FCA algorithm we use.}
+\end{table}
+
 \section{Conclusion}
 
-%\bibliography{semeval2018}%,../../paper/Common/Bib/ml}
+\bibliography{../../paper/Common/Bib/ml}
 \bibliographystyle{acl_natbib}
 
 \end{document}
