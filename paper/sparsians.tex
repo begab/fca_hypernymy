@@ -39,7 +39,7 @@
 
 \title{[300-sparsians] at SemEval-2018 Task 9: \\ 
 Employing Sparse Word Representations for Hypernym Discovery}
-% TODO Sparse Word Vectors and Concept Lattices for ...
+% TODO dorp "Employing"
 
 \author{Gábor Berend \\
 Department of Informatics \\ University of Szeged \\
@@ -74,25 +74,29 @@ Department of Informatics \\ University of Szeged \\
 
 \section{Introduction}
 
-The idea of acquiring concept hierarchies from a text corpus with the tools of
-Formal Concept Analysis (FCA) is relatively new \citep{Cimiano:2005}. Here we
-combine this approach with sparse word representations \citep{Faruqui:2015},
-thus indirectly exploiting successful word embedding techniques
-\citep{Mikolov:2013d}.
-
-\dots % TODO
-
 Natural language phenomena are extremely sparse by their nature, whereas
 continuous word embeddings employ dense representations of words. Turning
 these dense representations into a much sparser form can help in focusing on
-most salient parts of word representations \citep{Faruqui:2015,Berend:2017}.
+most salient parts of word representations
+\citep{Faruqui:2015,Berend:2017,Subramanian:2018}.
+
+Sparse representation is related to hypernymy in a natural ways.  
+One formulation is hierarchical sparse coding \citep{Zhao:2009}, where trees
+describe the order in which variables “enter the model” (i.e., take nonzero
+values). A node may take a nonzero value only if its ancestors also do: the
+dimensions that correspond to top level nodes should focus on “general”
+contexts that are present in most words. \citep{Yogatama:2015} offer an
+implementation that is efficient for gigaword corpora.  
+
+Here we employ sparse coding for hypernym extraction in a different way, namely
+Formal Concept Analysis (FCA).  The idea of acquiring concept hierarchies from
+a text corpus with the tools of Formal Concept Analysis (FCA) is relatively new
+\citep{Cimiano:2005}.
 
 \newcommand{\ob}{\ensuremath{\mathcal O}}
 \newcommand{\at}{\ensuremath{\mathcal A}}
 \newcommand{\inci}{\ensuremath{\mathcal I}}
 \newcommand{\oaconc}{\ensuremath{\langle O, A\rangle}}
-
-\ensuremath{\mathcal o}
 
 Formal Concept Analysis (FCA) is the mathematization of \emph{concept} and conceptual
 hierarchy \citep{Ganter:2012,Endres:2010}. % vagy 2009
