@@ -15,7 +15,12 @@
 \usepackage{lmodern}
 \usepackage[T1]{fontenc} 
 \usepackage[utf8]{inputenc}
-\usepackage[hyperref]{naaclhlt2018}
+
+% To debug "\pdfendlink ended up in different nesting level than \pdfstartlink"
+\usepackage[nohyperref]{naaclhlt2018}
+\usepackage[draft]{hyperref}
+%\usepackage{hyperref}
+
 \usepackage{times}
 \usepackage{latexsym}
 
@@ -32,14 +37,9 @@
 % smaller than 5cm (the original size); we will check this
 % in the camera-ready version and ask you to change it back.
 
-\newcommand\BibTeX{B{\sc ib}\TeX}
-
-%Title format for system description papers by task participants
 \title{[300-sparsians] at SemEval-2018 Task 9: \\ 
 Employing Sparse Word Representations for Hypernym Discovery}
 % TODO Sparse Word Vectors and Concept Lattices for ...
-%Title format for task description papers by task organizers
-%\title{SemEval-2018 Task [TaskNumber]:  [Task Name]}
 
 \author{Gábor Berend \\
 Department of Informatics \\ University of Szeged \\
@@ -54,7 +54,7 @@ Department of Informatics \\ University of Szeged \\
   Secret Sauce Partners, \\
   657 Mission Suite 410, \\ 
   San Francisco CA 94105 \\
-  {\tt email@domain} \\} % TODO
+  {\tt Peter.Foldiak@gmail.com} \\} % TODO
 
 \date{}
 
@@ -64,8 +64,6 @@ Department of Informatics \\ University of Szeged \\
 % mániám, hogy le kell írnonom néhány hangzatos kezdőmondatot, hogy beállítsam
 % a hangulatomat.
 \maketitle
-
-\vspace{1cm}
 
 \begin{abstract}
   We apply a concept hierarchy obtained from a word embedding by combining the
@@ -87,7 +85,7 @@ thus indirectly exploiting successful word embedding techniques
 Natural language phenomena are extremely sparse by their nature, whereas
 continuous word embeddings employ dense representations of words. Turning
 these dense representations into a much sparser form can help in focusing on
-most salient parts of word representations \citep{Faruqui:2015,Berend:2016}.
+most salient parts of word representations \citep{Faruqui:2015,Berend:2017}.
 
 \newcommand{\ob}{\ensuremath{\mathcal O}}
 \newcommand{\at}{\ensuremath{\mathcal A}}
@@ -97,7 +95,7 @@ most salient parts of word representations \citep{Faruqui:2015,Berend:2016}.
 \ensuremath{\mathcal o}
 
 Formal Concept Analysis (FCA) is the mathematization of \emph{concept} and conceptual
-hierarchy \citep{Ganter:1999,Endres:2008}. % vagy 2009
+hierarchy \citep{Ganter:2012,Endres:2010}. % vagy 2009
 An FCA context $C = \langle \ob, \at, \inci\rangle$ is comprised of
 a set of \emph{objects} $\ob$, a set of \emph{attributes} $\at$ and
 a binary incidency relation $\inci \subseteq \ob \times \at$ 
@@ -162,8 +160,7 @@ attribute is a member.%, the attribute concept, which introduces the attribute.
 % concepts will be embedded as a substructure in the larger lattice, with their
 % ordering relationships preserved.
 
-For further details of the shared task see
-\cite{semeval2018task9}.
+For further details of the shared task see \cite{Camacho-Collados:2018}.
 
 Our source code in available at \url{https://github.com/begab/fca_hypernymy}.
 
@@ -172,14 +169,20 @@ Our source code in available at \url{https://github.com/begab/fca_hypernymy}.
 \section{Our methodology}
 We used the popular skip-gram (SG) and continuous-bag-of-words (CBOW) approaches \cite{Mikolov:2013f} to train $d=100$ dimensional dense distributed word representations for each sub-corpora. For some subcorpus $x$, we denote the embedding matrix as $W_x \in \mathbb{R}^{\lvert V_x \rvert \times d}$ with $\lvert V_x \rvert$ denoting the size of the vocabulary and $d$ is set to 100 as stated previously.
 
-As a subsequent step we turn the dense vectorial word representations into sparse word vectors akin to \citet{TACL1063} by solving for
+As a subsequent step we turn the dense vectorial word representations into
+sparse word vectors akin to \citet{Berend:2017} by solving for
 \begin{equation}
 \min\limits_{D \in \mathcal{C}, \alpha \in \mathbb{R}_{\geq0}} \lVert D\alpha - W \rVert_F + \lambda \lVert \alpha \rVert_1,
 \label{nonneg_SPAMS_objective}
 \end{equation}
-where $\mathcal{C}$ is the convex set of matrices containing only such vectors whose norm does not exceeds $1$ and $\alpha$ contains the sparse coefficients encoding which basis vectors from $D$ takes part in the reconstruction of the vectorial representation of some element of the vocabulary. The only difference compared to \cite{TACL1063} is that here we ensure a non-negativity constraint over the elements of $\alpha$.
+where $\mathcal{C}$ is the convex set of matrices containing only such vectors
+whose norm does not exceeds $1$ and $\alpha$ contains the sparse coefficients
+encoding which basis vectors from $D$ takes part in the reconstruction of the
+vectorial representation of some element of the vocabulary. The only difference
+compared to \cite{Berend:2017} is that here we ensure a non-negativity constraint over the elements of $\alpha$.
 
-For the elements of the vocabulary we ran the formal concept analysis tool of \citet{2010378} \footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}.
+For the elements of the vocabulary we ran the formal concept analysis tool of
+\citet{Endres:2010} \footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}.
 
 \section{Experimental results}
 
