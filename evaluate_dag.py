@@ -35,16 +35,16 @@ def get_args():
     # TODO érdemben meggyőződni róla h akkor ez most jó-e vagy sem
 
     sparse_feats_parser = parser.add_mutually_exclusive_group(required=False)
-    sparse_feats_parser.add_argument('--exclude-sparse-feats',
+    sparse_feats_parser.add_argument('--not-sparse-feats',
                                      dest='include_sparse_feats',
                                      action='store_false')
-    sparse_feats_parser.add_argument('--include-sparse-feats',
+    sparse_feats_parser.add_argument('--sparse-feats',
                                      dest='include_sparse_feats',
                                      action='store_true')
     parser.set_defaults(include_sparse_feats=True)
 
     candidates_parser = parser.add_mutually_exclusive_group(required=False)
-    candidates_parser.add_argument('--full-candidates',
+    candidates_parser.add_argument('--not-filter-candidates',
                                    dest='filter_candidates',
                                    action='store_false')
     candidates_parser.add_argument('--filter-candidates',
@@ -53,17 +53,17 @@ def get_args():
     parser.set_defaults(filter_candidates=True)
 
     gpickle_parser = parser.add_mutually_exclusive_group(required=False)
-    gpickle_parser.add_argument('--no-gpickle',
+    gpickle_parser.add_argument('--not-save-gpickle',
                                 dest='save_gpickle',
                                 action='store_false')
-    gpickle_parser.add_argument('--gpickle',
+    gpickle_parser.add_argument('--save-gpickle',
                                 dest='save_gpickle',
                                 action='store_true')
     parser.set_defaults(save_gpickle=True)
 
     parser.add_argument('--regularization', type=float, nargs='+', default=[1.0])
     sparse_feats_parser = parser.add_mutually_exclusive_group(required=False)
-    sparse_feats_parser.add_argument('--omit-test',
+    sparse_feats_parser.add_argument('--not-include-test',
                                      dest='make_test_predictions',
                                      action='store_false')
     sparse_feats_parser.add_argument('--include-test',
