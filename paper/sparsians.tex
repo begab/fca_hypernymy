@@ -72,6 +72,22 @@ Department of Informatics \\ University of Szeged \\
   subtask).
 \end{abstract}
 
+% bázisok alapján épített fca-val akartuk megoldani az egészet, de aztán azt
+% láttuk h ez önmagában nem lenne elég, mert a bázisok nem viselkedtek olyan
+% szépen, mint amennyire kellett volna nekik ahhoz, hogy az fca-ból
+% kipottyanjon a fogalmi hierarchia
+
+% a potenciális hipernímákat jelentősen meg kellett szűrni ahhoz h az fca-n
+% gyorsítani tudjunk ezáltal viszont a hipernímaként való rangsorolás
+% tekintetében is egy szűkített halmazzal dolgoztunk a szervezők által
+% kiadottakhoz képest
+% ami miatt 0.5 körüli MAP-nál jobbat elvileg sem érhettünk volna el
+
+% \item sűrű vektoros és felszíni jegyek
+% \item ritka reprezentációból származtatott descartes szorzatos jegyeket
+% \item ablációs kísérletek erre (descaretes on/off)
+% \item a tanult súlyokról lehetne még írni
+
 \section{Introduction}
 
 Natural language phenomena are extremely sparse by their nature, whereas
@@ -92,6 +108,12 @@ Here we employ sparse coding for hypernym extraction in a different way, namely
 Formal Concept Analysis (FCA).  The idea of acquiring concept hierarchies from
 a text corpus with the tools of Formal Concept Analysis (FCA) is relatively new
 \citep{Cimiano:2005}.
+
+entities, music, Spanish
+
+a task kiírásában levő irodalom
+
+\subsection{Formal concept analysis}
 
 \newcommand{\ob}{\ensuremath{\mathcal O}}
 \newcommand{\at}{\ensuremath{\mathcal A}}
@@ -170,7 +192,8 @@ Our source code in available at \url{https://github.com/begab/fca_hypernymy}.
 
 %\section{Related work} bele fog ez férni 4 oldalba? ha kevés lesz a hely, akkor ezen lehet fogni
 
-\section{Our methodology}
+\section{Our submissions}
+
 We used the popular skip-gram (SG) and continuous-bag-of-words (CBOW) approaches \cite{Mikolov:2013f} to train $d=100$ dimensional dense distributed word representations for each sub-corpora. For some subcorpus $x$, we denote the embedding matrix as $W_x \in \mathbb{R}^{\lvert V_x \rvert \times d}$ with $\lvert V_x \rvert$ denoting the size of the vocabulary and $d$ is set to 100 as stated previously.
 
 As a subsequent step we turn the dense vectorial word representations into
@@ -188,7 +211,13 @@ compared to \cite{Berend:2017} is that here we ensure a non-negativity constrain
 For the elements of the vocabulary we ran the formal concept analysis tool of
 \citet{Endres:2010} \footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}.
 
+% why 300 in the group name (akár ott, hogy 300-as ritkával jobb is lehetett
+% volna, vagy ott, hogy 200 + 100 -- de ha magától értődő, akkor
+% ne)
+
 \section{Experimental results}
+
+\subsection{Restricted cantdidates}
 
 Table~\ref{table:upper} lists the best possible results we can achieve.
 
@@ -207,6 +236,18 @@ Table~\ref{table:upper} lists the best possible results we can achieve.
 submissions due to the filtration of the possible set of gold hypernyms 
 we apply in order to speed up the FCA algorithm we use.}
 \end{table}
+
+a metrikáknak nagy a szórása. többszöri futtatás %TODO
+
+entity length ratio figure %TODO
+
+\subsection{All provided cantdidates}
+
+weights of dense and surface features %TODO
+
+\subsection{Qualitative analysis}
+
+entity music, Spannish (MRR, p@1)
 
 \section{Conclusion}
 
