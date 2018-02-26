@@ -1,19 +1,8 @@
-%
-% File naaclhlt2018.tex
-%
 %% Based on the style files for NAACL-HLT 2018, which were
-%% Based on the style files for ACL-2015, with some improvements
-%%  taken from the NAACL-2016 style
-%% Based on the style files for ACL-2014, which were, in turn,
-%% based on ACL-2013, ACL-2012, ACL-2011, ACL-2010, ACL-IJCNLP-2009,
-%% EACL-2009, IJCNLP-2008...
-%% Based on the style files for EACL 2006 by
-%%e.agirre@ehu.es or Sergi.Balari@uab.es
-%% and that of ACL 08 by Joakim Nivre and Noah Smith
 
-\documentclass[11pt,a4paper]{article} 
+\documentclass[11pt,a4paper]{article}
 \usepackage{lmodern}
-\usepackage[T1]{fontenc} 
+\usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 
 % To debug "\pdfendlink ended up in different nesting level than \pdfstartlink"
@@ -37,7 +26,7 @@
 % smaller than 5cm (the original size); we will check this
 % in the camera-ready version and ask you to change it back.
 
-\title{[300-sparsians] at SemEval-2018 Task 9: \\ 
+\title{[300-sparsians] at SemEval-2018 Task 9: \\
 Employing Sparse Word Representations for Hypernym Discovery}
 % TODO dorp "Employing"
 
@@ -45,24 +34,21 @@ Employing Sparse Word Representations for Hypernym Discovery}
 Department of Informatics \\ University of Szeged \\
 Árpád tér 2, H6720 Szeged, Hungary \\
 {\tt berendg@inf.u-szeged.hu} \\\And
-  Márton Makrai  \\ % TODO sorrend?
+  Márton Makrai  \\
   Institute for Linguistics \\
   Hungarian Academy of Sciences \\
   Benczúr u. 33, H1068 Budapest, Hungary \\
   {\tt makrai.marton@nytud.mta.hu} \\\AND
   Péter Földiák \\
   Secret Sauce Partners, \\
-  657 Mission Suite 410, \\ 
+  657 Mission Suite 410, \\
   San Francisco CA 94105 \\
-  {\tt Peter.Foldiak@gmail.com} \\} % TODO
+  {\tt Peter.Foldiak@gmail.com} \\}
 
 \date{}
 
 \begin{document}
 
-% Tudom, hogy hatékonyabb alulról fölfelé írni egy cikket, de nekem ez a
-% mániám, hogy le kell írnonom néhány hangzatos kezdőmondatot, hogy beállítsam
-% a hangulatomat.
 \maketitle
 
 \begin{abstract}
@@ -72,6 +58,22 @@ Department of Informatics \\ University of Szeged \\
   subtask).
 \end{abstract}
 
+% bázisok alapján épített fca-val akartuk megoldani az egészet, de aztán azt
+% láttuk h ez önmagában nem lenne elég, mert a bázisok nem viselkedtek olyan
+% szépen, mint amennyire kellett volna nekik ahhoz, hogy az fca-ból
+% kipottyanjon a fogalmi hierarchia
+
+% a potenciális hipernímákat jelentősen meg kellett szűrni ahhoz h az fca-n
+% gyorsítani tudjunk ezáltal viszont a hipernímaként való rangsorolás
+% tekintetében is egy szűkített halmazzal dolgoztunk a szervezők által
+% kiadottakhoz képest
+% ami miatt 0.5 körüli MAP-nál jobbat elvileg sem érhettünk volna el
+
+% \item sűrű vektoros és felszíni jegyek
+% \item ritka reprezentációból származtatott descartes szorzatos jegyeket
+% \item ablációs kísérletek erre (descaretes on/off)
+% \item a tanult súlyokról lehetne még írni
+
 \section{Introduction}
 
 Natural language phenomena are extremely sparse by their nature, whereas
@@ -80,18 +82,29 @@ these dense representations into a much sparser form can help in focusing on
 most salient parts of word representations
 \citep{Faruqui:2015,Berend:2017,Subramanian:2018}.
 
-Sparse representation is related to hypernymy in a natural ways.  
+Sparse representation is related to hypernymy in natural ways.
 One formulation is hierarchical sparse coding \citep{Zhao:2009}, where trees
 describe the order in which variables “enter the model” (i.e., take nonzero
 values). A node may take a nonzero value only if its ancestors also do: the
 dimensions that correspond to top level nodes should focus on “general”
 contexts that are present in most words. \citep{Yogatama:2015} offer an
-implementation that is efficient for gigaword corpora.  
+implementation that is efficient for gigaword corpora.
 
 Here we employ sparse coding for hypernym extraction in a different way, namely
-Formal Concept Analysis (FCA).  The idea of acquiring concept hierarchies from
-a text corpus with the tools of Formal Concept Analysis (FCA) is relatively new
-\citep{Cimiano:2005}.
+through Formal Concept Analysis (FCA).  
+
+nonneg \citep{Faruqui:2015,Fyshe:2015,Danish:2016}
+%                                     Danish, Dahiya, and Talukdar
+
+entities, music, Spanish
+
+a task kiírásában levő irodalom
+
+For further details of the shared task see \cite{Camacho-Collados:2018}.
+
+Our source code in available at \url{https://github.com/begab/fca_hypernymy}.
+
+\subsection{Formal concept analysis}
 
 \newcommand{\ob}{\ensuremath{\mathcal O}}
 \newcommand{\at}{\ensuremath{\mathcal A}}
@@ -102,7 +115,7 @@ Formal Concept Analysis (FCA) is the mathematization of \emph{concept} and conce
 hierarchy \citep{Ganter:2012,Endres:2010}. % vagy 2009
 An FCA context $C = \langle \ob, \at, \inci\rangle$ is comprised of
 a set of \emph{objects} $\ob$, a set of \emph{attributes} $\at$ and
-a binary incidency relation $\inci \subseteq \ob \times \at$ 
+a binary incidency relation $\inci \subseteq \ob \times \at$
 between members of \ob and \at.
 In our application, the members of $\ob$ are words, whereas
 the members of $\at$ are the sparse coding coordinate indices.
@@ -128,11 +141,11 @@ $O$ is called the extent and $A$ is the intent of the concept.\footnote{
   equivalent for all $O\subseteq \ob$ and $A\subseteq \at$:
   \begin{itemize}
     \item \oaconc~is a concept
-    \item $O$ is a closed set 
+    \item $O$ is a closed set
       %with respect to $O\mapsto\bar O$
       and $A=O'$
-    \item $A$ is a closed set 
-      %with respect to $A\mapsto\bar A$ 
+    \item $A$ is a closed set
+      %with respect to $A\mapsto\bar A$
       and $O=A'$
   \end{itemize}
 }
@@ -164,14 +177,19 @@ attribute is a member.%, the attribute concept, which introduces the attribute.
 % concepts will be embedded as a substructure in the larger lattice, with their
 % ordering relationships preserved.
 
-For further details of the shared task see \cite{Camacho-Collados:2018}.
+\section{Related work}
 
-Our source code in available at \url{https://github.com/begab/fca_hypernymy}.
+The idea of acquiring concept hierarchies from a text corpus with the tools of
+Formal Concept Analysis (FCA) is relatively new \citep{Cimiano:2005}.
 
-%\section{Related work} bele fog ez férni 4 oldalba? ha kevés lesz a hely, akkor ezen lehet fogni
+\section{Our submissions}
 
-\section{Our methodology}
-We used the popular skip-gram (SG) and continuous-bag-of-words (CBOW) approaches \cite{Mikolov:2013f} to train $d=100$ dimensional dense distributed word representations for each sub-corpora. For some subcorpus $x$, we denote the embedding matrix as $W_x \in \mathbb{R}^{\lvert V_x \rvert \times d}$ with $\lvert V_x \rvert$ denoting the size of the vocabulary and $d$ is set to 100 as stated previously.
+We used the popular skip-gram (SG) and continuous-bag-of-words (CBOW)
+approaches \cite{Mikolov:2013f} to train $d=100$ dimensional dense distributed
+word representations for each sub-corpora. For some subcorpus $x$, we denote
+the embedding matrix as $W_x \in \mathbb{R}^{\lvert V_x \rvert \times d}$ with
+$\lvert V_x \rvert$ denoting the size of the vocabulary and $d$ is set to 100
+as stated previously.
 
 As a subsequent step we turn the dense vectorial word representations into
 sparse word vectors akin to \citet{Berend:2017} by solving for
@@ -183,19 +201,26 @@ where $\mathcal{C}$ is the convex set of matrices containing only such vectors
 whose norm does not exceeds $1$ and $\alpha$ contains the sparse coefficients
 encoding which basis vectors from $D$ takes part in the reconstruction of the
 vectorial representation of some element of the vocabulary. The only difference
-compared to \cite{Berend:2017} is that here we ensure a non-negativity constraint over the elements of $\alpha$.
+compared to \cite{Berend:2017} is that here we ensure a non-negativity
+constraint over the elements of $\alpha$.
 
 For the elements of the vocabulary we ran the formal concept analysis tool of
-\citet{Endres:2010} \footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}.
+\citet{Endres:2010}\footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}.
+
+% why 300 in the group name (akár ott, hogy 300-as ritkával jobb is lehetett
+% volna, vagy ott, hogy 200 + 100 -- de ha magától értődő, akkor
+% ne)
 
 \section{Experimental results}
+
+\subsection{Restricted cantdidates}
 
 Table~\ref{table:upper} lists the best possible results we can achieve.
 
 \begin{table}
 	\centering
 	\begin{tabular}{c|ccc}
-		Subtask & MAP & MRR & P@1 \\ \hline 
+		Subtask & MAP & MRR & P@1 \\ \hline
 		1A & 0.542 & 0.748 & 0.670 \\
 		1B & 0.596 & 0.841 & 0.796 \\
 		1C & 0.624 & 0.839 & 0.776 \\
@@ -203,10 +228,22 @@ Table~\ref{table:upper} lists the best possible results we can achieve.
 		2B & 0.459 & 0.744 & 0.650 \\
 	\end{tabular}
 	\label{table:upper}
-	\caption{Best possible results obtainable on the test set for our 
-submissions due to the filtration of the possible set of gold hypernyms 
+	\caption{Best possible results obtainable on the test set for our
+submissions due to the filtration of the possible set of gold hypernyms
 we apply in order to speed up the FCA algorithm we use.}
 \end{table}
+
+a metrikáknak nagy a szórása. többszöri futtatás %TODO
+
+entity length ratio figure %TODO
+
+\subsection{All provided cantdidates}
+
+weights of dense and surface features %TODO
+
+\subsection{Qualitative analysis} %TODO ?
+
+entity music, Spannish (MRR, p@1)
 
 \section{Conclusion}
 
