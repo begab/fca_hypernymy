@@ -80,16 +80,21 @@ class ThreeHundredSparsians():
         self.args = args
         logging.debug(args)
         self.init_get_task_data()
-        self.train_queries, self.train_golds, _ = self.get_queries('training')
-        self.dev_queries, self.dev_golds, self.dev_gold_file = self.get_queries('trial')
-        self.test_queries, self.test_golds, self.test_gold_file = self.get_queries('test')
+        self.train_queries, self.train_golds, vocab_file, _ = self.get_queries('training')
+        self.dev_queries, self.dev_golds, _, self.dev_gold_file = self.get_queries('trial')
+        self.test_queries, self.test_golds, _, self.test_gold_file = self.get_queries('test')
         self.metrics = ['MAP', 'MRR', 'P@1', 'P@3', 'P@5', 'P@15']
         self.categories = ['Concept', 'Entity']
         self.get_train_hyp_freq()
         self.read_background_word_freq()
         self.get_embed()
         self.get_dag()
-        self.attr_pair_freq = defaultdict(int)
+
+        self.possible_hypernyms = set([l.strip() for l in open(vocab_file)])
+
+        self.words_to_attributes = defaultdict(list)
+        self.words_to_attributes.update({w: self.alphas.getcol(i).indices
+                                         for w, i in self.w2i.items()})
 
     def main(self, regularizations, repeats):
         training_data = self.get_training_pairs()
@@ -130,16 +135,19 @@ class ThreeHundredSparsians():
             '{d}/vocabulary/{id_}.{c}.vocabulary.txt',
             '{d}/SemEval2018_Frequency_lists/{id_}_{c}_frequencylist.txt',
         ]
-        data_filen, gold_filen1, self.vocab_file, self.frequency_file = (
+        data_filen, gold_filen1, vocab_file, self.frequency_file = (
             str_.format(
                  d=self.dataset_dir, id_=self.args.dataset_id,
                  c=self.dataset_mapping[self.args.dataset_id][0], p=phase)
             for str_ in file_path_ptrns)
         queries = [(l.split('\t')[0].replace(' ', '_'),
                     l.split('\t')[1].strip()) for l in open(data_filen)]
-        golds = [[x.replace(' ', '_') for x in line.strip().split('\t')] for
-                 line in open(gold_filen1)] if os.path.exists(gold_filen1) else None
-        return queries, golds, gold_filen1
+        if os.path.exists(gold_filen1):
+            golds = [[x.replace(' ', '_') for x in line.strip().split('\t')]
+                     for line in open(gold_filen1)]
+        else:
+            golds = None
+        return queries, golds, vocab_file, gold_filen1
 
     def get_train_hyp_freq(self):
         self.gold_counter = defaultdict(Counter)
@@ -184,6 +192,9 @@ class ThreeHundredSparsians():
         row_norms = np.sqrt(
             (self.unit_embeddings**2).sum(axis=1))[:, np.newaxis]
         self.unit_embeddings /= row_norms
+        alpha_basename = self.dag_basename.replace('_more_permissive.dot', '')
+        alpha_path = os.path.join(self.task_dir, 'alphas', alpha_basename)
+        self.alphas = pickle.load(open(alpha_path, 'rb'))
 
     def get_dag(self):
         root, ext = os.path.splitext(self.dag_basename)
@@ -206,7 +217,6 @@ class ThreeHundredSparsians():
         nodes_to_attributes = {}   # {node: active neurons}
         nodes_to_words = {}  # {node: all the words located at it}, not used
         words_to_nodes = defaultdict(set)   # {w: the nodes it is assigned to}
-        self.words_to_attributes = {}  # {word: the set of bases active for it}
         for i, n in enumerate(self.dag.nodes(data=True)):
             words = n[1]['label'].split('|')[1].split('\\n')
             if not i % 100000:
@@ -225,10 +235,8 @@ class ThreeHundredSparsians():
                         or self.deepest_occurrence[w][2] < len(attributes)):
                     self.deepest_occurrence[w] = (node_id, len(words),
                                                   len(attributes))
-                    self.words_to_attributes[w] = attributes
 
-    def calculate_features(self, query_word, candidate, query_type,
-                           count_att_pairs=False):
+    def calculate_features(self, query_word, candidate, query_type):
         query_vec = self.embeddings[self.w2i[query_word]]
         query_tokens_l = query_word.lower().split('_')
         query_tokens = set(query_tokens_l)
@@ -236,8 +244,7 @@ class ThreeHundredSparsians():
         query_location = 0
         if query_in_dag:
             query_location = self.deepest_occurrence[query_word][0]
-        query_attributes = set(self.words_to_attributes[query_word]
-                               if query_in_dag else [])
+        query_attributes = set(self.words_to_attributes[query_word])
         # if query_in_dag:
         #    own_query_words = get_own_words(self.dag, query_location)
         # else:
@@ -252,14 +259,11 @@ class ThreeHundredSparsians():
         candidate_location = 0
         if candidate_in_dag:
             candidate_location = self.deepest_occurrence[candidate][0]
-        candidate_attributes = set(
-            self.words_to_attributes[candidate] if candidate_in_dag
-            else [])
+        candidate_attributes = set(self.words_to_attributes[candidate])
 
-        features = {}
+        features = {'basis_combinations': []}
         # We use 79-length lines in most of the files, except for the
         # specification of feature_vector values, where long lines remain.
-        features['basis_combinations'] = []
         for q_att in query_attributes:
             for gc_att in candidate_attributes:
                 features['basis_combinations'].append((q_att, gc_att))
@@ -267,18 +271,13 @@ class ThreeHundredSparsians():
         features['is_frequent_hypernym'] = int(candidate in self.frequent_hypernyms[query_type])
         features['has_textual_overlap'] = int(len(candidate_tokens & query_tokens) > 0)
 
-        if count_att_pairs:
-            for q_att in query_attributes:
-                for c_att in candidate_attributes:
-                    self.attr_pair_freq[q_att, c_att] += 1
-
         for name, ind in [('first', 0), ('last', -1)]:
             features['cand_is_{}_w'.format(name)] = int(query_tokens_l[ind] == candidate)
             features['same_{}_w'.format(name)] = int(query_tokens_l[ind] == candidate_tokens_l[ind])
 
-        features['same_dag_position'] = int(query_location == candidate_location)
-        features['right_below_in_dag'] = int(self.dag.has_edge('node{}'.format(query_location), 'node{}'.format(candidate_location)))
-        features['right_above_in_dag'] = int(self.dag.has_edge('node{}'.format(candidate_location), 'node{}'.format(query_location)))
+        # features['same_dag_position'] = int(query_location == candidate_location)
+        # features['right_below_in_dag'] = int(self.dag.has_edge('node{}'.format(query_location), 'node{}'.format(candidate_location)))
+        # features['right_above_in_dag'] = int(self.dag.has_edge('node{}'.format(candidate_location), 'node{}'.format(query_location)))
         features['difference_length'] = np.linalg.norm(query_vec - candidate_vec)
         features['length_ratios'] = np.linalg.norm(query_vec) / np.linalg.norm(candidate_vec)
         features['cosines'] = self.unit_embeddings[self.w2i[query_word]].dot(self.unit_embeddings[self.w2i[candidate]])
@@ -298,7 +297,8 @@ class ThreeHundredSparsians():
         np.random.seed(400)
         missed_query, missed_hypernyms = 0, 0
         train_feats = defaultdict(lambda: defaultdict(list))
-        for i, (query_tuple, hypernyms) in enumerate(zip(self.train_queries, self.train_golds)):
+        for i, (query_tuple, hypernyms) in enumerate(
+                zip(self.train_queries, self.train_golds)):
             #  if i % 100 == 0:
             #    logging.info('{} training cases covered.'.format(i))
             query, query_type = query_tuple[0], query_tuple[1]
@@ -307,13 +307,13 @@ class ThreeHundredSparsians():
                 missed_hypernyms += len(hypernyms)
                 continue
 
-            potential_negative_samples = [
-                h for h in self.gold_counter[query_type]
+            potential_negatives = [
+                h for h in self.possible_hypernyms #self.gold_counter[query_type]
                 if h not in hypernyms and h in self.word_frequencies]
-            if len(potential_negative_samples) > 0:
+            if len(potential_negatives) > 0:
                 negative_samples = np.random.choice(
-                    potential_negative_samples, size=min(
-                        50, len(potential_negative_samples)), replace=False)
+                    potential_negatives, size=min(
+                        5000, len(potential_negatives)), replace=False)
             else:
                 negative_samples = []
 
@@ -324,13 +324,13 @@ class ThreeHundredSparsians():
                 train_feats['class_label'][query_type].append(
                     gold_candidate in hypernyms)
                 for feat_name, feat_val in self.calculate_features(
-                        query, gold_candidate, query_type,
-                        count_att_pairs=True).items():
+                        query, gold_candidate, query_type).items():
                     train_feats[feat_name][query_type].append(feat_val)
         return train_feats
 
     def train(self, training_data):
         def get_sparse_mx(basis_pairs_per_query):
+            nonzeros_per_row = []
             sparse_data, sparse_indices, sparse_ptrs = [], [], [0]
             for basis_pairs in basis_pairs_per_query:
                 sparse_data.extend(len(basis_pairs) * [1.])
@@ -338,9 +338,11 @@ class ThreeHundredSparsians():
                     basis_pair[0] * self.args.sparse_dimensions + basis_pair[1]
                     for basis_pair in basis_pairs])
                 sparse_ptrs.append(len(sparse_indices))
-            return csr_matrix(
+                nonzeros_per_row.append(sparse_ptrs[-1]-sparse_ptrs[-2])
+            return (csr_matrix(
                 (sparse_data, sparse_indices, sparse_ptrs),
-                shape=(len(sparse_ptrs)-1, self.args.sparse_dimensions**2))
+                shape=(len(sparse_ptrs)-1, self.args.sparse_dimensions**2)),
+                nonzeros_per_row)
 
         X_per_category = {c: [] for c in self.categories}
         y_per_category = {}
@@ -359,8 +361,10 @@ class ThreeHundredSparsians():
             c: make_pipeline(LogisticRegression(C=self.regularization))
             for c in self.categories}
         for category in self.categories:
-            sparse_features = get_sparse_mx(
+            sparse_features, nonzero_pairs = get_sparse_mx(
                 training_data['basis_combinations'][category])
+            logging.info('Avg. att_pairs/instance for {}: {:.3}'.format(
+                category, np.mean(nonzero_pairs)))
             if self.args.include_sparse_feats:
                 X = hstack([np.array(X_per_category[category]).T, sparse_features])
             else:
@@ -396,7 +400,6 @@ class ThreeHundredSparsians():
 
         with open(out_file_name, 'w') as pred_file:
             for i, query_tuple in zip(range(len(queries)), queries):
-                # logging.info(query_tuple, hypernyms)
                 if i % 250 == 0:
                     logging.debug('{} predictions made'.format(i))
                 query, query_type = query_tuple[0], query_tuple[1]
@@ -408,14 +411,13 @@ class ThreeHundredSparsians():
 
                 possible_hypernyms = []
                 sparse_data, sparse_indices, sparse_ptrs = [], [], [0]
+
+                hypernym_candidates = self.possible_hypernyms
                 if self.args.filter_candidates:
-                    possible_candidates = [
+                    hypernym_candidates = [
                         h for h in self.gold_counter[query_type]]
-                else:
-                    pass
-                # TODO shall we regard all the vocabulary as a potential
-                # hypernym?
-                for gold_candidate in possible_candidates:
+
+                for gold_candidate in hypernym_candidates:
                     if gold_candidate not in self.w2i:
                         continue
                     possible_hypernyms.append(gold_candidate)
@@ -453,18 +455,23 @@ class ThreeHundredSparsians():
                     # possible_hypernyms[prediction_index].replace('_', ' '))
                 pred_file.write('\n')
 
-    def make_baseline(self, queries, golds, upper_bound=False):
+    def make_baseline(self, queries, golds, upper_bound):
         """
         predicts the most common training hypernyms per query type (if upper_bound is False)
         if upper_bound is True it predicts the gold hypernyms also found in our vocabulary
         """
-        baseline_filen = '{}_{}.predictions'.format(self.args.dataset_id,
-                                                    'upper' if upper_bound else 'baseline')
+        baseline_filen = '{}_{}.predictions'.\
+            format(self.args.dataset_id, 'upper' if upper_bound else 'baseline')
+        potential_hypernyms = self.possible_hypernyms
         with open(baseline_filen, mode='w') as out_file:
             for query_tuple, hypernyms in zip(queries, golds):
+                if self.args.filter_candidates:
+                    potential_hypernyms = [
+                        h for h in self.gold_counter[query_tuple[1]]]
+
                 if upper_bound:
                     out_file.write('{}\n'.format('\t'.join([
-                        h for h in hypernyms if h in self.gold_counter[query_tuple[1]]])))
+                        h for h in hypernyms if h in potential_hypernyms])))
                 else:
                     out_file.write('{}\n'.format('\t'.join([
                         t[0] for t in
@@ -473,8 +480,6 @@ class ThreeHundredSparsians():
 
     def write_metrics(self, gold_file, prediction_filen, metric_filen):
         results = return_official_scores(gold_file, prediction_filen)
-        for met in self.metrics:
-            logging.info('{} {:.3}'.format(met, results[met]))
         if metric_filen is not None:
             with open(metric_filen, mode='w') as metric_file:
                 metric_file.write('{}\t{}\t{}\t{}'.format(
@@ -514,6 +519,9 @@ class ThreeHundredSparsians():
             self.dag_basename
         ))
 
+        # potential_hypernyms = self.gold_counter[query_tuple[1]]]
+        potential_hypernyms = set()
+
         baseline_file = self.make_baseline(self.dev_queries, self.dev_golds, False)
         results = self.write_metrics(self.dev_gold_file, baseline_file, None)
         res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
@@ -550,15 +558,6 @@ class ThreeHundredSparsians():
     """
     The rest of the class is attic.
 
-    def logg_attribute_pair_hist(self):
-        attribute_pair_hist = defaultdict(int)
-        for fq in self.attr_pair_freq.values():
-            attribute_pair_hist[fq] += 1
-            logging.info((
-                len(self.attr_pair_freq),
-                sorted(attribute_pair_hist.items(), key=lambda item: item[1],
-                       reverse=True)))
-
     def get_children_words(graph, node_id):
         return [nodes_to_words[int(n.replace('node', ''))]
                 for n in graph['node{}'.format(node_id)].keys()]
@@ -592,13 +591,13 @@ class ThreeHundredSparsians():
             features['dag_avg_path_len'][query_type].append(0)
             features['dag_number_of_paths'][query_type].append(1)
         else:
+            gold_candidate_in_dag = gold in self.deepest_occurrence[gold]
             if gold_candidate_in_dag:
-                gold_location = self.deepest_occurrence[gold][0]
+                query_location = self.deepest_occurrence[gold][0]
             else:
                 # úgy lett kezelve, mintha a 0-ás csúcsban (a gyökérben) lenne,
                 # azaz nem tudnánk semmit az ő attribútumairól
                 gold_location = 0
-            # TODO undefined names 'gold_in_dag', 'query_location'
             all_paths = list(nx.all_simple_paths(
                 self.dag, 'node{}'.format(gold_location),
                 'node{}'.format(query_location)))
