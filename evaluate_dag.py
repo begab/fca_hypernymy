@@ -219,8 +219,8 @@ class ThreeHundredSparsians():
         words_to_nodes = defaultdict(set)   # {w: the nodes it is assigned to}
         for i, n in enumerate(self.dag.nodes(data=True)):
             words = n[1]['label'].split('|')[1].split('\\n')
-            if not i % 100000:
-                logging.info((i, words))
+            #if not i % 100000:
+            #    logging.info((i, words))
             node_id = int(n[1]['label'].split('|')[0])
             attributes = [
                 int(att.replace('n', ''))
