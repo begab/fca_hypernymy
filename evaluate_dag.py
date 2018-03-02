@@ -1,20 +1,20 @@
 from collections import Counter, defaultdict
 import logging
 import argparse
-import networkx as nx
-import numpy as np
 import os
 import pickle
+import time
 
-from scipy.sparse import csr_matrix
-from scipy.sparse import hstack
+import numpy as np
+import networkx as nx
+from scipy.sparse import csc_matrix, csr_matrix, hstack
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 
 from official_scorer import return_official_scores
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s"
 )
 
@@ -25,7 +25,7 @@ def get_args():
                         default='1A', choices=['1A', '1B', '1C', '2A', '2B'])
     parser.add_argument('--dense_archit', default='sg', choices=['sg', 'cbow'])
     parser.add_argument('--num_runs', type=int, default=1)
-    parser.add_argument('--sparse_dimensions', type=int, default=200)
+    parser.add_argument('--sparse_dim', type=int, default=200)
     parser.add_argument('--sparse_density', type=float, default=0.3)
     parser.add_argument(
         '--sparse-new', action='store_true', dest='sparse_new',
@@ -34,14 +34,14 @@ def get_args():
     # a submission-be nem ilyenek kerültek
     # TODO érdemben meggyőződni róla h akkor ez most jó-e vagy sem
 
-    sparse_feats_parser = parser.add_mutually_exclusive_group(required=False)
-    sparse_feats_parser.add_argument('--not-sparse-feats',
-                                     dest='include_sparse_feats',
+    sparse_atts_parser = parser.add_mutually_exclusive_group(required=False)
+    sparse_atts_parser.add_argument('--not-sparse-feats',
+                                     dest='include_sparse_att_pairs',
                                      action='store_false')
-    sparse_feats_parser.add_argument('--sparse-feats',
-                                     dest='include_sparse_feats',
+    sparse_atts_parser.add_argument('--sparse-feats',
+                                     dest='include_sparse_att_pairs',
                                      action='store_true')
-    parser.set_defaults(include_sparse_feats=True)
+    parser.set_defaults(include_sparse_att_pairs=True)
 
     candidates_parser = parser.add_mutually_exclusive_group(required=False)
     candidates_parser.add_argument('--not-filter-candidates',
@@ -50,7 +50,7 @@ def get_args():
     candidates_parser.add_argument('--filter-candidates',
                                    dest='filter_candidates',
                                    action='store_true')
-    parser.set_defaults(filter_candidates=True)
+    parser.set_defaults(filter_candidates=False)
 
     gpickle_parser = parser.add_mutually_exclusive_group(required=False)
     gpickle_parser.add_argument('--not-save-gpickle',
@@ -75,36 +75,12 @@ def get_args():
     return parser.parse_args()
 
 
-class ThreeHundredSparsians():
+class ThreeHundredSparsians(object):
     def __init__(self, args):
+        self.times = defaultdict(list)
         self.args = args
         logging.debug(args)
-        self.init_get_task_data()
-        self.train_queries, self.train_golds, vocab_file, _ = self.get_queries('training')
-        self.dev_queries, self.dev_golds, _, self.dev_gold_file = self.get_queries('trial')
-        self.test_queries, self.test_golds, _, self.test_gold_file = self.get_queries('test')
-        self.metrics = ['MAP', 'MRR', 'P@1', 'P@3', 'P@5', 'P@15']
-        self.categories = ['Concept', 'Entity']
-        self.get_train_hyp_freq()
-        self.read_background_word_freq()
-        self.get_embed()
-        self.get_dag()
 
-        self.possible_hypernyms = set([l.strip() for l in open(vocab_file)])
-
-        self.words_to_attributes = defaultdict(list)
-        self.words_to_attributes.update({w: self.alphas.getcol(i).indices
-                                         for w, i in self.w2i.items()})
-
-    def main(self, regularizations, repeats):
-        training_data = self.get_training_pairs()
-        for _ in range(repeats):
-            for c in regularizations:
-                self.regularization = c
-                per_category_models = self.train(training_data)
-                self.test(per_category_models)
-
-    def init_get_task_data(self):
         self.dataset_mapping = {
             '1A': ['english', 'UMBC'],
             '1B': ['italian', 'it_itwac'],
@@ -112,21 +88,55 @@ class ThreeHundredSparsians():
             '2A': ['medical', 'med_pubmed'],
             '2B': ['music', 'music_bioreviews']
         }
-        self.dag_basename = (
+
+        self.dag_basename, self.task_dir, self.dataset_dir = self.init_paths()
+        self.train_queries, self.train_golds, vocab_file, _ = self.get_queries('training')
+        self.dev_queries, self.dev_golds, _, self.dev_gold_file = self.get_queries('trial')
+        self.test_queries, self.test_golds, _, self.test_gold_file = self.get_queries('test')
+        self.metrics = ['MAP', 'MRR', 'P@1', 'P@3', 'P@5', 'P@15']
+        self.categories = ['Concept', 'Entity']
+        self.w2i, self.embeddings, self.alphas = self.get_embed()
+        self.words_to_atts = defaultdict(list)
+        self.words_to_atts.update({w: self.alphas.getcol(i).indices
+                                         for w, i in self.w2i.items()})
+        self.unit_embeddings = self.embeddings.copy()
+        row_norms = np.sqrt(
+            (self.unit_embeddings**2).sum(axis=1))[:, np.newaxis]
+        self.unit_embeddings /= row_norms
+        # self.get_dag()
+        self.word_freqs = self.read_background_word_freq()
+        self.gold_counter, self.frequent_hypernyms = self.get_train_hyp_freq()
+        self.possible_hypernyms = set()
+        for l in open(vocab_file):
+            hyp_candidate = l.strip()
+            if hyp_candidate in self.w2i and hyp_candidate in self.word_freqs:
+                self.possible_hypernyms.add(hyp_candidate)
+
+    def main(self, regularizations, repeats):
+        train_data, feature_names, train_labels = self.get_training_pairs()
+        for _ in range(repeats):
+            for c in regularizations:
+                self.regularization = c
+                models = self.train(train_data, feature_names, train_labels)
+                self.test(models)
+
+    def init_paths(self):
+        dag_basename = (
             '{}_{}_tokenized.txt_100_{}.vec.gz_True_{}_{}_unit_True_'
             'vocabulary_filtered{}.alph.reduced2_more_permissive.dot'.format(
                 self.args.dataset_id,
                 self.dataset_mapping[self.args.dataset_id][1],
-                self.args.dense_archit, self.args.sparse_dimensions,
+                self.args.dense_archit, self.args.sparse_dim,
                 self.args.sparse_density,
                 'NEW' if self.args.sparse_new else ''))
 
         if self.args.file_struct == 'szeged':
-            self.task_dir = ''
-            self.dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
+            task_dir = ''
+            dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
         else:
-            self.task_dir = '/mnt/store/friend/proj/SemEval18-hypernym/'
-            self.dataset_dir = os.path.join(self.task_dir, 'SemEval18-Task9')
+            task_dir = '/mnt/store/friend/proj/SemEval18-hypernym/'
+            dataset_dir = os.path.join(self.task_dir, 'SemEval18-Task9')
+        return dag_basename, task_dir, dataset_dir
 
     def get_queries(self, phase):
         file_path_ptrns = [
@@ -150,51 +160,53 @@ class ThreeHundredSparsians():
         return queries, golds, vocab_file, gold_filen1
 
     def get_train_hyp_freq(self):
-        self.gold_counter = defaultdict(Counter)
+        gold_c = defaultdict(Counter)
+        discarded_gold_c = Counter()
         for tq, tgs in zip(self.train_queries, self.train_golds):
-            self.gold_counter[tq[1]].update(tgs)
-        # very_frequent_hypernyms = {
-        #     category: set([
-        #         h for h, f in self.gold_counter[category].most_common(10)])
-        #     for category in self.categories}
-        self.frequent_hypernyms = {
-            category: set([
-                h for h, f in self.gold_counter[category].most_common()])
-            for category in self.categories}
+            for g in tgs:
+                if g not in self.word_freqs or g not in self.w2i:
+                    discarded_gold_c[g] += 1
+            gold_c[tq[1]].update([g for g in tgs
+                                  if g in self.word_freqs and g in self.w2i])
+        freq_hypernyms = {c: set([h for h, f in gold_c[c].most_common(50)])
+                          for c in self.categories}
+        for dg in discarded_gold_c.items():
+            logging.debug((dg, ' discarded gold'))
+        return gold_c, freq_hypernyms
 
     def read_background_word_freq(self):
         logging.info('Reading background word freq...')
-        self.word_frequencies = {}
+        word_frequencies = Counter()
         for i, l in enumerate(open(self.frequency_file)):
             word = l.split('\t')[0].replace(' ', '_')
             freq = int(l.split('\t')[1])
-            if word.lower() not in self.word_frequencies:
-                self.word_frequencies[word.lower()] = freq
-            self.word_frequencies[word] = freq
+            if i % 2500000 == 0:
+                logging.debug('{} frequencies read in'.format(i))
+            if word.lower() not in word_frequencies:
+                word_frequencies[word.lower()] = freq
+            word_frequencies[word] = freq
         if self.args.dataset_id == '1B':
             """
             quick fix to overcome the fact that the frequency file and the
             training data contains this word with different capitalization
             """
-            self.word_frequencies['equazione_di_Bernoulli'] = 13
+            word_frequencies['equazione_di_Bernoulli'] = 13
+        return word_frequencies
 
     def get_embed(self):
         i2w = {i: w.strip() for i, w in enumerate(open(
             'data/{}.vocab'.format(self.args.dataset_id)
         ))}
-        self.w2i = {v: k for k, v in i2w.items()}
+        w2i = {v: k for k, v in i2w.items()}
         embedding_file = os.path.join(
             self.task_dir, 'dense_embeddings',
             '{}_{}_vocab_filtered.emb'.format(
                 self.args.dataset_id, self.args.dense_archit))
-        self.embeddings = pickle.load(open(embedding_file, 'rb'))
-        self.unit_embeddings = self.embeddings.copy()
-        row_norms = np.sqrt(
-            (self.unit_embeddings**2).sum(axis=1))[:, np.newaxis]
-        self.unit_embeddings /= row_norms
+        embeddings = pickle.load(open(embedding_file, 'rb'))
         alpha_basename = self.dag_basename.replace('_more_permissive.dot', '')
         alpha_path = os.path.join(self.task_dir, 'alphas', alpha_basename)
-        self.alphas = pickle.load(open(alpha_path, 'rb'))
+        alphas = pickle.load(open(alpha_path, 'rb'))
+        return w2i, embeddings, alphas
 
     def get_dag(self):
         root, ext = os.path.splitext(self.dag_basename)
@@ -219,8 +231,6 @@ class ThreeHundredSparsians():
         words_to_nodes = defaultdict(set)   # {w: the nodes it is assigned to}
         for i, n in enumerate(self.dag.nodes(data=True)):
             words = n[1]['label'].split('|')[1].split('\\n')
-            #if not i % 100000:
-            #    logging.info((i, words))
             node_id = int(n[1]['label'].split('|')[0])
             attributes = [
                 int(att.replace('n', ''))
@@ -236,152 +246,195 @@ class ThreeHundredSparsians():
                     self.deepest_occurrence[w] = (node_id, len(words),
                                                   len(attributes))
 
-    def calculate_features(self, query_word, candidate, query_type):
-        query_vec = self.embeddings[self.w2i[query_word]]
-        query_tokens_l = query_word.lower().split('_')
-        query_tokens = set(query_tokens_l)
+    def get_info_re_words(self, words):
+        """
+
+        :param words: a list of words to obtain information for
+        :return:
+        """
+        word_ids = [self.w2i[word] for word in words]
+        vectors = self.embeddings[word_ids, :]
+        vector_norms = np.linalg.norm(vectors, axis=1)
+        unit_vectors = self.unit_embeddings[word_ids, :]
+        coeffs = self.alphas[:, word_ids]
+        word_atts = [self.words_to_atts[word] for word in words]
+        freqs = np.array([self.word_freqs[word] for word in words])
+        return vectors, vector_norms, unit_vectors, word_atts, coeffs, freqs
+
+    def calc_features(self, query_words, query_types, candidates,
+                      dense_c, norms_c, unit_c, atts_c, coeffs_c, freq_c):
+        """
+        :param query_words:
+        :param query_types:
+        :param candidates:
+        :return: feature matrix with len(query_words) * len(candidates) instances
+        """
+        dense_q, norms_q, unit_q, atts_q, coeffs_q, freq_q = \
+            self.get_info_re_words(query_words)
+
+        quantity_q, quantity_c = dense_q.shape[0], dense_c.shape[0]
+        f = defaultdict(list)
+        f['diff_features'] = [np.linalg.norm(
+            dense_c - np.tile(vec, (quantity_c, 1)), axis=1)
+            for vec in dense_q]
+        f['norm_ratios'] = np.outer(norms_q, 1/norms_c)
+        f['cosines'] = unit_q.dot(unit_c.T)
+        f['freq_ratios_log'] = np.log10(np.outer(freq_q, 1/freq_c))
+
+        t = time.time()
+        for q, qt in zip(query_words, query_types):
+            q_tokens_l = q.lower().split('_')
+            q_tokens_s = set(q_tokens_l)
+            for c in candidates:
+                c_tokens_l = c.lower().split('_')
+                f['textual_overlap'].append(
+                    int(len(set(c_tokens_l) & q_tokens_s) > 0))
+                f['is_frequent_hypernym'].append(
+                    int(c in self.frequent_hypernyms[qt]))
+                for name, ind in [('first', 0), ('last', -1)]:
+                    f['cand_is_{}_w'.format(name)].append(
+                        int(q_tokens_l[ind] == c))
+                    f['same_{}_w'.format(name)].append(
+                        int(q_tokens_l[ind] == c_tokens_l[ind]))
+        self.times['word'].append(time.time() - t)
+
+        atts_overlap = coeffs_q.T * coeffs_c.todense()
+        nnz_q, nnz_c = np.diff(coeffs_q.indptr), np.diff(coeffs_c.indptr)
+
+        f['att_diffA'] = np.tile(nnz_q, (quantity_c, 1)).T - atts_overlap
+        f['att_diffB'] = np.tile(nnz_c, (quantity_q, 1)) - atts_overlap
+        f['att_intersect'] = (atts_overlap > 0).astype(np.int)
+        f = {k: np.ravel(v) for k, v in f.items()}
+        """
         query_in_dag = query_word in self.deepest_occurrence
         query_location = 0
         if query_in_dag:
             query_location = self.deepest_occurrence[query_word][0]
         query_attributes = set(self.words_to_attributes[query_word])
-        # if query_in_dag:
-        #    own_query_words = get_own_words(self.dag, query_location)
-        # else:
-        #    # In this case, the query had no nonzero coefficient
-        #    own_query_words = set(self.w2i.keys()) -
-        #                      self.deepest_occurrence.keys()
+        if query_in_dag:
+            own_query_words = get_own_words(self.dag, query_location)
+        else:
+            # In this case, the query had no nonzero coefficient
+            own_query_words = set(self.w2i.keys()) -
+                              self.deepest_occurrence.keys()
 
-        candidate_vec = self.embeddings[self.w2i[candidate]]
-        candidate_tokens_l = candidate.lower().split('_')
-        candidate_tokens = set(candidate_tokens_l)
         candidate_in_dag = candidate in self.deepest_occurrence
         candidate_location = 0
         if candidate_in_dag:
             candidate_location = self.deepest_occurrence[candidate][0]
-        candidate_attributes = set(self.words_to_attributes[candidate])
 
-        features = {'basis_combinations': []}
-        # We use 79-length lines in most of the files, except for the
-        # specification of feature_vector values, where long lines remain.
-        for q_att in query_attributes:
-            for gc_att in candidate_attributes:
-                features['basis_combinations'].append((q_att, gc_att))
+        f['same_dag_position'] = int(query_location == candidate_location)
+        f['right_below_in_dag'] = int(self.dag.has_edge('node{}'.format(query_location), 'node{}'.format(candidate_location)))
+        f['right_above_in_dag'] = int(self.dag.has_edge('node{}'.format(candidate_location), 'node{}'.format(query_location)))
+        """
+        t = time.time()
+        data, indices, ptrs = [], [], []
+        if self.args.include_sparse_att_pairs:
+            data, indices, ptrs = self.generate_att_pairs(atts_q, atts_c)
+        self.times['sparse2'].append(time.time() - t)
+        return f, data, indices, ptrs
 
-        features['is_frequent_hypernym'] = int(candidate in self.frequent_hypernyms[query_type])
-        features['has_textual_overlap'] = int(len(candidate_tokens & query_tokens) > 0)
+    def generate_att_pairs(self, atts_q, atts_c):
+        data, indices, pointers = [], [], []
+        sparse_dim = self.args.sparse_dim
+        for i, q in enumerate(atts_q):
+            for j, c in enumerate(atts_c):
+                att_pairs = [qi * sparse_dim + ci for qi in q for ci in c]
+                indices.extend(att_pairs)
+                data.extend(len(att_pairs) * [1])
+                pointers.append(len(indices))
+        return data, indices, pointers
 
-        for name, ind in [('first', 0), ('last', -1)]:
-            features['cand_is_{}_w'.format(name)] = int(query_tokens_l[ind] == candidate)
-            features['same_{}_w'.format(name)] = int(query_tokens_l[ind] == candidate_tokens_l[ind])
-
-        # features['same_dag_position'] = int(query_location == candidate_location)
-        # features['right_below_in_dag'] = int(self.dag.has_edge('node{}'.format(query_location), 'node{}'.format(candidate_location)))
-        # features['right_above_in_dag'] = int(self.dag.has_edge('node{}'.format(candidate_location), 'node{}'.format(query_location)))
-        features['difference_length'] = np.linalg.norm(query_vec - candidate_vec)
-        features['length_ratios'] = np.linalg.norm(query_vec) / np.linalg.norm(candidate_vec)
-        features['cosines'] = self.unit_embeddings[self.w2i[query_word]].dot(self.unit_embeddings[self.w2i[candidate]])
-        attribute_intersection_size = len(query_attributes & candidate_attributes)
-        # attribute_union_size = len(query_attributes | gold_candidate_attributes)
-        features['attribute_differenceA'] = len(query_attributes - candidate_attributes)
-        features['attribute_differenceB'] = len(candidate_attributes - query_attributes)
-        features['attributes_intersect'] = int(attribute_intersection_size > 0)
-        if query_word in self.word_frequencies and candidate in self.word_frequencies:
-            features['freq_ratios_log'] = np.log10(self.word_frequencies[query_word] / self.word_frequencies[candidate])
-        else:
-            features['freq_ratios_log'] = 0
-            # logging.debug((query_word, gold_candidate))
-        return features
+    def generate_att_pairs_slow(self, coeffs_q, coeffs_c):
+        sd = self.args.sparse_dim
+        data, indices, ptrs = [], [], []
+        qc, cc = coeffs_q.tocoo(), coeffs_c.tocoo()
+        q_row = np.array([c * sd + r for r, c in zip(qc.row, qc.col)])
+        c_col = np.array([c * sd + r for r, c in zip(cc.row, cc.col)])
+        Q = csc_matrix((qc.data, (q_row, np.zeros(qc.row.shape))),
+                       shape=(coeffs_q.shape[1]*sd, 1))
+        C = csr_matrix((cc.data, (np.zeros(cc.row.shape), c_col)),
+                       shape=(1, coeffs_c.shape[1]*sd))
+        outer = Q * C
+        for q_i in range(0, coeffs_q.shape[1] * sd, sd):
+            for c_i in range(0, coeffs_c.shape[1] * sd, sd):
+                oc = outer[q_i:q_i+sd, c_i:c_i+sd].tocoo()
+                indices.extend([sd * r + c for r, c in zip(oc.row, oc.col)])
+                data.extend(len(indices) * [1])
+                ptrs.append(len(indices))
+        return data, indices, ptrs
 
     def get_training_pairs(self):
         np.random.seed(400)
-        missed_query, missed_hypernyms = 0, 0
-        train_feats = defaultdict(lambda: defaultdict(list))
-        for i, (query_tuple, hypernyms) in enumerate(
+        labels = {c: [] for c in self.categories}
+        X = {c: defaultdict(list) for c in self.categories}
+        indices = {c: [] for c in self.categories}
+        data = {c: [] for c in self.categories}
+        ptrs = {c: [0] for c in self.categories}
+        for i, (query, golds) in enumerate(
                 zip(self.train_queries, self.train_golds)):
-            #  if i % 100 == 0:
-            #    logging.info('{} training cases covered.'.format(i))
-            query, query_type = query_tuple[0], query_tuple[1]
-            if query not in self.w2i:
-                missed_query += 1
-                missed_hypernyms += len(hypernyms)
+            if i % 250 == 0:
+                for k, v in self.times.items():
+                    logging.debug((i, k, np.mean(v), np.sum(v)))
+                logging.info('{} training instance processed'.format(i))
+
+            q, q_type = query[0], query[1]
+            if q not in self.w2i:
                 continue
 
-            potential_negatives = [
-                h for h in self.possible_hypernyms #self.gold_counter[query_type]
-                if h not in hypernyms and h in self.word_frequencies]
+            potential_negatives = sorted([
+                h for h in self.possible_hypernyms
+                if h not in golds and h in self.word_freqs and h in self.w2i])
+            neg = []  # negative samples
             if len(potential_negatives) > 0:
-                negative_samples = np.random.choice(
-                    potential_negatives, size=min(
-                        5000, len(potential_negatives)), replace=False)
-            else:
-                negative_samples = []
+                neg = np.random.choice(potential_negatives, size=min(
+                    5000, len(potential_negatives)), replace=False)
 
-            for gold_candidate in set(hypernyms) | set(negative_samples):
-                if gold_candidate not in self.w2i:
-                    missed_hypernyms += 1
-                    continue
-                train_feats['class_label'][query_type].append(
-                    gold_candidate in hypernyms)
-                for feat_name, feat_val in self.calculate_features(
-                        query, gold_candidate, query_type).items():
-                    train_feats[feat_name][query_type].append(feat_val)
-        return train_feats
+            pos = [h for h in golds if h in self.w2i]  # positive samples
+            candidates = pos + [ns for ns in neg]
+            labels[q_type].extend(len(pos) * [True] + len(neg) * [False])
+            dense, norms, unit, atts, coeffs, freq =\
+                self.get_info_re_words(candidates)
+            f, d, ind, offsets = self.calc_features([q], [q_type], candidates,
+                                                    dense, norms, unit, atts,
+                                                    coeffs, freq)
+            for feat_name, values in f.items():
+                X[q_type][feat_name].append(values)
+            indices[q_type].extend(ind)
+            data[q_type].extend(d)
+            start_ptr = ptrs[q_type][-1]
+            for o in offsets:
+                ptrs[q_type].append(start_ptr + o)
 
-    def train(self, training_data):
-        def get_sparse_mx(basis_pairs_per_query):
-            nonzeros_per_row = []
-            sparse_data, sparse_indices, sparse_ptrs = [], [], [0]
-            for basis_pairs in basis_pairs_per_query:
-                sparse_data.extend(len(basis_pairs) * [1.])
-                sparse_indices.extend([
-                    basis_pair[0] * self.args.sparse_dimensions + basis_pair[1]
-                    for basis_pair in basis_pairs])
-                sparse_ptrs.append(len(sparse_indices))
-                nonzeros_per_row.append(sparse_ptrs[-1]-sparse_ptrs[-2])
-            return (csr_matrix(
-                (sparse_data, sparse_indices, sparse_ptrs),
-                shape=(len(sparse_ptrs)-1, self.args.sparse_dimensions**2)),
-                nonzeros_per_row)
+        feat_names = sorted(f.keys())
+        features = dict()
+        for ci, c in enumerate(self.categories):
+            features[c] = np.array([np.concatenate(X[c][feat])
+                                    for feat in feat_names]).T
+            sd = self.args.sparse_dim
+            if self.args.include_sparse_att_pairs:
+                if ci == len(self.categories) - 1:
+                    feat_names += ['{}_{}'.format(i, j) for i in range(sd)
+                                   for j in range(sd)]
+                s = csr_matrix((data[c], indices[c], ptrs[c]),
+                               shape=(len(ptrs[c])-1, sd**2))
+                features[c] = hstack([features[c], s])
+        return features, feat_names, labels
 
-        X_per_category = {c: [] for c in self.categories}
-        y_per_category = {}
-        for category in self.categories:
-            self.feat_names_used = []
-            for feature in sorted(training_data):
-                if feature == 'class_label':
-                    y_per_category[category] = training_data[feature][category]
-                elif feature != 'basis_combinations':
-                    self.feat_names_used.append(feature)
-                    X_per_category[category].append(
-                        training_data[feature][category])
-
+    def train(self, features, feature_names, labels):
         fallback_model = None
-        models = {
-            c: make_pipeline(LogisticRegression(C=self.regularization))
-            for c in self.categories}
-        for category in self.categories:
-            sparse_features, nonzero_pairs = get_sparse_mx(
-                training_data['basis_combinations'][category])
-            logging.info('Avg. att_pairs/instance for {}: {:.3}'.format(
-                category, np.mean(nonzero_pairs)))
-            if self.args.include_sparse_feats:
-                X = hstack([np.array(X_per_category[category]).T, sparse_features])
+        models = {c: make_pipeline(LogisticRegression(C=self.regularization))
+                  for c in self.categories}
+        logging.info('training starts')
+        for cat in self.categories:
+            if features[cat].shape[0] == 0:
+                models[cat] = None
             else:
-                X = np.array(X_per_category[category]).T
-
-            if X.shape[0] == 0:
-                models[category] = None
-            else:
-                models[category].fit(X, y_per_category[category])
-                fallback_model = models[category]
-                logging.info((category, '  '.join(
+                models[cat].fit(features[cat], labels[cat])
+                fallback_model = models[cat]
+                logging.info((cat, '  '.join(
                     '{} {:.2}'.format(fea, coeff) for fea, coeff in sorted(
-                        list(zip(self.feat_names_used + [
-                            '{}_{}'.format(i, j) for i in
-                            range(self.args.sparse_dimensions) for j in
-                            range(self.args.sparse_dimensions)],
-                                 models[category].steps[0][1].coef_[0])),
+                        zip(feature_names, models[cat].steps[0][1].coef_[0]),
                         key=lambda p: abs(p[1]), reverse=True)[0:20])))
 
         for category in self.categories:
@@ -390,78 +443,68 @@ class ThreeHundredSparsians():
         return models
 
     def make_predictions(self, models, queries, out_file_name):
-        num_of_features = len(self.feat_names_used)
-        num_of_features += self.args.sparse_dimensions**2 if self.args.include_sparse_feats else 0
+        self.times.clear()
         true_class_index = {
-            query_type: [
-                i for i, c in enumerate(models[query_type].classes_)
-                if c][0]
-            for query_type in self.categories}
+            cat: [i for i, c in enumerate(models[cat].classes_) if c][0]
+            for cat in self.categories}
+
+        default_answer = {
+            c: '\t'.join([x[0] for x in self.gold_counter[c].most_common(15)])
+            for c in self.categories}
 
         with open(out_file_name, 'w') as pred_file:
-            for i, query_tuple in zip(range(len(queries)), queries):
-                if i % 250 == 0:
-                    logging.debug('{} predictions made'.format(i))
-                query, query_type = query_tuple[0], query_tuple[1]
+            if self.args.filter_candidates:
+                cat_hypernyms = self.gold_counter
+            else:
+                cat_hypernyms = {c: self.possible_hypernyms
+                                       for c in self.categories}
+
+            candidates = {
+                cat: (cat_hypernyms[cat], ) + self.get_info_re_words(
+                    [h for h in cat_hypernyms[cat]
+                     if h in self.w2i and h in self.word_freqs])
+                for cat in self.categories
+            }
+
+            for qi, query_tuple in enumerate(queries):
+                if qi % 100 == 0:
+                    for k,v in self.times.items():
+                        logging.debug((qi, k, np.mean(v), np.sum(v)))
+                    logging.info('{} cases processed'.format(qi))
+                query, cat = query_tuple[0], query_tuple[1]
                 if query not in self.w2i:
-                    for x in self.gold_counter[query_type].most_common(15):
-                        pred_file.write(x[0].replace('_', ' ') + '\t')
-                    pred_file.write('\n')
+                    pred_file.write('{}\n'.format(default_answer[cat]))
                     continue
 
-                possible_hypernyms = []
-                sparse_data, sparse_indices, sparse_ptrs = [], [], [0]
+                f, d, ind, pt = self.calc_features([query], [cat],
+                                                  *candidates[cat])
+                features = np.array([f[feat] for feat in sorted(f.keys())]).T
+                if self.args.include_sparse_att_pairs:
+                    pt.insert(0, 0)
+                    s = csr_matrix((d, ind, pt),
+                                   shape=(len(pt)-1, self.args.sparse_dim**2))
+                    features = hstack([features, s])
 
-                hypernym_candidates = self.possible_hypernyms
-                if self.args.filter_candidates:
-                    hypernym_candidates = [
-                        h for h in self.gold_counter[query_type]]
+                ci = true_class_index[cat]
+                candidate_scores = models[cat].predict_proba(features)[:, ci]
+                possible_candidates = [(h, s) for h, s in zip(
+                    candidates[cat][0], candidate_scores)]
 
-                for gold_candidate in hypernym_candidates:
-                    if gold_candidate not in self.w2i:
-                        continue
-                    possible_hypernyms.append(gold_candidate)
-                    feature_vector = self.calculate_features(
-                        query, gold_candidate, query_type)
-                    for feat_ind, feat_name in enumerate(self.feat_names_used):
-                        sparse_data.append(feature_vector[feat_name])
-                        sparse_indices.append(feat_ind)
+                sorted_candidates = sorted(
+                    possible_candidates, key=lambda w: w[1])[-15:]
+                sorted_candidates = sorted(
+                    sorted_candidates, key=lambda p: self.word_freqs[p[0]],
+                    reverse=True)
+                pred_file.write('{}\n'.format('\t'.join(
+                    [s[0] for s in sorted_candidates])))
 
-                    if self.args.include_sparse_feats:
-                        basis_pairs = feature_vector['basis_combinations']
-                        sparse_data.extend(len(basis_pairs) * [1])
-                        sparse_indices.extend([
-                            len(self.feat_names_used) + basis_pair[0] *
-                            self.args.sparse_dimensions + basis_pair[1]
-                            for basis_pair in basis_pairs])
-                    sparse_ptrs.append(len(sparse_data))
-                features_to_rank = csr_matrix(
-                    (sparse_data, sparse_indices, sparse_ptrs),
-                    shape=(len(possible_hypernyms), num_of_features))
-                class_index = true_class_index[query_type]
-                possible_hypernym_scores = models[query_type].predict_proba(
-                    features_to_rank)[:, class_index]
-                possible_hypernyms = [(h, s) for h, s in zip(
-                    possible_hypernyms, possible_hypernym_scores)]
-
-                sorted_hypernyms = sorted(
-                    possible_hypernyms, key=lambda x: x[1])[-15:]
-                sorted_hypernyms = sorted(
-                    sorted_hypernyms, key=lambda p:
-                    self.word_frequencies[p[0]], reverse=True)
-                for prediction in sorted_hypernyms:
-                    pred_file.write(prediction[0].replace('_', ' ') + '\t')
-                    # logging.debug('\t\t',
-                    # possible_hypernyms[prediction_index].replace('_', ' '))
-                pred_file.write('\n')
-
-    def make_baseline(self, queries, golds, upper_bound):
+    def make_baseline(self, phase, queries, golds, upper_bound):
         """
         predicts the most common training hypernyms per query type (if upper_bound is False)
         if upper_bound is True it predicts the gold hypernyms also found in our vocabulary
         """
-        baseline_filen = '{}_{}.predictions'.\
-            format(self.args.dataset_id, 'upper' if upper_bound else 'baseline')
+        baseline_filen = '{}_{}.{}.predictions'.format(
+            self.args.dataset_id, 'upper' if upper_bound else 'baseline', phase)
         potential_hypernyms = self.possible_hypernyms
         with open(baseline_filen, mode='w') as out_file:
             for query_tuple, hypernyms in zip(queries, golds):
@@ -485,7 +528,7 @@ class ThreeHundredSparsians():
                 metric_file.write('{}\t{}\t{}\t{}'.format(
                     '\t'.join('{:.3}'.format(results[mtk])
                               for mtk in self.metrics),
-                    self.regularization, self.args.include_sparse_feats,
+                    self.regularization, self.args.include_sparse_att_pairs,
                     self.dag_basename))
         return results
 
@@ -495,12 +538,13 @@ class ThreeHundredSparsians():
                                    pred_or_met)
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
-            return '{}.{}_{}_{}.{}.output.txt'.format(
+            return '{}.{}_{}_{}.{}.{}.output.txt'.format(
                 os.path.join(out_dir, self.args.dataset_id),
                 self.dataset_mapping[self.args.dataset_id][0],
                 self.dag_basename,
-                self.args.include_sparse_feats,
+                self.args.include_sparse_att_pairs,
                 self.regularization,
+                self.args.filter_candidates
             )
 
         def eval_on(models, phase, gold_file, queries):
@@ -514,46 +558,47 @@ class ThreeHundredSparsians():
         res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
         logging.info('{}\t{}\t{}\tDev_{}'.format(
             self.regularization,
-            self.args.include_sparse_feats,
+            self.args.include_sparse_att_pairs,
             res_str,
             self.dag_basename
         ))
 
-        # potential_hypernyms = self.gold_counter[query_tuple[1]]]
-        potential_hypernyms = set()
-
-        baseline_file = self.make_baseline(self.dev_queries, self.dev_golds, False)
+        baseline_file = self.make_baseline('dev', self.dev_queries,
+                                           self.dev_golds, False)
         results = self.write_metrics(self.dev_gold_file, baseline_file, None)
         res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
         logging.info('{}\t{}\t{}\tDev_baseline'.format(
-            self.regularization, self.args.include_sparse_feats, res_str))
+            self.regularization, self.args.include_sparse_att_pairs, res_str))
 
-        baseline_file = self.make_baseline(self.dev_queries, self.dev_golds, True)
+        baseline_file = self.make_baseline('dev', self.dev_queries,
+                                           self.dev_golds, True)
         results = self.write_metrics(self.dev_gold_file, baseline_file, None)
         res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
         logging.info('{}\t{}\t{}\tDev_upper'.format(
-            self.regularization, self.args.include_sparse_feats, res_str))
+            self.regularization, self.args.include_sparse_att_pairs, res_str))
 
         if self.args.make_test_predictions:
             results = eval_on(models, 'test', self.test_gold_file, self.test_queries)
             res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
             logging.info('{}\t{}\t{}\tTest_{}'.format(
                 self.regularization,
-                self.args.include_sparse_feats,
+                self.args.include_sparse_att_pairs,
                 res_str,
                 self.dag_basename))
 
-            baseline_file = self.make_baseline(self.test_queries, self.test_golds, False)
+            baseline_file = self.make_baseline('test', self.test_queries,
+                                               self.test_golds, False)
             results = self.write_metrics(self.test_gold_file, baseline_file, None)
             res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
             logging.info('{}\t{}\t{}\tTest_baseline'.format(
-                self.regularization, self.args.include_sparse_feats, res_str))
+                self.regularization, self.args.include_sparse_att_pairs, res_str))
 
-            baseline_file = self.make_baseline(self.test_queries, self.test_golds, True)
+            baseline_file = self.make_baseline('test', self.test_queries,
+                                               self.test_golds, True)
             results = self.write_metrics(self.test_gold_file, baseline_file, None)
             res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
             logging.info('{}\t{}\t{}\tTest_upper'.format(
-                self.regularization, self.args.include_sparse_feats, res_str))
+                self.regularization, self.args.include_sparse_att_pairs, res_str))
 
     """
     The rest of the class is attic.
