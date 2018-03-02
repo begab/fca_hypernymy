@@ -261,8 +261,7 @@ class ThreeHundredSparsians(object):
         freqs = np.array([self.word_freqs[word] for word in words])
         return vectors, vector_norms, unit_vectors, word_atts, coeffs, freqs
 
-    def calc_features(self, query_words, query_types, candidates,
-                      dense_c, norms_c, unit_c, atts_c, coeffs_c, freq_c):
+    def calc_features(self, query_words, query_types, candidates):
         """
         :param query_words:
         :param query_types:
@@ -271,6 +270,8 @@ class ThreeHundredSparsians(object):
         """
         dense_q, norms_q, unit_q, atts_q, coeffs_q, freq_q = \
             self.get_info_re_words(query_words)
+        dense_c, norms_c, unit_c, atts_c, coeffs_c, freq_c = \
+            self.get_info_re_words(candidates)
 
         quantity_q, quantity_c = dense_q.shape[0], dense_c.shape[0]
         f = defaultdict(list)
@@ -379,12 +380,12 @@ class ThreeHundredSparsians(object):
                 logging.info('{} training instance processed'.format(i))
 
             q, q_type = query[0], query[1]
-            if q not in self.w2i:
+            if q not in self.w2i or q not in self.word_freqs:
+                logging.info('Query {} not in word freq list'.format(q))
                 continue
 
             potential_negatives = sorted([
-                h for h in self.possible_hypernyms
-                if h not in golds and h in self.word_freqs and h in self.w2i])
+                h for h in self.possible_hypernyms if h not in golds])
             neg = []  # negative samples
             if len(potential_negatives) > 0:
                 neg = np.random.choice(potential_negatives, size=min(
@@ -393,11 +394,8 @@ class ThreeHundredSparsians(object):
             pos = [h for h in golds if h in self.w2i]  # positive samples
             candidates = pos + [ns for ns in neg]
             labels[q_type].extend(len(pos) * [True] + len(neg) * [False])
-            dense, norms, unit, atts, coeffs, freq =\
-                self.get_info_re_words(candidates)
-            f, d, ind, offsets = self.calc_features([q], [q_type], candidates,
-                                                    dense, norms, unit, atts,
-                                                    coeffs, freq)
+
+            f, d, ind, offsets = self.calc_features([q], [q_type], candidates)
             for feat_name, values in f.items():
                 X[q_type][feat_name].append(values)
             indices[q_type].extend(ind)
@@ -454,17 +452,10 @@ class ThreeHundredSparsians(object):
 
         with open(out_file_name, 'w') as pred_file:
             if self.args.filter_candidates:
-                cat_hypernyms = self.gold_counter
+                candidates = self.gold_counter
             else:
-                cat_hypernyms = {c: self.possible_hypernyms
-                                       for c in self.categories}
-
-            candidates = {
-                cat: (cat_hypernyms[cat], ) + self.get_info_re_words(
-                    [h for h in cat_hypernyms[cat]
-                     if h in self.w2i and h in self.word_freqs])
-                for cat in self.categories
-            }
+                candidates = {c: self.possible_hypernyms
+                              for c in self.categories}
 
             for qi, query_tuple in enumerate(queries):
                 if qi % 100 == 0:
@@ -476,8 +467,7 @@ class ThreeHundredSparsians(object):
                     pred_file.write('{}\n'.format(default_answer[cat]))
                     continue
 
-                f, d, ind, pt = self.calc_features([query], [cat],
-                                                  *candidates[cat])
+                f, d, ind, pt = self.calc_features([query], [cat])
                 features = np.array([f[feat] for feat in sorted(f.keys())]).T
                 if self.args.include_sparse_att_pairs:
                     pt.insert(0, 0)
