@@ -14,7 +14,7 @@ from sklearn.pipeline import make_pipeline
 from official_scorer import return_official_scores
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s"
 )
 
@@ -26,6 +26,7 @@ def get_args():
     parser.add_argument('--dense_archit', default='sg', choices=['sg', 'cbow'])
     parser.add_argument('--num_runs', type=int, default=1)
     parser.add_argument('--sparse_dim', type=int, default=200)
+    parser.add_argument('--negative_samples', type=int, default=50)
     parser.add_argument('--sparse_density', type=float, default=0.3)
     parser.add_argument(
         '--sparse-new', action='store_true', dest='sparse_new',
@@ -150,10 +151,10 @@ class ThreeHundredSparsians(object):
                  d=self.dataset_dir, id_=self.args.dataset_id,
                  c=self.dataset_mapping[self.args.dataset_id][0], p=phase)
             for str_ in file_path_ptrns)
-        queries = [(l.split('\t')[0].replace(' ', '_'),
-                    l.split('\t')[1].strip()) for l in open(data_filen)]
+        queries = [(l.split('\t')[0], l.split('\t')[1].strip())
+                   for l in open(data_filen)]
         if os.path.exists(gold_filen1):
-            golds = [[x.replace(' ', '_') for x in line.strip().split('\t')]
+            golds = [[x for x in line.strip().split('\t')]
                      for line in open(gold_filen1)]
         else:
             golds = None
@@ -178,7 +179,7 @@ class ThreeHundredSparsians(object):
         logging.info('Reading background word freq...')
         word_frequencies = Counter()
         for i, l in enumerate(open(self.frequency_file)):
-            word = l.split('\t')[0].replace(' ', '_')
+            word = l.split('\t')[0]
             freq = int(l.split('\t')[1])
             if i % 2500000 == 0:
                 logging.debug('{} frequencies read in'.format(i))
@@ -190,11 +191,11 @@ class ThreeHundredSparsians(object):
             quick fix to overcome the fact that the frequency file and the
             training data contains this word with different capitalization
             """
-            word_frequencies['equazione_di_Bernoulli'] = 13
+            word_frequencies['equazione di Bernoulli'] = 13
         return word_frequencies
 
     def get_embed(self):
-        i2w = {i: w.strip() for i, w in enumerate(open(
+        i2w = {i: w.strip().replace('_', ' ') for i, w in enumerate(open(
             'data/{}.vocab'.format(self.args.dataset_id)
         ))}
         w2i = {v: k for k, v in i2w.items()}
@@ -261,17 +262,26 @@ class ThreeHundredSparsians(object):
         freqs = np.array([self.word_freqs[word] for word in words])
         return vectors, vector_norms, unit_vectors, word_atts, coeffs, freqs
 
-    def calc_features(self, query_words, query_types, candidates):
+    def calc_features(self, query_words, query_types, candidates, *cand_info):
         """
         :param query_words:
         :param query_types:
         :param candidates:
-        :return: feature matrix with len(query_words) * len(candidates) instances
+        :param cand_info: if certain candidates keep reoccurring it can be a
+        good idea to pre-calculate their statistics and pass them
+        :return: feature matrix w/ len(query_words)*len(candidates) instances
         """
+        t = time.time()
         dense_q, norms_q, unit_q, atts_q, coeffs_q, freq_q = \
             self.get_info_re_words(query_words)
-        dense_c, norms_c, unit_c, atts_c, coeffs_c, freq_c = \
+        self.times['read1'].append(time.time() - t)
+        t = time.time()
+        if len(cand_info) == 6:
+            dense_c, norms_c, unit_c, atts_c, coeffs_c, freq_c = cand_info
+        else:
+            dense_c, norms_c, unit_c, atts_c, coeffs_c, freq_c = \
             self.get_info_re_words(candidates)
+        self.times['read2'].append(time.time() - t)
 
         quantity_q, quantity_c = dense_q.shape[0], dense_c.shape[0]
         f = defaultdict(list)
@@ -284,10 +294,10 @@ class ThreeHundredSparsians(object):
 
         t = time.time()
         for q, qt in zip(query_words, query_types):
-            q_tokens_l = q.lower().split('_')
+            q_tokens_l = q.lower().split()
             q_tokens_s = set(q_tokens_l)
             for c in candidates:
-                c_tokens_l = c.lower().split('_')
+                c_tokens_l = c.lower().split()
                 f['textual_overlap'].append(
                     int(len(set(c_tokens_l) & q_tokens_s) > 0))
                 f['is_frequent_hypernym'].append(
@@ -380,8 +390,14 @@ class ThreeHundredSparsians(object):
                 logging.info('{} training instance processed'.format(i))
 
             q, q_type = query[0], query[1]
-            if q not in self.w2i or q not in self.word_freqs:
+            drop = False
+            if q not in self.w2i:
+                drop = True
+                logging.info('Query {} not in own vocabulary'.format(q))
+            if q not in self.word_freqs:
+                drop = True
                 logging.info('Query {} not in word freq list'.format(q))
+            if drop:
                 continue
 
             potential_negatives = sorted([
@@ -389,9 +405,10 @@ class ThreeHundredSparsians(object):
             neg = []  # negative samples
             if len(potential_negatives) > 0:
                 neg = np.random.choice(potential_negatives, size=min(
-                    5000, len(potential_negatives)), replace=False)
+                    self.args.negative_samples, len(potential_negatives)),
+                                       replace=False)
 
-            pos = [h for h in golds if h in self.w2i]  # positive samples
+            pos = [h for h in golds if h in self.w2i and h in self.word_freqs]
             candidates = pos + [ns for ns in neg]
             labels[q_type].extend(len(pos) * [True] + len(neg) * [False])
 
@@ -456,9 +473,11 @@ class ThreeHundredSparsians(object):
             else:
                 candidates = {c: self.possible_hypernyms
                               for c in self.categories}
+            candidate_stats = {c: self.get_info_re_words(cands)
+                               for c, cands in candidates.items()}
 
             for qi, query_tuple in enumerate(queries):
-                if qi % 100 == 0:
+                if qi % 50 == 0:
                     for k,v in self.times.items():
                         logging.debug((qi, k, np.mean(v), np.sum(v)))
                     logging.info('{} cases processed'.format(qi))
@@ -467,7 +486,8 @@ class ThreeHundredSparsians(object):
                     pred_file.write('{}\n'.format(default_answer[cat]))
                     continue
 
-                f, d, ind, pt = self.calc_features([query], [cat], candidates)
+                f, d, ind, pt = self.calc_features([query], [cat],
+                                                   candidates[cat])
                 features = np.array([f[feat] for feat in sorted(f.keys())]).T
                 if self.args.include_sparse_att_pairs:
                     pt.insert(0, 0)
@@ -478,7 +498,7 @@ class ThreeHundredSparsians(object):
                 ci = true_class_index[cat]
                 candidate_scores = models[cat].predict_proba(features)[:, ci]
                 possible_candidates = [(h, s) for h, s in zip(
-                    candidates[cat][0], candidate_scores)]
+                    candidates[cat], candidate_scores)]
 
                 sorted_candidates = sorted(
                     possible_candidates, key=lambda w: w[1])[-15:]
