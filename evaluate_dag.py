@@ -382,6 +382,7 @@ class ThreeHundredSparsians(object):
         indices = {c: [] for c in self.categories}
         data = {c: [] for c in self.categories}
         ptrs = {c: [0] for c in self.categories}
+        stats = {c: [0, 0] for c in self.categories}  # [kept, dropped]
         for i, (query, golds) in enumerate(
                 zip(self.train_queries, self.train_golds)):
             if i % 250 == 0:
@@ -393,12 +394,15 @@ class ThreeHundredSparsians(object):
             drop = False
             if q not in self.w2i:
                 drop = True
-                logging.info('Query {} not in own vocabulary'.format(q))
+                logging.info('Train query "{}" ({}) not in vocab'.format(
+                    q, q_type))
             if q not in self.word_freqs:
                 drop = True
-                logging.info('Query {} not in word freq list'.format(q))
+                logging.info('Train query "{}" not in word freq list'.format(q))
             if drop:
+                stats[q_type][1] += 1
                 continue
+            stats[q_type][0] += 1
 
             potential_negatives = sorted([
                 h for h in self.possible_hypernyms if h not in golds])
@@ -421,9 +425,12 @@ class ThreeHundredSparsians(object):
             for o in offsets:
                 ptrs[q_type].append(start_ptr + o)
 
+        logging.info('Training coverage stats: {}'.format(stats))
         feat_names = sorted(f.keys())
         features = dict()
         for ci, c in enumerate(self.categories):
+            if stats[c][0] == 0:
+                continue  # there is no sample for the given category c
             features[c] = np.array([np.concatenate(X[c][feat])
                                     for feat in feat_names]).T
             sd = self.args.sparse_dim
@@ -442,7 +449,7 @@ class ThreeHundredSparsians(object):
                   for c in self.categories}
         logging.info('training starts')
         for cat in self.categories:
-            if features[cat].shape[0] == 0:
+            if cat not in features or features[cat].shape[0] == 0:
                 models[cat] = None
             else:
                 models[cat].fit(features[cat], labels[cat])
@@ -467,6 +474,7 @@ class ThreeHundredSparsians(object):
             c: '\t'.join([x[0] for x in self.gold_counter[c].most_common(15)])
             for c in self.categories}
 
+        stats = {c: [0, 0] for c in self.categories}  # [kept, dropped]
         with open(out_file_name, 'w') as pred_file:
             if self.args.filter_candidates:
                 candidates = self.gold_counter
@@ -482,12 +490,17 @@ class ThreeHundredSparsians(object):
                         logging.debug((qi, k, np.mean(v), np.sum(v)))
                     logging.info('{} cases processed'.format(qi))
                 query, cat = query_tuple[0], query_tuple[1]
+
                 if query not in self.w2i:
+                    logging.info('Test query "{}" ({}) not in vocab'.format(
+                        query, cat))
                     pred_file.write('{}\n'.format(default_answer[cat]))
+                    stats[cat][1] += 1
                     continue
 
-                f, d, ind, pt = self.calc_features([query], [cat],
-                                                   candidates[cat])
+                stats[cat][0] += 1
+                f, d, ind, pt = self.calc_features(
+                    [query], [cat], candidates[cat], candidate_stats[cat])
                 features = np.array([f[feat] for feat in sorted(f.keys())]).T
                 if self.args.include_sparse_att_pairs:
                     pt.insert(0, 0)
@@ -507,6 +520,7 @@ class ThreeHundredSparsians(object):
                     reverse=True)
                 pred_file.write('{}\n'.format('\t'.join(
                     [s[0] for s in sorted_candidates])))
+        logging.info('Test coverage stats: {}'.format(stats))
 
     def make_baseline(self, phase, queries, golds, upper_bound):
         """
