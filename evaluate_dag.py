@@ -467,7 +467,7 @@ class ThreeHundredSparsians(object):
                     pred_file.write('{}\n'.format(default_answer[cat]))
                     continue
 
-                f, d, ind, pt = self.calc_features([query], [cat])
+                f, d, ind, pt = self.calc_features([query], [cat], candidates)
                 features = np.array([f[feat] for feat in sorted(f.keys())]).T
                 if self.args.include_sparse_att_pairs:
                     pt.insert(0, 0)
