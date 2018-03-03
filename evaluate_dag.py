@@ -398,7 +398,7 @@ class ThreeHundredSparsians(object):
                     q, q_type))
             if q not in self.word_freqs:
                 drop = True
-                logging.info('Train query "{}" not in word freq list'.format(q))
+                logging.info('Train query "{}" not in freq list'.format(q))
             if drop:
                 stats[q_type][1] += 1
                 continue
@@ -562,13 +562,14 @@ class ThreeHundredSparsians(object):
                                    pred_or_met)
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
-            return '{}.{}_{}_{}.{}.{}.output.txt'.format(
+            return '{}.{}_{}_{}.{}.{}.ns{}.output.txt'.format(
                 os.path.join(out_dir, self.args.dataset_id),
                 self.dataset_mapping[self.args.dataset_id][0],
                 self.dag_basename,
                 self.args.include_sparse_att_pairs,
                 self.regularization,
-                self.args.filter_candidates
+                self.args.filter_candidates,
+                self.args.negative_samples,
             )
 
         def eval_on(models, phase, gold_file, queries):
