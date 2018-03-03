@@ -33,15 +33,14 @@ def get_args():
         help='sparse bases extracted from the dense embedding by a heuristic '
         'procedure similar to Gram-Schmidt orthogonalization')
     # a submission-be nem ilyenek kerültek
-    # TODO érdemben meggyőződni róla h akkor ez most jó-e vagy sem
 
     sparse_atts_parser = parser.add_mutually_exclusive_group(required=False)
     sparse_atts_parser.add_argument('--not-sparse-feats',
-                                     dest='include_sparse_att_pairs',
-                                     action='store_false')
+                                    dest='include_sparse_att_pairs',
+                                    action='store_false')
     sparse_atts_parser.add_argument('--sparse-feats',
-                                     dest='include_sparse_att_pairs',
-                                     action='store_true')
+                                    dest='include_sparse_att_pairs',
+                                    action='store_true')
     parser.set_defaults(include_sparse_att_pairs=True)
 
     candidates_parser = parser.add_mutually_exclusive_group(required=False)
@@ -51,7 +50,16 @@ def get_args():
     candidates_parser.add_argument('--filter-candidates',
                                    dest='filter_candidates',
                                    action='store_true')
-    parser.set_defaults(filter_candidates=False)
+    parser.set_defaults(filter_candidates=True)
+
+    dag_feature_parser = parser.add_mutually_exclusive_group(required=False)
+    dag_feature_parser.add_argument('--not-dag-feats',
+                                    dest='use_dag_features',
+                                    action='store_false')
+    dag_feature_parser.add_argument('--dag-feats',
+                                    dest='use_dag_features',
+                                    action='store_true')
+    parser.set_defaults(use_dag_features=False)
 
     gpickle_parser = parser.add_mutually_exclusive_group(required=False)
     gpickle_parser.add_argument('--not-save-gpickle',
@@ -63,11 +71,11 @@ def get_args():
     parser.set_defaults(save_gpickle=True)
 
     parser.add_argument('--regularization', type=float, nargs='+', default=[1.0])
-    sparse_feats_parser = parser.add_mutually_exclusive_group(required=False)
-    sparse_feats_parser.add_argument('--not-include-test',
+    predict_test_parser = parser.add_mutually_exclusive_group(required=False)
+    predict_test_parser.add_argument('--not-include-test',
                                      dest='make_test_predictions',
                                      action='store_false')
-    sparse_feats_parser.add_argument('--include-test',
+    predict_test_parser.add_argument('--include-test',
                                      dest='make_test_predictions',
                                      action='store_true')
     parser.set_defaults(make_test_predictions=True)
@@ -91,27 +99,32 @@ class ThreeHundredSparsians(object):
         }
 
         self.dag_basename, self.task_dir, self.dataset_dir = self.init_paths()
-        self.train_queries, self.train_golds, vocab_file, _ = self.get_queries('training')
-        self.dev_queries, self.dev_golds, _, self.dev_gold_file = self.get_queries('trial')
-        self.test_queries, self.test_golds, _, self.test_gold_file = self.get_queries('test')
+        self.train_queries, self.train_golds, _ = self.get_queries('training')
+        self.dev_queries, self.dev_golds, self.dev_gold_file = self.get_queries('trial')
+        self.test_queries, self.test_golds, self.test_gold_file = self.get_queries('test')
         self.metrics = ['MAP', 'MRR', 'P@1', 'P@3', 'P@5', 'P@15']
         self.categories = ['Concept', 'Entity']
         self.w2i, self.embeddings, self.alphas = self.get_embed()
         self.words_to_atts = defaultdict(list)
         self.words_to_atts.update({w: self.alphas.getcol(i).indices
-                                         for w, i in self.w2i.items()})
+                                   for w, i in self.w2i.items()})
         self.unit_embeddings = self.embeddings.copy()
         row_norms = np.sqrt(
             (self.unit_embeddings**2).sum(axis=1))[:, np.newaxis]
         self.unit_embeddings /= row_norms
-        # self.get_dag()
         self.word_freqs = self.read_background_word_freq()
         self.gold_counter, self.frequent_hypernyms = self.get_train_hyp_freq()
-        self.possible_hypernyms = set()
-        for l in open(vocab_file):
-            hyp_candidate = l.strip()
-            if hyp_candidate in self.w2i and hyp_candidate in self.word_freqs:
-                self.possible_hypernyms.add(hyp_candidate)
+        self.possible_hypernyms = self.init_potential_hypernyms()
+
+        if self.args.filter_candidates:
+            self.test_candidates = self.gold_counter
+        else:
+            self.test_candidates = {c: self.possible_hypernyms
+                                    for c in self.categories}
+        if self.args.use_dag_features:
+            self.dag, self.deepest_occurrence, self.node_to_words = self.get_dag()
+        else:
+            self.dag = None
 
     def main(self, regularizations, repeats):
         train_data, feature_names, train_labels = self.get_training_pairs()
@@ -120,6 +133,17 @@ class ThreeHundredSparsians(object):
                 self.regularization = c
                 models = self.train(train_data, feature_names, train_labels)
                 self.test(models)
+
+    def init_potential_hypernyms(self):
+        vocab_file = '{}/vocabulary/{}.{}.vocabulary.txt'.format(
+            self.dataset_dir, self.args.dataset_id,
+            self.dataset_mapping[self.args.dataset_id][0])
+        potential_hypernyms = set()
+        for l in open(vocab_file):
+            hyp_candidate = l.strip()
+            if hyp_candidate in self.w2i and hyp_candidate in self.word_freqs:
+                potential_hypernyms.add(hyp_candidate)
+        return potential_hypernyms
 
     def init_paths(self):
         dag_basename = (
@@ -143,22 +167,20 @@ class ThreeHundredSparsians(object):
         file_path_ptrns = [
             '{d}/{p}/data/{id_}.{c}.{p}.data.txt',
             '{d}/{p}/gold/{id_}.{c}.{p}.gold.txt',
-            '{d}/vocabulary/{id_}.{c}.vocabulary.txt',
-            '{d}/SemEval2018_Frequency_lists/{id_}_{c}_frequencylist.txt',
         ]
-        data_filen, gold_filen1, vocab_file, self.frequency_file = (
+        data_filen, gold_filen1 = (
             str_.format(
-                 d=self.dataset_dir, id_=self.args.dataset_id,
-                 c=self.dataset_mapping[self.args.dataset_id][0], p=phase)
+                d=self.dataset_dir, id_=self.args.dataset_id,
+                c=self.dataset_mapping[self.args.dataset_id][0],
+                p=phase)
             for str_ in file_path_ptrns)
         queries = [(l.split('\t')[0], l.split('\t')[1].strip())
                    for l in open(data_filen)]
+        golds = None
         if os.path.exists(gold_filen1):
             golds = [[x for x in line.strip().split('\t')]
                      for line in open(gold_filen1)]
-        else:
-            golds = None
-        return queries, golds, vocab_file, gold_filen1
+        return queries, golds, gold_filen1
 
     def get_train_hyp_freq(self):
         gold_c = defaultdict(Counter)
@@ -178,7 +200,10 @@ class ThreeHundredSparsians(object):
     def read_background_word_freq(self):
         logging.info('Reading background word freq...')
         word_frequencies = Counter()
-        for i, l in enumerate(open(self.frequency_file)):
+        freq_file = '{}/SemEval2018_Frequency_lists/{}_{}_frequencylist.txt'.\
+            format(self.dataset_dir, self.args.dataset_id,
+                   self.dataset_mapping[self.args.dataset_id][0])
+        for i, l in enumerate(open(freq_file)):
             word = l.split('\t')[0]
             freq = int(l.split('\t')[1])
             if i % 2500000 == 0:
@@ -217,35 +242,33 @@ class ThreeHundredSparsians(object):
         gpickle_fn = os.path.join(gpickle_dir, '{}.gpickle'.format(root))
         if os.path.exists(gpickle_fn):
             logging.info('Loading gpickle...')
-            self.dag = nx.read_gpickle(gpickle_fn)
+            dag = nx.read_gpickle(gpickle_fn)
         else:
             logging.info('Reading dot file...')
-            self.dag = nx.drawing.nx_agraph.read_dot(
+            dag = nx.drawing.nx_agraph.read_dot(
                 os.path.join(self.task_dir, 'dots', self.dag_basename))
             if self.args.save_gpickle:
-                nx.write_gpickle(self.dag, gpickle_fn)
+                nx.write_gpickle(dag, gpickle_fn)
         logging.info('Populating dag dicts...')
-        self.deepest_occurrence = defaultdict(lambda: [0])
+        deepest_occurrence = defaultdict(lambda: [0, 0])
         # deepest_occurrence = {w: most specific location}
-        nodes_to_attributes = {}   # {node: active neurons}
-        nodes_to_words = {}  # {node: all the words located at it}, not used
-        words_to_nodes = defaultdict(set)   # {w: the nodes it is assigned to}
-        for i, n in enumerate(self.dag.nodes(data=True)):
-            words = n[1]['label'].split('|')[1].split('\\n')
+        node_to_words = {}  # {node: all the words located at it}
+        for i, n in enumerate(dag.nodes(data=True)):
+            words = [w.replace('_', ' ')
+                     for w in n[1]['label'].split('|')[1].split('\\n')]
             node_id = int(n[1]['label'].split('|')[0])
             attributes = [
                 int(att.replace('n', ''))
                 for att in n[1]['label'].split('|')[2].split('\\n')
                 if len(att.strip()) > 0]
-            nodes_to_attributes[node_id] = attributes
-            nodes_to_words[node_id] = set(words)  # not used
+            node_to_words[node_id] = set(words)
 
             for w in words:
-                words_to_nodes[w].add(node_id)
-                if (w not in self.deepest_occurrence
-                        or self.deepest_occurrence[w][2] < len(attributes)):
-                    self.deepest_occurrence[w] = (node_id, len(words),
-                                                  len(attributes))
+                if (w not in deepest_occurrence
+                        or deepest_occurrence[w][2] < len(attributes)):
+                    deepest_occurrence[w] = (node_id, len(words),
+                                             len(attributes))
+        return dag, deepest_occurrence, node_to_words
 
     def get_info_re_words(self, words):
         """
@@ -267,8 +290,9 @@ class ThreeHundredSparsians(object):
         :param query_words:
         :param query_types:
         :param candidates:
-        :param cand_info: if certain candidates keep reoccurring it can be a
-        good idea to pre-calculate their statistics and pass them
+        :param cand_info: a list of pre-computed candidate statistics
+        (if certain candidates keep reoccurring it can be a good idea
+        to pre-calculate their statistics and pass them)
         :return: feature matrix w/ len(query_words)*len(candidates) instances
         """
         t = time.time()
@@ -280,7 +304,7 @@ class ThreeHundredSparsians(object):
             dense_c, norms_c, unit_c, atts_c, coeffs_c, freq_c = cand_info
         else:
             dense_c, norms_c, unit_c, atts_c, coeffs_c, freq_c = \
-            self.get_info_re_words(candidates)
+                self.get_info_re_words(candidates)
         self.times['read2'].append(time.time() - t)
 
         quantity_q, quantity_c = dense_q.shape[0], dense_c.shape[0]
@@ -315,29 +339,27 @@ class ThreeHundredSparsians(object):
         f['att_diffA'] = np.tile(nnz_q, (quantity_c, 1)).T - atts_overlap
         f['att_diffB'] = np.tile(nnz_c, (quantity_q, 1)) - atts_overlap
         f['att_intersect'] = (atts_overlap > 0).astype(np.int)
+
+        def get_dag_location(word):
+            word_location = 0
+            if word in self.deepest_occurrence:
+                word_location = self.deepest_occurrence[word][0]
+            return word_location
+
+        if self.dag is not None:
+            t = time.time()
+            for q in query_words:
+                q_dag_loc = get_dag_location(q)
+                for c in candidates:
+                    c_dag_loc = get_dag_location(c)
+                    f['same_dag_position'].append(int(q_dag_loc == c_dag_loc))
+                    f['child_in_dag'].append(int(self.dag.has_edge(
+                        'node{}'.format(q_dag_loc), 'node{}'.format(c_dag_loc))))
+                    f['parent_in_dag'].append(int(self.dag.has_edge(
+                        'node{}'.format(c_dag_loc), 'node{}'.format(q_dag_loc))))
+            self.times['fca'].append(time.time() - t)
         f = {k: np.ravel(v) for k, v in f.items()}
-        """
-        query_in_dag = query_word in self.deepest_occurrence
-        query_location = 0
-        if query_in_dag:
-            query_location = self.deepest_occurrence[query_word][0]
-        query_attributes = set(self.words_to_attributes[query_word])
-        if query_in_dag:
-            own_query_words = get_own_words(self.dag, query_location)
-        else:
-            # In this case, the query had no nonzero coefficient
-            own_query_words = set(self.w2i.keys()) -
-                              self.deepest_occurrence.keys()
 
-        candidate_in_dag = candidate in self.deepest_occurrence
-        candidate_location = 0
-        if candidate_in_dag:
-            candidate_location = self.deepest_occurrence[candidate][0]
-
-        f['same_dag_position'] = int(query_location == candidate_location)
-        f['right_below_in_dag'] = int(self.dag.has_edge('node{}'.format(query_location), 'node{}'.format(candidate_location)))
-        f['right_above_in_dag'] = int(self.dag.has_edge('node{}'.format(candidate_location), 'node{}'.format(query_location)))
-        """
         t = time.time()
         data, indices, ptrs = [], [], []
         if self.args.include_sparse_att_pairs:
@@ -447,11 +469,12 @@ class ThreeHundredSparsians(object):
         fallback_model = None
         models = {c: make_pipeline(LogisticRegression(C=self.regularization))
                   for c in self.categories}
-        logging.info('training starts')
         for cat in self.categories:
             if cat not in features or features[cat].shape[0] == 0:
                 models[cat] = None
             else:
+                logging.info('training for category {} with {} features'.
+                             format(cat, features[cat].shape[1]))
                 models[cat].fit(features[cat], labels[cat])
                 fallback_model = models[cat]
                 logging.info((cat, '  '.join(
@@ -473,20 +496,14 @@ class ThreeHundredSparsians(object):
         default_answer = {
             c: '\t'.join([x[0] for x in self.gold_counter[c].most_common(15)])
             for c in self.categories}
+        candidate_stats = {c: self.get_info_re_words(words)
+                           for c, words in self.test_candidates.items()}
 
         stats = {c: [0, 0] for c in self.categories}  # [kept, dropped]
         with open(out_file_name, 'w') as pred_file:
-            if self.args.filter_candidates:
-                candidates = self.gold_counter
-            else:
-                candidates = {c: self.possible_hypernyms
-                              for c in self.categories}
-            candidate_stats = {c: self.get_info_re_words(cands)
-                               for c, cands in candidates.items()}
-
             for qi, query_tuple in enumerate(queries):
-                if qi % 50 == 0:
-                    for k,v in self.times.items():
+                if qi % 100 == 0:
+                    for k, v in self.times.items():
                         logging.debug((qi, k, np.mean(v), np.sum(v)))
                     logging.info('{} cases processed'.format(qi))
                 query, cat = query_tuple[0], query_tuple[1]
@@ -500,7 +517,8 @@ class ThreeHundredSparsians(object):
 
                 stats[cat][0] += 1
                 f, d, ind, pt = self.calc_features(
-                    [query], [cat], candidates[cat], candidate_stats[cat])
+                    [query], [cat], self.test_candidates[cat],
+                    candidate_stats[cat])
                 features = np.array([f[feat] for feat in sorted(f.keys())]).T
                 if self.args.include_sparse_att_pairs:
                     pt.insert(0, 0)
@@ -511,7 +529,7 @@ class ThreeHundredSparsians(object):
                 ci = true_class_index[cat]
                 candidate_scores = models[cat].predict_proba(features)[:, ci]
                 possible_candidates = [(h, s) for h, s in zip(
-                    candidates[cat], candidate_scores)]
+                    self.test_candidates[cat], candidate_scores)]
 
                 sorted_candidates = sorted(
                     possible_candidates, key=lambda w: w[1])[-15:]
@@ -524,28 +542,32 @@ class ThreeHundredSparsians(object):
 
     def make_baseline(self, phase, queries, golds, upper_bound):
         """
-        predicts the most common training hypernyms per query type (if upper_bound is False)
+        Predicts the most common training hypernyms per query type
+        (if upper_bound is False)
         if upper_bound is True it predicts the gold hypernyms also found in our vocabulary
+
+        :param phase:
+        :param queries:
+        :param golds:
+        :param upper_bound:
+        :return:
         """
         baseline_filen = '{}_{}.{}.predictions'.format(
             self.args.dataset_id, 'upper' if upper_bound else 'baseline', phase)
-        potential_hypernyms = self.possible_hypernyms
         with open(baseline_filen, mode='w') as out_file:
             for query_tuple, hypernyms in zip(queries, golds):
-                if self.args.filter_candidates:
-                    potential_hypernyms = [
-                        h for h in self.gold_counter[query_tuple[1]]]
-
+                category = query_tuple[1]
                 if upper_bound:
-                    out_file.write('{}\n'.format('\t'.join([
-                        h for h in hypernyms if h in potential_hypernyms])))
+                    out_file.write('{}\n'.format(
+                        '\t'.join([h for h in hypernyms
+                                   if h in self.test_candidates[category]])))
                 else:
                     out_file.write('{}\n'.format('\t'.join([
                         t[0] for t in
-                        self.gold_counter[query_tuple[1]].most_common(15)])))
+                        self.gold_counter[category].most_common(15)])))
         return baseline_filen
 
-    def write_metrics(self, gold_file, prediction_filen, metric_filen):
+    def write_metrics(self, gold_file, prediction_filen, metric_filen=None):
         results = return_official_scores(gold_file, prediction_filen)
         if metric_filen is not None:
             with open(metric_filen, mode='w') as metric_file:
@@ -562,7 +584,7 @@ class ThreeHundredSparsians(object):
                                    pred_or_met)
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
-            return '{}.{}_{}_{}.{}.{}.ns{}.output.txt'.format(
+            return '{}.{}_{}_{}_{}_{}_ns{}_{}.output.txt'.format(
                 os.path.join(out_dir, self.args.dataset_id),
                 self.dataset_mapping[self.args.dataset_id][0],
                 self.dag_basename,
@@ -570,16 +592,17 @@ class ThreeHundredSparsians(object):
                 self.regularization,
                 self.args.filter_candidates,
                 self.args.negative_samples,
+                self.args.use_dag_features,
             )
 
-        def eval_on(models, phase, gold_file, queries):
+        def eval_on(phase, gold_file, queries):
             pred_file_name = get_out_filen(phase, 'predictions')
             self.make_predictions(models, queries, pred_file_name)
             return self.write_metrics(gold_file,
                                       pred_file_name,
                                       get_out_filen(phase, 'metrics'))
 
-        results = eval_on(models, 'dev', self.dev_gold_file, self.dev_queries)
+        results = eval_on('dev', self.dev_gold_file, self.dev_queries)
         res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
         logging.info('{}\t{}\t{}\tDev_{}'.format(
             self.regularization,
@@ -590,20 +613,20 @@ class ThreeHundredSparsians(object):
 
         baseline_file = self.make_baseline('dev', self.dev_queries,
                                            self.dev_golds, False)
-        results = self.write_metrics(self.dev_gold_file, baseline_file, None)
+        results = self.write_metrics(self.dev_gold_file, baseline_file)
         res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
         logging.info('{}\t{}\t{}\tDev_baseline'.format(
             self.regularization, self.args.include_sparse_att_pairs, res_str))
 
         baseline_file = self.make_baseline('dev', self.dev_queries,
                                            self.dev_golds, True)
-        results = self.write_metrics(self.dev_gold_file, baseline_file, None)
+        results = self.write_metrics(self.dev_gold_file, baseline_file)
         res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
         logging.info('{}\t{}\t{}\tDev_upper'.format(
             self.regularization, self.args.include_sparse_att_pairs, res_str))
 
         if self.args.make_test_predictions:
-            results = eval_on(models, 'test', self.test_gold_file, self.test_queries)
+            results = eval_on('test', self.test_gold_file, self.test_queries)
             res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
             logging.info('{}\t{}\t{}\tTest_{}'.format(
                 self.regularization,
@@ -613,34 +636,30 @@ class ThreeHundredSparsians(object):
 
             baseline_file = self.make_baseline('test', self.test_queries,
                                                self.test_golds, False)
-            results = self.write_metrics(self.test_gold_file, baseline_file, None)
+            results = self.write_metrics(self.test_gold_file, baseline_file)
             res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
             logging.info('{}\t{}\t{}\tTest_baseline'.format(
                 self.regularization, self.args.include_sparse_att_pairs, res_str))
 
             baseline_file = self.make_baseline('test', self.test_queries,
                                                self.test_golds, True)
-            results = self.write_metrics(self.test_gold_file, baseline_file, None)
+            results = self.write_metrics(self.test_gold_file, baseline_file)
             res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
             logging.info('{}\t{}\t{}\tTest_upper'.format(
                 self.regularization, self.args.include_sparse_att_pairs, res_str))
 
-    """
-    The rest of the class is attic.
-
-    def get_children_words(graph, node_id):
-        return [nodes_to_words[int(n.replace('node', ''))]
-                for n in graph['node{}'.format(node_id)].keys()]
-
-    def get_own_words(self, graph, node_id):
-        own_words = nodes_to_words[node_id].copy()
+    def get_own_words(self, node_id):
+        own_words = self.node_to_words[node_id].copy()
         to_remove = set()
-        for c in self.get_children_words(graph, node_id):
+        for c in [self.node_to_words[int(n.replace('node', ''))]
+                  for n in self.dag['node{}'.format(node_id)].keys()]:
             to_remove |= c
         own_words -= to_remove
         return own_words
-    """
 
+    """
+    The rest of the class is attic.
+    """
     def update_dag_based_features(self, features, query_type, gold, own_query_words):
         # TODO további self.dag-ból jövő jellemzőket is kipróbálni
         """
