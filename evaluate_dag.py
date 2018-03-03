@@ -21,6 +21,7 @@ logging.basicConfig(
 
 def get_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--predictions')
     parser.add_argument('--subtask', dest='dataset_id',
                         default='1A', choices=['1A', '1B', '1C', '2A', '2B'])
     parser.add_argument('--dense_archit', default='sg', choices=['sg', 'cbow'])
@@ -91,7 +92,7 @@ class ThreeHundredSparsians(object):
         }
 
         self.dag_basename, self.task_dir, self.dataset_dir = self.init_paths()
-        self.train_queries, self.train_golds, vocab_file, _ = self.get_queries('training')
+        self.train_queries, self.train_golds, self.vocab_file, _ = self.get_queries('training')
         self.dev_queries, self.dev_golds, _, self.dev_gold_file = self.get_queries('trial')
         self.test_queries, self.test_golds, _, self.test_gold_file = self.get_queries('test')
         self.metrics = ['MAP', 'MRR', 'P@1', 'P@3', 'P@5', 'P@15']
@@ -105,15 +106,15 @@ class ThreeHundredSparsians(object):
             (self.unit_embeddings**2).sum(axis=1))[:, np.newaxis]
         self.unit_embeddings /= row_norms
         # self.get_dag()
+
+    def main(self, regularizations, repeats):
         self.word_freqs = self.read_background_word_freq()
         self.gold_counter, self.frequent_hypernyms = self.get_train_hyp_freq()
         self.possible_hypernyms = set()
-        for l in open(vocab_file):
+        for l in open(self.vocab_file):
             hyp_candidate = l.strip()
             if hyp_candidate in self.w2i and hyp_candidate in self.word_freqs:
                 self.possible_hypernyms.add(hyp_candidate)
-
-    def main(self, regularizations, repeats):
         train_data, feature_names, train_labels = self.get_training_pairs()
         for _ in range(repeats):
             for c in regularizations:
@@ -136,7 +137,7 @@ class ThreeHundredSparsians(object):
             dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
         else:
             task_dir = '/mnt/store/friend/proj/SemEval18-hypernym/'
-            dataset_dir = os.path.join(self.task_dir, 'SemEval18-Task9')
+            dataset_dir = os.path.join(task_dir, 'SemEval18-Task9')
         return dag_basename, task_dir, dataset_dir
 
     def get_queries(self, phase):
@@ -527,8 +528,10 @@ class ThreeHundredSparsians(object):
         predicts the most common training hypernyms per query type (if upper_bound is False)
         if upper_bound is True it predicts the gold hypernyms also found in our vocabulary
         """
-        baseline_filen = '{}_{}.{}.predictions'.format(
-            self.args.dataset_id, 'upper' if upper_bound else 'baseline', phase)
+        baseline_filen = '{}.{}_{}.{}.predictions'.format(
+            self.args.dataset_id, 
+            self.dataset_mapping[self.args.dataset_id][1],
+            'upper' if upper_bound else 'baseline', phase)
         potential_hypernyms = self.possible_hypernyms
         with open(baseline_filen, mode='w') as out_file:
             for query_tuple, hypernyms in zip(queries, golds):
@@ -602,6 +605,8 @@ class ThreeHundredSparsians(object):
         logging.info('{}\t{}\t{}\tDev_upper'.format(
             self.regularization, self.args.include_sparse_att_pairs, res_str))
 
+        baseline_file = self.make_baseline('test', self.test_queries, self.test_golds, False)
+        baseline_file = self.make_baseline('test', self.test_queries, self.test_golds, True)
         if self.args.make_test_predictions:
             results = eval_on(models, 'test', self.test_gold_file, self.test_queries)
             res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
@@ -611,15 +616,11 @@ class ThreeHundredSparsians(object):
                 res_str,
                 self.dag_basename))
 
-            baseline_file = self.make_baseline('test', self.test_queries,
-                                               self.test_golds, False)
             results = self.write_metrics(self.test_gold_file, baseline_file, None)
             res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
             logging.info('{}\t{}\t{}\tTest_baseline'.format(
                 self.regularization, self.args.include_sparse_att_pairs, res_str))
 
-            baseline_file = self.make_baseline('test', self.test_queries,
-                                               self.test_golds, True)
             results = self.write_metrics(self.test_gold_file, baseline_file, None)
             res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
             logging.info('{}\t{}\t{}\tTest_upper'.format(
