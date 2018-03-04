@@ -635,7 +635,9 @@ class ThreeHundredSparsians(object):
                         results = write_metrics(gold_file, baseline_fn)
                         res_str = '\t'.join(['{:.3}'.format(results[m])
                                              for m in self.metrics])
-                        logging.info('{}\t{}_baseline'.format(res_str, phase))
+                        logging.info('{}\t{}\t{}_{}_baseline'.format(
+                            res_str, self.args.filter_candidates,
+                            phase, 'upper' if upper else 'freq'))
         eval_on('dev')
         if self.args.make_test_predictions:
             eval_on('test')
