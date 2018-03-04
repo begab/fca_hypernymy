@@ -636,8 +636,11 @@ class ThreeHundredSparsians(object):
                         res_str = '\t'.join(['{:.3}'.format(results[m])
                                              for m in self.metrics])
                         logging.info('{}\t{}\t{}_{}_{}_baseline'.format(
-                            res_str, self.args.filter_candidates,
-                            self.args.subtask, phase,
+                            res_str,
+                            '{}FULL'.format(
+                                'not' if self.args.filter_candidates else ''),
+                            self.args.subtask,
+                            phase,
                             'upper' if upper else 'freq'))
         eval_on('dev')
         if self.args.make_test_predictions:
