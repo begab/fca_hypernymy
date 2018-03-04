@@ -580,14 +580,14 @@ class ThreeHundredSparsians(object):
         return baseline_filename
 
     def test(self, models, regularization):
-        def get_out_fn(dev_or_test, pred_or_met):
+        def get_out_file_name(dev_or_test, pred_or_met):
             out_dir = os.path.join(self.task_dir, 'results', dev_or_test,
                                    pred_or_met)
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
-            return '{}.{}_{}_{}_{}_{}_ns{}_{}.output.txt'.format(
-                os.path.join(out_dir, self.args.subtask),
-                self.dataset_mapping[self.args.subtask][0],
+            return '{}_{}_{}_{}_{}_ns{}_{}.output.txt'.format(
+                os.path.join(out_dir,
+                             self.dataset_mapping[self.args.subtask][0]),
                 self.dag_basename,
                 self.args.include_sparse_att_pairs,
                 regularization,
@@ -615,10 +615,11 @@ class ThreeHundredSparsians(object):
                 queries, golds = self.dev_queries, self.dev_golds
 
             if models is not None:
-                prediction_file_name = get_out_fn(phase, 'predictions')
-                self.make_predictions(models, queries, prediction_file_name)
-                results = write_metrics(gold_file, prediction_file_name,
-                                        get_out_fn(phase, 'metrics'))
+                predict_fn = get_out_file_name(phase, 'predictions')
+                logging.debug('Writing predictions to {}'.format(predict_fn))
+                self.make_predictions(models, queries, predict_fn)
+                results = write_metrics(gold_file, predict_fn,
+                                        get_out_file_name(phase, 'metrics'))
                 res_str = '\t'.join(['{:.3}'.format(results[m])
                                      for m in self.metrics])
                 params = '\t'.join(map(str,
