@@ -575,7 +575,7 @@ class ThreeHundredSparsians(object):
                     '\t'.join('{:.3}'.format(results[mtk])
                               for mtk in self.metrics),
                     self.regularization, self.args.include_sparse_att_pairs,
-                    self.dag_basename))
+                    self.args.use_dag_features, self.dag_basename))
         return results
 
     def test(self, models):
@@ -607,6 +607,7 @@ class ThreeHundredSparsians(object):
         logging.info('{}\t{}\t{}\tDev_{}'.format(
             self.regularization,
             self.args.include_sparse_att_pairs,
+            self.args.use_dag_features,
             res_str,
             self.dag_basename
         ))
