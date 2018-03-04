@@ -136,13 +136,14 @@ class ThreeHundredSparsians(object):
             self.dag = None
 
     def main(self, regularizations, repeats):
-        self.test(None, -1)  # this corresponds to running the baselines
         if not self.args.baseline_only:
             train_data, feature_ids, labels = self.get_training_pairs()
             for _ in range(repeats):
                 for c in regularizations:
                     models = self.train(train_data, feature_ids, labels, c)
                     self.test(models, c)
+        else:
+            self.test(None, -1)  # this corresponds to running the baselines
 
     def init_potential_hypernyms(self):
         vocab_file = '{}/vocabulary/{}.{}.vocabulary.txt'.format(
@@ -616,7 +617,6 @@ class ThreeHundredSparsians(object):
 
             if models is not None:
                 predict_fn = get_out_file_name(phase, 'predictions')
-                logging.debug('Writing predictions to {}'.format(predict_fn))
                 self.make_predictions(models, queries, predict_fn)
                 results = write_metrics(gold_file, predict_fn,
                                         get_out_file_name(phase, 'metrics'))
