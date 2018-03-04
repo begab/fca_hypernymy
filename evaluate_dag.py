@@ -14,14 +14,14 @@ from sklearn.pipeline import make_pipeline
 from official_scorer import return_official_scores
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s"
 )
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--subtask', dest='dataset_id', default='1A',
+    parser.add_argument('--subtask', dest='subtask', default='1A',
                         choices=['1A', '1B', '1C', '2A', '2B'])
     parser.add_argument('--dense_vec', default='sg', choices=['sg', 'cbow'])
     parser.add_argument('--num_runs', type=int, default=1)
@@ -146,8 +146,8 @@ class ThreeHundredSparsians(object):
 
     def init_potential_hypernyms(self):
         vocab_file = '{}/vocabulary/{}.{}.vocabulary.txt'.format(
-            self.dataset_dir, self.args.dataset_id,
-            self.dataset_mapping[self.args.dataset_id][0])
+            self.dataset_dir, self.args.subtask,
+            self.dataset_mapping[self.args.subtask][0])
         potential_hypernyms = set()
         for l in open(vocab_file):
             hyp_candidate = l.strip()
@@ -159,8 +159,8 @@ class ThreeHundredSparsians(object):
         dag_basename = (
             '{}_{}_tokenized.txt_100_{}.vec.gz_True_{}_{}_unit_True_'
             'vocabulary_filtered{}.alph.reduced2_more_permissive.dot'.format(
-                self.args.dataset_id,
-                self.dataset_mapping[self.args.dataset_id][1],
+                self.args.subtask,
+                self.dataset_mapping[self.args.subtask][1],
                 self.args.dense_vec, self.args.sparse_dim,
                 self.args.sparse_density,
                 'NEW' if self.args.sparse_new else ''))
@@ -180,8 +180,8 @@ class ThreeHundredSparsians(object):
         ]
         data_filen, gold_filen1 = (
             str_.format(
-                d=self.dataset_dir, id_=self.args.dataset_id,
-                c=self.dataset_mapping[self.args.dataset_id][0],
+                d=self.dataset_dir, id_=self.args.subtask,
+                c=self.dataset_mapping[self.args.subtask][0],
                 p=phase)
             for str_ in file_path_ptrns)
         queries = [(l.split('\t')[0], l.split('\t')[1].strip())
@@ -211,8 +211,8 @@ class ThreeHundredSparsians(object):
         logging.info('Reading background word freq...')
         word_frequencies = Counter()
         freq_file = '{}/SemEval2018_Frequency_lists/{}_{}_frequencylist.txt'.\
-            format(self.dataset_dir, self.args.dataset_id,
-                   self.dataset_mapping[self.args.dataset_id][0])
+            format(self.dataset_dir, self.args.subtask,
+                   self.dataset_mapping[self.args.subtask][0])
         for i, l in enumerate(open(freq_file)):
             word = l.split('\t')[0]
             freq = int(l.split('\t')[1])
@@ -221,7 +221,7 @@ class ThreeHundredSparsians(object):
             if word.lower() not in word_frequencies:
                 word_frequencies[word.lower()] = freq
             word_frequencies[word] = freq
-        if self.args.dataset_id == '1B':
+        if self.args.subtask == '1B':
             """
             quick fix to overcome the fact that the frequency file and the
             training data contains this word with different capitalization
@@ -231,13 +231,13 @@ class ThreeHundredSparsians(object):
 
     def get_embed(self):
         i2w = {i: w.strip().replace('_', ' ') for i, w in enumerate(open(
-            'data/{}.vocab'.format(self.args.dataset_id)
+            'data/{}.vocab'.format(self.args.subtask)
         ))}
         w2i = {v: k for k, v in i2w.items()}
         embedding_file = os.path.join(
             self.task_dir, 'dense_embeddings',
             '{}_{}_vocab_filtered.emb'.format(
-                self.args.dataset_id, self.args.dense_vec))
+                self.args.subtask, self.args.dense_vec))
         embeddings = pickle.load(open(embedding_file, 'rb'))
         alpha_basename = self.dag_basename.replace('_more_permissive.dot', '')
         alpha_path = os.path.join(self.task_dir, 'alphas', alpha_basename)
@@ -564,7 +564,7 @@ class ThreeHundredSparsians(object):
         :return:
         """
         baseline_filename = '{}_{}.{}.predictions'.format(
-            self.args.dataset_id, 'upper' if upper_bound else 'baseline', phase)
+            self.args.subtask, 'upper' if upper_bound else 'baseline', phase)
         with open(baseline_filename, mode='w') as out_file:
             for query_tuple, hypernyms in zip(queries, golds):
                 category = query_tuple[1]
@@ -585,8 +585,8 @@ class ThreeHundredSparsians(object):
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
             return '{}.{}_{}_{}_{}_{}_ns{}_{}.output.txt'.format(
-                os.path.join(out_dir, self.args.dataset_id),
-                self.dataset_mapping[self.args.dataset_id][0],
+                os.path.join(out_dir, self.args.subtask),
+                self.dataset_mapping[self.args.subtask][0],
                 self.dag_basename,
                 self.args.include_sparse_att_pairs,
                 regularization,
@@ -635,9 +635,10 @@ class ThreeHundredSparsians(object):
                         results = write_metrics(gold_file, baseline_fn)
                         res_str = '\t'.join(['{:.3}'.format(results[m])
                                              for m in self.metrics])
-                        logging.info('{}\t{}\t{}_{}_baseline'.format(
+                        logging.info('{}\t{}\t{}_{}_{}_baseline'.format(
                             res_str, self.args.filter_candidates,
-                            phase, 'upper' if upper else 'freq'))
+                            self.args.subtask, phase,
+                            'upper' if upper else 'freq'))
         eval_on('dev')
         if self.args.make_test_predictions:
             eval_on('test')
