@@ -21,9 +21,9 @@ logging.basicConfig(
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--subtask', dest='dataset_id',
-                        default='1A', choices=['1A', '1B', '1C', '2A', '2B'])
-    parser.add_argument('--dense_archit', default='sg', choices=['sg', 'cbow'])
+    parser.add_argument('--subtask', dest='dataset_id', default='1A',
+                        choices=['1A', '1B', '1C', '2A', '2B'])
+    parser.add_argument('--dense_vec', default='sg', choices=['sg', 'cbow'])
     parser.add_argument('--num_runs', type=int, default=1)
     parser.add_argument('--sparse_dim', type=int, default=200)
     parser.add_argument('--negative_samples', type=int, default=50)
@@ -59,7 +59,7 @@ def get_args():
     dag_feature_parser.add_argument('--dag-feats',
                                     dest='use_dag_features',
                                     action='store_true')
-    parser.set_defaults(use_dag_features=False)
+    parser.set_defaults(use_dag_features=True)
 
     gpickle_parser = parser.add_mutually_exclusive_group(required=False)
     gpickle_parser.add_argument('--not-save-gpickle',
@@ -69,6 +69,15 @@ def get_args():
                                 dest='save_gpickle',
                                 action='store_true')
     parser.set_defaults(save_gpickle=True)
+
+    baseline_parser = parser.add_mutually_exclusive_group(required=False)
+    baseline_parser.add_argument('--not-baseline-only',
+                                 dest='baseline_only',
+                                 action='store_false')
+    baseline_parser.add_argument('--baseline-only',
+                                 dest='baseline_only',
+                                 action='store_true')
+    parser.set_defaults(baseline_only=False)
 
     parser.add_argument('--regularization', type=float, nargs='+', default=[1.0])
     predict_test_parser = parser.add_mutually_exclusive_group(required=False)
@@ -127,12 +136,13 @@ class ThreeHundredSparsians(object):
             self.dag = None
 
     def main(self, regularizations, repeats):
-        train_data, feature_names, train_labels = self.get_training_pairs()
-        for _ in range(repeats):
-            for c in regularizations:
-                self.regularization = c
-                models = self.train(train_data, feature_names, train_labels)
-                self.test(models)
+        self.test(None, -1)  # this corresponds to running the baselines
+        if not self.args.baseline_only:
+            train_data, feature_ids, labels = self.get_training_pairs()
+            for _ in range(repeats):
+                for c in regularizations:
+                    models = self.train(train_data, feature_ids, labels, c)
+                    self.test(models, c)
 
     def init_potential_hypernyms(self):
         vocab_file = '{}/vocabulary/{}.{}.vocabulary.txt'.format(
@@ -151,7 +161,7 @@ class ThreeHundredSparsians(object):
             'vocabulary_filtered{}.alph.reduced2_more_permissive.dot'.format(
                 self.args.dataset_id,
                 self.dataset_mapping[self.args.dataset_id][1],
-                self.args.dense_archit, self.args.sparse_dim,
+                self.args.dense_vec, self.args.sparse_dim,
                 self.args.sparse_density,
                 'NEW' if self.args.sparse_new else ''))
 
@@ -227,7 +237,7 @@ class ThreeHundredSparsians(object):
         embedding_file = os.path.join(
             self.task_dir, 'dense_embeddings',
             '{}_{}_vocab_filtered.emb'.format(
-                self.args.dataset_id, self.args.dense_archit))
+                self.args.dataset_id, self.args.dense_vec))
         embeddings = pickle.load(open(embedding_file, 'rb'))
         alpha_basename = self.dag_basename.replace('_more_permissive.dot', '')
         alpha_path = os.path.join(self.task_dir, 'alphas', alpha_basename)
@@ -466,9 +476,9 @@ class ThreeHundredSparsians(object):
                 features[c] = hstack([features[c], s])
         return features, feat_names, labels
 
-    def train(self, features, feature_names, labels):
+    def train(self, features, feature_names, labels, regularization):
         fallback_model = None
-        models = {c: make_pipeline(LogisticRegression(C=self.regularization))
+        models = {c: make_pipeline(LogisticRegression(C=regularization))
                   for c in self.categories}
         for cat in self.categories:
             if cat not in features or features[cat].shape[0] == 0:
@@ -488,7 +498,7 @@ class ThreeHundredSparsians(object):
                 models[category] = fallback_model
         return models
 
-    def make_predictions(self, models, queries, out_file_name):
+    def make_predictions(self, models, queries, out_filename):
         self.times.clear()
         true_class_index = {
             cat: [i for i, c in enumerate(models[cat].classes_) if c][0]
@@ -501,7 +511,7 @@ class ThreeHundredSparsians(object):
                            for c, words in self.test_candidates.items()}
 
         stats = {c: [0, 0] for c in self.categories}  # [kept, dropped]
-        with open(out_file_name, 'w') as pred_file:
+        with open(out_filename, 'w') as pred_file:
             for qi, query_tuple in enumerate(queries):
                 if qi % 100 == 0:
                     for k, v in self.times.items():
@@ -553,9 +563,9 @@ class ThreeHundredSparsians(object):
         :param upper_bound:
         :return:
         """
-        baseline_filen = '{}_{}.{}.predictions'.format(
+        baseline_filename = '{}_{}.{}.predictions'.format(
             self.args.dataset_id, 'upper' if upper_bound else 'baseline', phase)
-        with open(baseline_filen, mode='w') as out_file:
+        with open(baseline_filename, mode='w') as out_file:
             for query_tuple, hypernyms in zip(queries, golds):
                 category = query_tuple[1]
                 if upper_bound:
@@ -566,21 +576,10 @@ class ThreeHundredSparsians(object):
                     out_file.write('{}\n'.format('\t'.join([
                         t[0] for t in
                         self.gold_counter[category].most_common(15)])))
-        return baseline_filen
+        return baseline_filename
 
-    def write_metrics(self, gold_file, prediction_filen, metric_filen=None):
-        results = return_official_scores(gold_file, prediction_filen)
-        if metric_filen is not None:
-            with open(metric_filen, mode='w') as metric_file:
-                metric_file.write('{}\t{}\t{}\t{}'.format(
-                    '\t'.join('{:.3}'.format(results[mtk])
-                              for mtk in self.metrics),
-                    self.regularization, self.args.include_sparse_att_pairs,
-                    self.args.use_dag_features, self.dag_basename))
-        return results
-
-    def test(self, models):
-        def get_out_filen(dev_or_test, pred_or_met):
+    def test(self, models, regularization):
+        def get_out_fn(dev_or_test, pred_or_met):
             out_dir = os.path.join(self.task_dir, 'results', dev_or_test,
                                    pred_or_met)
             if not os.path.exists(out_dir):
@@ -590,52 +589,56 @@ class ThreeHundredSparsians(object):
                 self.dataset_mapping[self.args.dataset_id][0],
                 self.dag_basename,
                 self.args.include_sparse_att_pairs,
-                self.regularization,
+                regularization,
                 self.args.filter_candidates,
                 self.args.negative_samples,
                 self.args.use_dag_features,
             )
 
-        def eval_on(phase, gold_file, queries):
-            pred_file_name = get_out_filen(phase, 'predictions')
-            self.make_predictions(models, queries, pred_file_name)
-            return self.write_metrics(gold_file,
-                                      pred_file_name,
-                                      get_out_filen(phase, 'metrics'))
+        def write_metrics(gold_file, pred_filename, metric_filename=None):
+            results = return_official_scores(gold_file, pred_filename)
+            if metric_filename is not None:
+                with open(metric_filename, mode='w') as metric_file:
+                    metric_file.write('{}\t{}\t{}\t{}'.format(
+                        '\t'.join('{:.3}'.format(results[mtk])
+                                  for mtk in self.metrics),
+                        regularization, self.args.include_sparse_att_pairs,
+                        self.args.use_dag_features, self.dag_basename))
+            return results
 
-        def log_results_on_phase(phase):
+        def eval_on(phase):
             gold_file = self.test_gold_file
             queries, golds = self.test_queries, self.test_golds
             if phase == 'dev':
                 gold_file = self.dev_gold_file
                 queries, golds = self.dev_queries, self.dev_golds
 
-            results = eval_on(phase, gold_file, queries)
-            res_str = '\t'.join(['{:.3}'.format(results[m])
-                                 for m in self.metrics])
-            logging.info('{}\t{}\t{}\t{}\t{}_{}'.format(
-                self.regularization,
-                self.args.include_sparse_att_pairs,
-                self.args.use_dag_features,
-                res_str, phase,
-                self.dag_basename))
-
-            if golds is not None:
-                baseline_fn = self.make_baseline(phase, queries, golds, False)
-                results = self.write_metrics(gold_file, baseline_fn)
+            if models is not None:
+                prediction_file_name = get_out_fn(phase, 'predictions')
+                self.make_predictions(models, queries, prediction_file_name)
+                results = write_metrics(gold_file, prediction_file_name,
+                                        get_out_fn(phase, 'metrics'))
                 res_str = '\t'.join(['{:.3}'.format(results[m])
                                      for m in self.metrics])
-                logging.info('{}\t{}_baseline'.format(res_str, phase))
-
-            baseline_fn = self.make_baseline(phase, queries, golds, True)
-            results = self.write_metrics(gold_file, baseline_fn)
-            res_str = '\t'.join(['{:.3}'.format(results[m])
-                                 for m in self.metrics])
-            logging.info('{}\t{}_upper'.format(res_str, phase))
-
-        log_results_on_phase('dev')
+                params = '\t'.join([self.args.include_sparse_att_pairs,
+                                    regularization,
+                                    self.args.filter_candidates,
+                                    self.args.negative_samples,
+                                    self.args.use_dag_features])
+                logging.info('{}\t{}\t{}_{}'.format(params, res_str, phase,
+                                                    self.dag_basename))
+            else:
+                for upper in [True, False]:
+                    if (upper and golds is not None) or not upper:
+                        baseline_fn = self.make_baseline(phase, queries,
+                                                         golds, upper)
+                        results = write_metrics(gold_file, baseline_fn)
+                        res_str = '\t'.join(['{:.3}'.format(results[m])
+                                             for m in self.metrics])
+                        logging.info('{}\t{}_baseline'.format(res_str, phase))
+        eval_on('dev')
         if self.args.make_test_predictions:
-            log_results_on_phase('test')
+            eval_on('test')
 
     def get_own_words(self, node_id):
         own_words = self.node_to_words[node_id].copy()
