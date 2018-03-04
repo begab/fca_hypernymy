@@ -208,7 +208,7 @@ class ThreeHundredSparsians(object):
         return gold_c, freq_hypernyms
 
     def read_background_word_freq(self):
-        logging.info('Reading background word freq...')
+        logging.debug('Reading background word freq...')
         word_frequencies = Counter()
         freq_file = '{}/SemEval2018_Frequency_lists/{}_{}_frequencylist.txt'.\
             format(self.dataset_dir, self.args.subtask,
