@@ -14,7 +14,7 @@ from sklearn.pipeline import make_pipeline
 from official_scorer import return_official_scores
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s: (%(lineno)s) %(levelname)s %(message)s"
 )
 
