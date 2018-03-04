@@ -399,6 +399,7 @@ class ThreeHundredSparsians(object):
 
     def get_training_pairs(self):
         np.random.seed(400)
+        f = dict()  # variable to store features
         labels = {c: [] for c in self.categories}
         X = {c: defaultdict(list) for c in self.categories}
         indices = {c: [] for c in self.categories}
@@ -602,52 +603,39 @@ class ThreeHundredSparsians(object):
                                       pred_file_name,
                                       get_out_filen(phase, 'metrics'))
 
-        results = eval_on('dev', self.dev_gold_file, self.dev_queries)
-        res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
-        logging.info('{}\t{}\t{}\tDev_{}'.format(
-            self.regularization,
-            self.args.include_sparse_att_pairs,
-            self.args.use_dag_features,
-            res_str,
-            self.dag_basename
-        ))
+        def log_results_on_phase(phase):
+            gold_file = self.test_gold_file
+            queries, golds = self.test_queries, self.test_golds
+            if phase == 'dev':
+                gold_file = self.dev_gold_file
+                queries, golds = self.dev_queries, self.dev_golds
 
-        baseline_file = self.make_baseline('dev', self.dev_queries,
-                                           self.dev_golds, False)
-        results = self.write_metrics(self.dev_gold_file, baseline_file)
-        res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
-        logging.info('{}\t{}\t{}\tDev_baseline'.format(
-            self.regularization, self.args.include_sparse_att_pairs, res_str))
-
-        baseline_file = self.make_baseline('dev', self.dev_queries,
-                                           self.dev_golds, True)
-        results = self.write_metrics(self.dev_gold_file, baseline_file)
-        res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
-        logging.info('{}\t{}\t{}\tDev_upper'.format(
-            self.regularization, self.args.include_sparse_att_pairs, res_str))
-
-        if self.args.make_test_predictions:
-            results = eval_on('test', self.test_gold_file, self.test_queries)
-            res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
-            logging.info('{}\t{}\t{}\tTest_{}'.format(
+            results = eval_on(phase, gold_file, queries)
+            res_str = '\t'.join(['{:.3}'.format(results[m])
+                                 for m in self.metrics])
+            logging.info('{}\t{}\t{}\t{}\t{}_{}'.format(
                 self.regularization,
                 self.args.include_sparse_att_pairs,
-                res_str,
+                self.args.use_dag_features,
+                res_str, phase,
                 self.dag_basename))
 
-            baseline_file = self.make_baseline('test', self.test_queries,
-                                               self.test_golds, False)
-            results = self.write_metrics(self.test_gold_file, baseline_file)
-            res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
-            logging.info('{}\t{}\t{}\tTest_baseline'.format(
-                self.regularization, self.args.include_sparse_att_pairs, res_str))
+            if golds is not None:
+                baseline_fn = self.make_baseline(phase, queries, golds, False)
+                results = self.write_metrics(gold_file, baseline_fn)
+                res_str = '\t'.join(['{:.3}'.format(results[m])
+                                     for m in self.metrics])
+                logging.info('{}\t{}_baseline'.format(res_str, phase))
 
-            baseline_file = self.make_baseline('test', self.test_queries,
-                                               self.test_golds, True)
-            results = self.write_metrics(self.test_gold_file, baseline_file)
-            res_str = '\t'.join(['{:.3}'.format(results[m]) for m in self.metrics])
-            logging.info('{}\t{}\t{}\tTest_upper'.format(
-                self.regularization, self.args.include_sparse_att_pairs, res_str))
+            baseline_fn = self.make_baseline(phase, queries, golds, True)
+            results = self.write_metrics(gold_file, baseline_fn)
+            res_str = '\t'.join(['{:.3}'.format(results[m])
+                                 for m in self.metrics])
+            logging.info('{}\t{}_upper'.format(res_str, phase))
+
+        log_results_on_phase('dev')
+        if self.args.make_test_predictions:
+            log_results_on_phase('test')
 
     def get_own_words(self, node_id):
         own_words = self.node_to_words[node_id].copy()
