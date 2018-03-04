@@ -438,7 +438,8 @@ class ThreeHundredSparsians(object):
             stats[q_type][0] += 1
 
             potential_negatives = sorted([
-                h for h in self.possible_hypernyms if h not in golds])
+                    h for h in self.gold_counter[q_type] if h not in golds])
+            #    h for h in self.possible_hypernyms if h not in golds])
             neg = []  # negative samples
             if len(potential_negatives) > 0:
                 neg = np.random.choice(potential_negatives, size=min(
@@ -620,11 +621,12 @@ class ThreeHundredSparsians(object):
                                         get_out_fn(phase, 'metrics'))
                 res_str = '\t'.join(['{:.3}'.format(results[m])
                                      for m in self.metrics])
-                params = '\t'.join([self.args.include_sparse_att_pairs,
-                                    regularization,
-                                    self.args.filter_candidates,
-                                    self.args.negative_samples,
-                                    self.args.use_dag_features])
+                params = '\t'.join(map(str,
+                                       [self.args.include_sparse_att_pairs,
+                                        regularization,
+                                        self.args.filter_candidates,
+                                        self.args.negative_samples,
+                                        self.args.use_dag_features]))
                 logging.info('{}\t{}\t{}_{}'.format(params, res_str, phase,
                                                     self.dag_basename))
             else:
