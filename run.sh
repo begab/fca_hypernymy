@@ -8,7 +8,7 @@ do
         do
             for df in not-dag-feats dag-feats;
             do
-                evaluate_dag.py --subtask $1 --sparse_dim $2 --negative_samples $n --${sf} --${df} >> ${1}_${2}_${n}_${f}_${sf}_${df} 2>&1 &
+                evaluate_dag.py --subtask $1 --sparse_dim $2 --negative_samples $n --${sf} --${df} >> ${1}_${2}_${n}_${f}_${sf}_${df}.log 2>&1 &
             done
         done
     done
