@@ -42,7 +42,7 @@ Department of Informatics \\ University of Szeged \\
   Benczúr u. 33, H1068 Budapest, Hungary \\
   {\tt makrai.marton@nytud.mta.hu} \\\AND
   Péter Földiák \\
-  Secret Sauce Partners, \\
+  Secret Sauce Partners \\
   657 Mission Suite 410, \\
   San Francisco CA 94105 \\
   {\tt Peter.Foldiak@gmail.com} \\}
@@ -190,7 +190,7 @@ We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
 approach \citep{Mikolov:2013f} to train $d=100$ dimensional dense distributed
 word representations for each sub-corpora. The word embeddings are trained over the text corpora provided by the shared task organizers with the default training parameters of \texttt{word2vec} (w2v), i.e.~a window size of 10 and negative 25 negative samples for each positive contexts.
 
-We derived multi-token units by relying on the \texttt{word2phrase} software accompanying the w2v toolkit. An additional source for identifying multi-token units in the training corpus was the list of potential hypernyms released for each subtask by the shared task organizers.
+We derived \emph{multi-token units} by relying on the \texttt{word2phrase} software accompanying the w2v toolkit. An additional source for identifying multi-token units in the training corpus was the list of potential hypernyms released for each subtask by the shared task organizers.
 
 For some subcorpus of the shared task $x\in\{1A, 1B, 1C, 2A, 2B\}$, we denote
 the embedding matrix as $W_x \in \mathbb{R}^{d \times \lvert V_x \rvert}$ where
@@ -198,7 +198,7 @@ $\lvert V_x \rvert$ is the size of the vocabulary and $d$ is set to 100.
 %as stated previously.
 
 As a subsequent step we turn the dense vectorial word representations for subtask $x$ into
-sparse word vectors akin to \citet{Berend:2017} by solving for
+\emph{sparse word vectors} akin to \citet{Berend:2017} by solving for
 \begin{equation}
 \min\limits_{D \in \mathcal{C}, \alpha \in \mathbb{R}_{\geq0}} \lVert D\alpha - W_{x} \rVert_F + \lambda \lVert \alpha \rVert_1,
 \label{nonneg_SPAMS_objective}
@@ -208,9 +208,9 @@ with norm at most $1$, and $\alpha$ contains the sparse coefficients for the ele
 compared to \citet{Berend:2017} is that here we ensure a non-negativity
 constraint over the elements of $\alpha$.
 
-For the elements of the vocabulary we ran the formal concept analysis tool of
+For the elements of the vocabulary we ran the \emph{formal concept analysis} tool of
 \citet{Endres:2010}\footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}. In order to keep the size of the DAG outputted by the FCA algorithm manageable, we only included the query words and those hypernyms in the analysis which occur in the training dataset for the corpora.
-% már itt említeni hogy a postevalban máshogy is lesz
+As we will see in the next section, this restriction turns out to be very useful.
 
 Next, we determine a handful of features for a pair of expressions $(q, h)$
 consisting of a query $q$ and its potential hypernym $h$. We denote with $Q$
@@ -340,8 +340,8 @@ the query words on the training and test datasets of the various subtasks.
 \bottomrule
 	\end{tabular}
   %}
-  \caption{Number of in-vocabulary(out-of-vocabulary) queries per query types.
-  The ratio of the latter is also shown.}
+  \caption{Number of in-vocabulary (and out-of-vocabulary) queries per query
+  types.  The ratio of the latter is also shown.}
 \label{table:coverage}
 \end{table*}
 
