@@ -224,7 +224,7 @@ Additionally, we refer to the set of basis vectors which are assigned non-zero w
 Table~\ref{table:core_features} provides an overview of the features employed
 for a pair $(q, h)$. Additionally, it is also considered as a feature whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
-for the category of $q$ (concept or entity). 
+for the category of $q$ (concept or entity).
 % legkésőbb itt belengetni a categoryánkénti bonáts jelentőségét
 Three additional features are defined for incorporating the concept tree output
 by FCA, whether the most specific location within the DAG for $q$
@@ -256,7 +256,7 @@ For a given query $q$, belonging to either of the \textit{Concept} or
 \textit{Entity} category, we sampled $h'$ from those hypernyms which were
 included as a valid hypernym in the training data with respect to some $q' \neq
 q$ query phrase. The default number of negative samples generated for each
-positive training sample is 50. 
+positive training sample is 50.
 % Ha beleírjuk az 5000-es dolgot is, akkor itt lehet utalni rá, hogy lásd
 % post-eval eredmények.
 
@@ -290,33 +290,33 @@ positive training sample is 50.
 \begin{table}
 	\centering
       \resizebox{.5\textwidth}{!}{%
-	\begin{tabular}{cc|llll}
-    &&  MAP  &  MRR  &  P@1  &  P@3  \\
+	\begin{tabular}{c|lllll}
+    \toprule
+    &  MAP  &  MRR  &  P@1  &  P@3 & P@5 \\
        \toprule
-       % qtype ..@10
-       % MFH: ..@5, @15
-		1A & qtype & 9.8\% & 21.6\% & 19.8\% & 10.0\% \\ % & 9.0\% \\
-    1A	& MFH	& 8.77\% & 21.39\% & 19.8\% & 8.91\%  \\ %& 7.81\% & 7.53 \\
+       % MFH: ..@15
+    1A  & 9.8\% & 21.6\% & 19.8\% & 10.0\% & 9.0\% \\
+    1A  & 8.77\% & 21.39\% & 19.8\% & 8.91\% & 7.81\% \\ % & 7.53 \\
     \midrule
-		1B & qtype & 8.9\% & 21.2\% & 17.1\% & 9.1\% \\ % & 8.3\% \\
-    1B	& MFH	& 7.76\% & 19.37\% & 17.1\% & 8.32\%  \\ %& 6.82\% & 6.51 \\
+    1B  & 8.9\% & 21.2\% & 17.1\% & 9.1\% & 8.3\% \\
+    1B  & 7.76\% & 19.37\% & 17.1\% & 8.32\% & 6.82\% \\ % & 6.51 \\
     \midrule
-		1C & qtype & 16.4\% & 33.3\% & 24.6\% & 17.5\% \\ % & 16.1\% \\
-    1C	& MFH	& 12.16\% & 29.76\% & 24.6\% & 11.98\%  \\ %& 11.26\% & 11.04 \\
+    1C  & 16.4\% & 33.3\% & 24.6\% & 17.5\% & 16.1\% \\
+    1C  & 12.16\% & 29.76\% & 24.6\% & 11.98\% & 11.26\% \\ % & 11.04 \\
     \midrule
-		2A & qtype & 29.0\% & 35.9\% & 32.6\% & 34.3\% \\ % & 34.2\% \\
-    2A	& MFH	& 28.93\% & 35.8\% & 32.6\% & 34.27\%  \\ %& 34.2\% & 21.39 \\
+    2A  & 29.0\% & 35.9\% & 32.6\% & 34.3\% & 34.2\% \\
+    2A  & 28.93\% & 35.8\% & 32.6\% & 34.27\% & 34.2\% \\ % & 21.39 \\
     \midrule
-		2B & qtype & 40.2\% & 58.8\% & 50.6\% & 44.6\% \\ % & 40.3\% \\
-    2B	& MFH	& 33.32\% & 51.48\% & 36.2\% & 40.07\%  \\ %& 35.76\% & 28.44 \\
-    \bottomrule 
-	\end{tabular}
-}
-	\label{table:MFH}
+    2B  & 40.2\% & 58.8\% & 50.6\% & 44.6\% & 40.3\% \\
+    2B  & 33.32\% & 51.48\% & 36.2\% & 40.07\% & 35.76\% \\ % & 28.44 \\
+    \bottomrule
+  \end{tabular}
+  }
+  \label{table:MFH}
   \caption{Baseline results, most frequent training hypernyms. We
-  (\texttt{qtype}) consider the most frequent hypernym in the given query type
+  (upper) consider the most frequent hypernym in the given query type
   (concept or entity). We show the \texttt{MFH} baseline provided by the
-  organizers that is based on the most frequent hypernyms in general for
+  organizers (lower) that is based on the most frequent hypernyms in general for
   comparison.}
 \end{table}
 
@@ -325,20 +325,29 @@ positive training sample is 50.
 Table~\ref{table:coverage} shows the coverage of our vocabulary with respect to
 the query words on the training and test datasets of the various subtasks.
 
-\begin{table}
+\begin{table*}
 	\centering
-	\begin{tabular}{r|cc|cc}
-		& \multicolumn{2}{c|}{Concept} & \multicolumn{2}{c}{Entity} \\
-		& Train & Test   & Train & Test \\ \hline
-	1A  & 975/4 & 1055/4 & 379/142 & 344/99 \\
-	1B  & 709/1 & 767/2  & 249/41  & 205/26 \\
-	1C  & 776/2 & 625/2  & 184/38  & 328/45 \\
-	2A  & 442/58& 433/67 & 0/0     & 0/0    \\
-	2B  & 366/21& 341/17 & 79/34   & 102/40 \\
+      %\resizebox{\textwidth}{!}{%
+	\begin{tabular}{r|cccc|cccc}
+    \toprule
+		& \multicolumn{4}{c|}{Concept} & \multicolumn{4}{c}{Entity} \\
+    & \multicolumn{2}{c}{Train} &
+     \multicolumn{2}{c|}{Test} &
+     \multicolumn{2}{c}{Train} &
+     \multicolumn{2}{c}{Test} \\
+     \midrule
+1A & 975(4) & 0.41\%	&1055(4) & 0.38\%	&379(142) & 37.47\%	&344(99) & 28.78\% \\
+1B & 709(1) & 0.14\%	&767(2) & 0.26\%	&249(41) & 16.47\%	&205(26) & 12.68\% \\
+1C & 776(2) & 0.26\%	&625(2) & 0.32\%	&184(38) & 20.65\%	&328(45) & 13.72\% \\
+2A & 442(58) & 13.12\%	&433(67) & 15.47\%	&0(0) & 	& 0(0) & \\
+2B & 366(21) & 5.74\%	&341(17) & 4.99\%	&79(34) & 43.04\%	&102(40) & 39.22\% \\
+\bottomrule
 	\end{tabular}
-\caption{Number of in-vocabulary/out-of-vocabulary queries per query types.}
+  %}
+  \caption{Number of in-vocabulary(out-of-vocabulary) queries per query types.
+  The ratio of the latter is also shown.}
 \label{table:coverage}
-\end{table}
+\end{table*}
 
 
 \begin{table}
