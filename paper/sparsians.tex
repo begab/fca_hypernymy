@@ -94,12 +94,12 @@ implementation that is efficient for gigaword corpora.
 Here we employ sparse coding for hypernym extraction in a different way, namely
 through Formal Concept Analysis (FCA).  
 
-nonneg \citep{Faruqui:2015,Fyshe:2015}
+% nonneg \citep{Faruqui:2015,Fyshe:2015}
 % a SPINE idézi Danish+ 16-ot, de az önhivatkozás
 
-entities, music, Spanish
+%entities, music, Spanish
 
-a task kiírásában levő irodalom
+%a task kiírásában levő irodalom
 
 For further details of the shared task see \cite{Camacho-Collados:2018}.
 
@@ -164,10 +164,10 @@ $C$ and the concept order form a %complete
 lattice.  The concept lattice of the context in Table 1, with full and reduced
 % TODO figure
 % In-Close2 draws only reduced if I'm not mistaken.
-labelling, is shown in \ref{fig:monkeylattice}.
-Full labelling means that a concept node is depicted with its full extent and
-intent. A reduced labelled concept lattice shows an object only in the smallest
-(w.r.t. $\le$) concept of whose extent the object is a member.
+labeling, is shown in \ref{fig:monkeylattice}.
+Full labeling means that a concept node is depicted with its full extent and
+intent. A reduced labeled concept lattice shows an object only in the smallest
+(w.r.t.~$\le$) concept of whose extent the object is a member.
 % This concept is called the object concept, or the concept that introduces the
 % object.
 Likewise, an attribute is shown only in the largest concept of whose intent the
@@ -185,28 +185,59 @@ Formal Concept Analysis (FCA) is relatively new \citep{Cimiano:2005}.
 
 \section{Our submissions}
 
-We used the popular skip-gram (SG) and continuous-bag-of-words (CBOW)
-approaches \cite{Mikolov:2013f} to train $d=100$ dimensional dense distributed
-word representations for each sub-corpora. For some subcorpus $x$, we denote
+We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
+approach \cite{Mikolov:2013f} to train $d=100$ dimensional dense distributed
+word representations for each sub-corpora. For some subcorpus $x\in\{1A, 1B, 1C, 2A, 2B\}$, we denote
 the embedding matrix as $W_x \in \mathbb{R}^{\lvert V_x \rvert \times d}$ with
 $\lvert V_x \rvert$ denoting the size of the vocabulary and $d$ is set to 100
 as stated previously.
 
-As a subsequent step we turn the dense vectorial word representations into
+As a subsequent step we turn the dense vectorial word representations for subtask $x$ into
 sparse word vectors akin to \citet{Berend:2017} by solving for
 \begin{equation}
-\min\limits_{D \in \mathcal{C}, \alpha \in \mathbb{R}_{\geq0}} \lVert D\alpha - W \rVert_F + \lambda \lVert \alpha \rVert_1,
+\min\limits_{D \in \mathcal{C}, \alpha \in \mathbb{R}_{\geq0}} \lVert D\alpha - W_{x} \rVert_F + \lambda \lVert \alpha \rVert_1,
 \label{nonneg_SPAMS_objective}
 \end{equation}
-where $\mathcal{C}$ is the convex set of matrices containing only such vectors
-whose norm does not exceeds $1$ and $\alpha$ contains the sparse coefficients
-encoding which basis vectors from $D$ takes part in the reconstruction of the
-vectorial representation of some element of the vocabulary. The only difference
+where $\mathcal{C}$ is the convex set of matrices consisting of vectors
+with norm at most $1$ and $\alpha$ contains the sparse coefficients of word forms. The only difference
 compared to \cite{Berend:2017} is that here we ensure a non-negativity
 constraint over the elements of $\alpha$.
 
 For the elements of the vocabulary we ran the formal concept analysis tool of
-\citet{Endres:2010}\footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}.
+\citet{Endres:2010}\footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}. In order to keep the size of the DAG outputted by the FCA algorithm manageable, we only included the query words and those hypernyms in the analysis which occur in the training dataset for the corpora.
+
+Next, we determine a handful of features for a pair of words $(q, h)$, that is a query $q$ and its potential hypernym $h$. We denote with $Q$ and $H$ the sequence of tokens constituting the query and hypernym phrases. Additionally, we refer to the set of basis vectors which are assigned non-zero weights in the reconstruction of the vectorial representation of $q$ and $h$ as $\phi(q)$ and $\phi(h)$. Finally, we denote with $\mathbf{q}$ and $\mathbf{h}$ the 100-dimensional dense vectorial representations of $q$ and $h$.
+
+Table~\ref{table:core_features} provides an overview of the features employed for a $(q, h)$ pair. Additionally, it is also considered as a feature whether a particular candidate hypernym $h$ belongs to the top-50 most frequent hypernym for the category of $q$. Three more optional features are defined for incorporating the output of FCA, i.e.
+\begin{enumerate}
+	\item Is the most specific location within the DAG for $q$ coincide with that of $h$,
+	\item Is the most specific location within the DAG for $q$ is the parent for that of $h$,
+	\item Is the most specific location within the DAG for $q$ is the child for that of $h$.
+\end{enumerate}
+During our ablation experiments, we refer to the above three features as the \emph{FCA} features.
+
+Finally, we define one indicator feature for every possible interaction term between the sparse coefficients in $\alpha$. That means that for a pair of words $(q, h)$ we defined $\Phi(q,h)=\phi(q) \times \phi(h)$, i.e.~they get assigned with the Descartes product derived from the indices of the nonzero coefficients in $\alpha$.
+
+\begin{table}
+	\begin{tabular}{ll}
+		Core feature name   & Short description \\  \hline
+		$difference$        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\
+		$normRatio$         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert \mathbf{h} \rVert_2}$ \\
+		$cosine$            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\
+		$logFrequencyRatio$ & $\log_{10}\frac{count(q)}{count(h)}$ \\
+		$hasTextualOverlap$ & $Q \cap H \neq \emptyset$ \\
+		$samePrefix$        & $Q[0] = H[0]$ \\
+		$sameSuffix$        & $Q[-1] = H[-1]$ \\
+		$qureyBeginsWith$   & $Q[0] = h$ \\
+		$queryEndsWith$     & $Q[-1] = h$ \\
+		$sparseDifference_{qh}$ & $\lvert \phi(q) - \phi(h) \rvert$ \\
+		$sparseDifference_{hq}$ & $\lvert \phi(h) - \phi(q) \rvert$ \\
+		$overlappingBasis$  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\
+	\end{tabular}
+	\caption{The list of core features considering a $(q,h)$ pair of phrases.}
+	\label{table:core_features}
+\end{table}
+
 
 % why 300 in the group name (akár ott, hogy 300-as ritkával jobb is lehetett
 % volna, vagy ott, hogy 200 + 100 -- de ha magától értődő, akkor
@@ -214,27 +245,68 @@ For the elements of the vocabulary we ran the formal concept analysis tool of
 
 \section{Experimental results}
 
+\begin{table}
+	\centering
+	\begin{tabular}{c|ccccc}
+		   &  MAP  &  MRR  &  P@1  &  P@3  & P@10  \\ \hline
+		1A & 0.098 & 0.226 & 0.198 & 0.100 & 0.090 \\
+		1B & 0.089 & 0.212 & 0.171 & 0.091 & 0.083 \\
+		1C & 0.164 & 0.333 & 0.246 & 0.175 & 0.161 \\
+		2A & 0.290 & 0.359 & 0.326 & 0.343 & 0.342 \\
+		2B & 0.402 & 0.588 & 0.506 & 0.446 & 0.403 \\
+	\end{tabular}
+	\label{table:MFH}
+	\caption{Results of our query type sensitive most frequent hypernym baseline.}
+\end{table}
+
+\begin{table}
+	\centering
+	\begin{tabular}{r|cc|cc}
+		& \multicolumn{2}{c|}{Concept} & \multicolumn{2}{c}{Entity} \\
+		& Train & Test   & Train & Test \\ \hline
+	1A  & 975/4 & 1055/4 & 379/142 & 344/99 \\
+	1B  & 709/1 & 767/2  & 249/41  & 205/26 \\
+	1C  & 776/2 & 625/2  & 184/38  & 328/45 \\
+	2A  & 442/58& 433/67 & 0/0     & 0/0    \\
+	2B  & 366/21& 341/17 & 79/34   & 102/40 \\
+	\end{tabular}
+\caption{Number of in-vocabulary/out-of-vocabulary queries per query types.}
+\label{table:coverage}
+\end{table}
+
+
+\begin{table}
+	\centering
+	\begin{tabular}{r|ccccc}
+att-pairs/fca & MAP & MRR & P@1 & P@3 \\ \hline
+off/off & 0.103 & 0.213 & 0.150 & 0.106 \\
+off/on  & 0.101 & 0.211 & 0.149 & 0.105 \\
+on/off  & 0.121 & 0.254 & 0.189 & 0.129 \\
+on/on   & 0.121 & 0.253 & 0.187 & 0.130 \\
+	\end{tabular}
+\caption{Ablation experiments for the 1A dataset.}
+\label{table:ablation1A}
+\end{table}
+
 \subsection{Restricted cantdidates}
 
 Table~\ref{table:upper} lists the best possible results we can achieve.
 
 \begin{table}
 	\centering
-	\begin{tabular}{c|ccc}
-		Subtask & MAP & MRR & P@1 \\ \hline
-		1A & 0.542 & 0.748 & 0.670 \\
-		1B & 0.596 & 0.841 & 0.796 \\
-		1C & 0.624 & 0.839 & 0.776 \\
-		2A & 0.478 & 0.726 & 0.652 \\
-		2B & 0.459 & 0.744 & 0.650 \\
+	\begin{tabular}{c|cccc}
+		   & MAP & MRR & P@1  & P@3 \\ \hline
+		1A & 0.761 & 0.922 & 0.922 & 0.823 \\
+		1B & 0.712 & 0.934 & 0.934 & 0.785 \\
+		1C & 0.810 & 0.959 & 0.959 & 0.872 \\
+		2A & 0.726 & 0.896 & 0.896 & 0.810 \\
+		2B & 0.954 & 0.988 & 0.988 & 0.973 \\
 	\end{tabular}
 	\label{table:upper}
 	\caption{Best possible results obtainable on the test set for our
 submissions due to the filtration of the possible set of gold hypernyms
 we apply in order to speed up the FCA algorithm we use.}
 \end{table}
-
-a metrikáknak nagy a szórása. többszöri futtatás %TODO
 
 entity length ratio figure %TODO
 
