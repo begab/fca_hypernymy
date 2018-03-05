@@ -188,7 +188,7 @@ We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
 approach \cite{Mikolov:2013f} to train $d=100$ dimensional dense distributed
 word representations for each sub-corpora. The word embeddings are trained over the text corpora provided by the shared task organizers with the default training parameters of \texttt{word2vec} (w2v), i.e.~a window size of 10 and negative 25 negative samples for each positive contexts.
 
-We derived multi-token units by relying of the \texttt{word2phrase} software accompanying the w2v toolkit. An additional source for identifying multi-token units in the training corpus was the list of potential hypernyms released for each subtask by the shared task organizers.
+We derived multi-token units by relying on the \texttt{word2phrase} software accompanying the w2v toolkit. An additional source for identifying multi-token units in the training corpus was the list of potential hypernyms released for each subtask by the shared task organizers.
 
 For some subcorpus of the shared task $x\in\{1A, 1B, 1C, 2A, 2B\}$, we denote
 the embedding matrix as $W_x \in \mathbb{R}^{d \times \lvert V_x \rvert}$ with
