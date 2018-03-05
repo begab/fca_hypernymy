@@ -288,33 +288,32 @@ positive training sample is 50.
 \begin{table}
 	\centering
       \resizebox{.5\textwidth}{!}{%
-	\begin{tabular}{cc|llll}
-    &&  MAP  &  MRR  &  P@1  &  P@3  \\
+	\begin{tabular}{c|lllll}
+    &  MAP  &  MRR  &  P@1  &  P@3 & P@5 \\
        \toprule
-       % qtype ..@10
-       % MFH: ..@5, @15
-		1A & qtype & 9.8\% & 21.6\% & 19.8\% & 10.0\% \\ % & 9.0\% \\
-    1A	& MFH	& 8.77\% & 21.39\% & 19.8\% & 8.91\%  \\ %& 7.81\% & 7.53 \\
+       % MFH: ..@15
+    1A  & 9.8\% & 21.6\% & 19.8\% & 10.0\% & 9.0\% \\
+    1A  & 8.77\% & 21.39\% & 19.8\% & 8.91\% & 7.81\% \\ % & 7.53 \\
     \midrule
-		1B & qtype & 8.9\% & 21.2\% & 17.1\% & 9.1\% \\ % & 8.3\% \\
-    1B	& MFH	& 7.76\% & 19.37\% & 17.1\% & 8.32\%  \\ %& 6.82\% & 6.51 \\
+    1B  & 8.9\% & 21.2\% & 17.1\% & 9.1\% & 8.3\% \\
+    1B  & 7.76\% & 19.37\% & 17.1\% & 8.32\% & 6.82\% \\ % & 6.51 \\
     \midrule
-		1C & qtype & 16.4\% & 33.3\% & 24.6\% & 17.5\% \\ % & 16.1\% \\
-    1C	& MFH	& 12.16\% & 29.76\% & 24.6\% & 11.98\%  \\ %& 11.26\% & 11.04 \\
+    1C  & 16.4\% & 33.3\% & 24.6\% & 17.5\% & 16.1\% \\
+    1C  & 12.16\% & 29.76\% & 24.6\% & 11.98\% & 11.26\% \\ % & 11.04 \\
     \midrule
-		2A & qtype & 29.0\% & 35.9\% & 32.6\% & 34.3\% \\ % & 34.2\% \\
-    2A	& MFH	& 28.93\% & 35.8\% & 32.6\% & 34.27\%  \\ %& 34.2\% & 21.39 \\
+    2A  & 29.0\% & 35.9\% & 32.6\% & 34.3\% & 34.2\% \\
+    2A  & 28.93\% & 35.8\% & 32.6\% & 34.27\% & 34.2\% \\ % & 21.39 \\
     \midrule
-		2B & qtype & 40.2\% & 58.8\% & 50.6\% & 44.6\% \\ % & 40.3\% \\
-    2B	& MFH	& 33.32\% & 51.48\% & 36.2\% & 40.07\%  \\ %& 35.76\% & 28.44 \\
+    2B  & 40.2\% & 58.8\% & 50.6\% & 44.6\% & 40.3\% \\
+    2B  & 33.32\% & 51.48\% & 36.2\% & 40.07\% & 35.76\% \\ % & 28.44 \\
     \bottomrule 
-	\end{tabular}
-}
-	\label{table:MFH}
+  \end{tabular}
+  }
+  \label{table:MFH}
   \caption{Baseline results, most frequent training hypernyms. We
-  (\texttt{qtype}) consider the most frequent hypernym in the given query type
+  (upper) consider the most frequent hypernym in the given query type
   (concept or entity). We show the \texttt{MFH} baseline provided by the
-  organizers that is based on the most frequent hypernyms in general for
+  organizers (lower) that is based on the most frequent hypernyms in general for
   comparison.}
 \end{table}
 
