@@ -164,10 +164,10 @@ we write $\langle A_1 , B_1 \rangle \le \langle A_2 , B_2 \rangle$.
 % The relation $\le$ is called the \emph{order} of the concepts.
 
 $C$ and the concept order form a %complete
-lattice.  The concept lattice of the context in Table 1, with full and reduced
-% TODO figure
-% In-Close2 draws only reduced if I'm not mistaken.
-labeling, is shown in \ref{fig:monkeylattice}.
+lattice.  
+% The concept lattice of the context in Table 1, with full and reduced % TODO
+% figure % In-Close2 draws only reduced if I'm not mistaken.  labeling, is
+% shown in \ref{fig:monkeylattice}.
 Full labeling means that a concept node is depicted with its full extent and
 intent. A reduced labeled concept lattice shows an object only in the smallest
 (w.r.t.~$\le$) concept of whose extent the object is a member.
@@ -215,14 +215,15 @@ For the elements of the vocabulary we ran the \emph{formal concept analysis} too
 As we will see in the next section, this restriction turns out to be very useful.
 
 Next, we determine a handful of features for a pair of expressions $(q, h)$
-consisting of a query $q$ and its potential hypernym $h$. We denote with $Q$
+consisting of a query $q$ and its potential hypernym $h$. 
+Table~\ref{table:core_features} provides an overview of some of the features employed for a pair $(q, h)$. 
+We denote with $Q$
 and $H$ the sequence of tokens constituting the query and hypernym phrases.
 %nekem kicsit furcsa nagy betűt használni erre. Nem jelölhetnék a kisbetűk
 %eleve ezt? Úgy látom, egyelőre nem használod később nagybetűs jelölést.
 Additionally, we refer to the set of basis vectors which are assigned non-zero weights in the reconstruction of the vectorial representation of $q$ and $h$ as $\phi(q)$ and $\phi(h)$. Finally, we denote with $\mathbf{q}$ and $\mathbf{h}$ the 100-dimensional dense vectorial representations of $q$ and $h$.
 
-Table~\ref{table:core_features} provides an overview of the features employed
-for a pair $(q, h)$. Additionally, it is also considered as a feature whether a
+Additionally, it is also considered as a feature whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
 for the category of $q$ (concept or entity).
 % legkésőbb itt belengetni a categoryánkénti bonáts jelentőségét
@@ -261,17 +262,19 @@ positive training sample is 50.
 % post-eval eredmények.
 
 \begin{table}
-	\begin{tabular}{ll}
-		Core feature name   & Short description \\  \hline
+	\begin{tabular}{lc}
+		Core feature name   & Forumla \\  \hline
 		$difference$        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\
 		$normRatio$         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert \mathbf{h} \rVert_2}$ \\
 		$cosine$            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\
+    \midrule
 		$logFrequencyRatio$ & $\log_{10}\frac{count(q)}{count(h)}$ \\
 		$hasTextualOverlap$ & $Q \cap H \neq \emptyset$ \\
 		$samePrefix$        & $Q[0] = H[0]$ \\
 		$sameSuffix$        & $Q[-1] = H[-1]$ \\
 		$qureyBeginsWith$   & $Q[0] = h$ \\
 		$queryEndsWith$     & $Q[-1] = h$ \\
+    \midrule
 		$sparseDifference_{qh}$ & $\lvert \phi(q) - \phi(h) \rvert$ \\
 		$sparseDifference_{hq}$ & $\lvert \phi(h) - \phi(q) \rvert$ \\
 		$overlappingBasis$  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\
@@ -377,10 +380,10 @@ Table~\ref{table:upper} lists the best possible results we can achieve.
 		2A & 0.726 & 0.896 & 0.896 & 0.810 \\
 		2B & 0.954 & 0.988 & 0.988 & 0.973 \\
 	\end{tabular}
-	\label{table:upper}
 	\caption{Best possible results obtainable on the test set for our
 submissions due to the filtration of the possible set of gold hypernyms
 we apply in order to speed up the FCA algorithm we use.}
+	\label{table:upper}
 \end{table}
 
 entity length ratio figure %TODO
