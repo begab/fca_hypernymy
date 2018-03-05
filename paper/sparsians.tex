@@ -16,7 +16,8 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{url}
-%\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
 
 \aclfinalcopy % Uncomment this line for all SemEval submissions
 
@@ -189,7 +190,7 @@ We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
 approach \citep{Mikolov:2013f} to train $d=100$ dimensional dense distributed
 word representations for each sub-corpora. The word embeddings are trained over the text corpora provided by the shared task organizers with the default training parameters of \texttt{word2vec} (w2v), i.e.~a window size of 10 and negative 25 negative samples for each positive contexts.
 
-We derived multi-token units by relying on the \texttt{word1phrase} software accompanying the w2v toolkit. An additional source for identifying multi-token units in the training corpus was the list of potential hypernyms released for each subtask by the shared task organizers.
+We derived multi-token units by relying on the \texttt{word2phrase} software accompanying the w2v toolkit. An additional source for identifying multi-token units in the training corpus was the list of potential hypernyms released for each subtask by the shared task organizers.
 
 For some subcorpus of the shared task $x\in\{1A, 1B, 1C, 2A, 2B\}$, we denote
 the embedding matrix as $W_x \in \mathbb{R}^{d \times \lvert V_x \rvert}$ where
@@ -223,11 +224,9 @@ for a pair $(q, h)$. Additionally, it is also considered as a feature whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
 for the category of $q$ (concept or entity). 
 % legkésőbb itt belengetni a categoryánkénti bonáts jelentőségét
-Three additional optional features are defined for incorporating the concept
-tree output by FCA, whether the most specific location within the DAG for $q$
-% vagy more subtle? (more optional-t írtál)
-% nekem fura az i.e. ebben a jelentésben -- de ezeket a finomságokat persze
-% elég a végső beadáskor megbeszélnünk
+Three additional features are defined for incorporating the concept tree output
+by FCA, whether the most specific location within the DAG for $q$
+% TODO a postevalban optional
 \begin{enumerate}
 	\item coincides with that of $h$,
 	\item is the parent for that of $h$,
@@ -288,16 +287,35 @@ positive training sample is 50.
 
 \begin{table}
 	\centering
-	\begin{tabular}{c|ccccc}
-		   &  MAP  &  MRR  &  P@1  &  P@3  & P@10  \\ \hline
-		1A & 0.098 & 0.226 & 0.198 & 0.100 & 0.090 \\
-		1B & 0.089 & 0.212 & 0.171 & 0.091 & 0.083 \\
-		1C & 0.164 & 0.333 & 0.246 & 0.175 & 0.161 \\
-		2A & 0.290 & 0.359 & 0.326 & 0.343 & 0.342 \\
-		2B & 0.402 & 0.588 & 0.506 & 0.446 & 0.403 \\
+      \resizebox{.5\textwidth}{!}{%
+	\begin{tabular}{cc|llll}
+    &&  MAP  &  MRR  &  P@1  &  P@3  \\
+       \toprule
+       % qtype ..@10
+       % MFH: ..@5, @15
+		1A & qtype & 9.8\% & 21.6\% & 19.8\% & 10.0\% \\ % & 9.0\% \\
+    1A	& MFH	& 8.77\% & 21.39\% & 19.8\% & 8.91\%  \\ %& 7.81\% & 7.53 \\
+    \midrule
+		1B & qtype & 8.9\% & 21.2\% & 17.1\% & 9.1\% \\ % & 8.3\% \\
+    1B	& MFH	& 7.76\% & 19.37\% & 17.1\% & 8.32\%  \\ %& 6.82\% & 6.51 \\
+    \midrule
+		1C & qtype & 16.4\% & 33.3\% & 24.6\% & 17.5\% \\ % & 16.1\% \\
+    1C	& MFH	& 12.16\% & 29.76\% & 24.6\% & 11.98\%  \\ %& 11.26\% & 11.04 \\
+    \midrule
+		2A & qtype & 29.0\% & 35.9\% & 32.6\% & 34.3\% \\ % & 34.2\% \\
+    2A	& MFH	& 28.93\% & 35.8\% & 32.6\% & 34.27\%  \\ %& 34.2\% & 21.39 \\
+    \midrule
+		2B & qtype & 40.2\% & 58.8\% & 50.6\% & 44.6\% \\ % & 40.3\% \\
+    2B	& MFH	& 33.32\% & 51.48\% & 36.2\% & 40.07\%  \\ %& 35.76\% & 28.44 \\
+    \bottomrule 
 	\end{tabular}
+}
 	\label{table:MFH}
-	\caption{Results of our query type sensitive most frequent hypernym baseline.}
+  \caption{Baseline results, most frequent training hypernyms. We
+  (\texttt{qtype}) consider the most frequent hypernym in the given query type
+  (concept or entity). We show the \texttt{MFH} baseline provided by the
+  organizers that is based on the most frequent hypernyms in general for
+  comparison.}
 \end{table}
 
 Table~\ref{table:coverage} shows the coverage of our vocabulary with respect to
