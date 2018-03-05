@@ -1,4 +1,4 @@
-%% Based on the style files for NAACL-HLT 2018, which were
+%% Based on the style files for NAACL-HLT 2018
 
 \documentclass[11pt,a4paper]{article}
 \usepackage{lmodern}
@@ -30,8 +30,6 @@
 
 \title{300-sparsians at SemEval-2018 Task 9: \\
 Hypernymy as interaction of sparse attributes}
-%Employing Sparse Word Representations for Hypernym Discovery}
-% TODO dorp "Employing"
 
 \author{Gábor Berend \\
 Department of Informatics \\ University of Szeged \\
@@ -79,9 +77,6 @@ Department of Informatics \\ University of Szeged \\
 
 \section{Introduction}
 
-% röviden, mondjuk úgy 2-3 mondatban le kéne írni a shared task feladatát
-For further details of the shared task see \citet{Camacho-Collados:2018}.
-
 Natural language phenomena are extremely sparse by their nature, whereas
 continuous word embeddings employ dense representations of words. Turning
 these dense representations into a much sparser form can help in focusing on
@@ -106,6 +101,16 @@ Our source code in available at \url{https://github.com/begab/fca_hypernymy}.
 %entities, music, Spanish
 
 %a task kiírásában levő irodalom
+
+% röviden, mondjuk úgy 2-3 mondatban le kéne írni a shared task feladatát 
+The task \citep{Camacho-Collados:2018} evaluated systems at their ability to
+extract hypernyms for query word in five subtasks (three languages, English,
+Italian, and Spanish, and two domains, medical and music. Queries have been
+categprized as concepts or entities. Result have been proclaimed in separately
+in the two categories and in overall as well, thus resulting in 15
+combinations.
+Our system took first place in the music entities subtasks (2B).
+Detailed results for our system appear in \autoref{sec:experiments}.
 
 \subsection{Formal concept analysis}
 
@@ -185,7 +190,7 @@ attribute is a member.%, the attribute concept, which introduces the attribute.
 The idea of acquiring concept hierarchies from a text corpus with the tools of
 Formal Concept Analysis (FCA) is relatively new \citep{Cimiano:2005}.
 
-\section{Our submissions}
+\section{Our approach}
 
 We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
 approach \citep{Mikolov:2013f} to train $d=100$ dimensional dense distributed
@@ -213,32 +218,93 @@ For the elements of the vocabulary we ran the \emph{formal concept analysis} too
 \citet{Endres:2010}\footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}. In order to keep the size of the DAG outputted by the FCA algorithm manageable, we only included the query words and those hypernyms in the analysis which occur in the training dataset for the corpora.
 As we will see in the next section, this restriction turns out to be very useful.
 
+% official submission ('Concept', '
+%  cosines 8.8 
+%  is_frequent_hypernym 2.8
+%  60_186 2.5
+%  cand_is_first_w -2.4
+%  textual_overlap 2.4
+%  ...
+% OFF OFF 1000
+%  ... 
+%  same_first_w -1.0
+%  att_intersect 0.8
+%  diff_features -0.44
+%  norm_ratios 0.27 
+%  ...
+%  freq_ratios_log 0.1
+%  att_diffB -0.06
+% OFF OFF 200 ('Concept'
+%  ...
+%  same_first_w -1.0
+%  att_intersect 0.62
+%  diff_features -0.43
+%  norm_ratios 0.28 
+%  ...
+%  freq_ratios_log 0.087
+%  att_diffB -0.03
+
+\begin{table}
+	\begin{tabular}{lc}
+    \toprule
+		Core feature name   & Formula \\  
+    \midrule
+		{cosine}            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\ % 1
+		{difference}        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\ % 8
+		{normRatio}         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert \mathbf{h} \rVert_2}$ \\ % 9
+    \midrule
+    attributePairs$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3..
+		{overlappingBasis}  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\ % 7
+		{sparseDifference$_{qh}$} & $\lvert \phi(q) - \phi(h) \rvert$ \\ % 11
+		{sparseDifference$_{hq}$} & $\lvert \phi(h) - \phi(q) \rvert$ \\
+    \midrule
+		{qureyBeginsWith}   & $Q[0] = h$ \\ % 4
+		{queryEndsWith}     & $Q[-1] = h$ \\
+		{hasTextualOverlap} & $Q \cap H \neq \emptyset$ \\ % 5
+		{sameFirstWord}        & $Q[0] = H[0]$ \\ % 6
+		{sameLastWord}        & $Q[-1] = H[-1]$ \\
+		{logFrequencyRatio} & $\log_{10}\frac{count(q)}{count(h)}$ \\ % 10
+    \bottomrule
+	\end{tabular}
+	\caption{The list of core features considering a $(q,h)$ pair of phrases.}
+	\label{table:core_features}
+  % not in this tabular: is_frequent_hypernym
+\end{table} 
+
 Next, we determine a handful of features for a pair of expressions $(q, h)$
 consisting of a query $q$ and its potential hypernym $h$. 
-Table~\ref{table:core_features} provides an overview of some of the features employed for a pair $(q, h)$. 
-We denote with $Q$
-and $H$ the sequence of tokens constituting the query and hypernym phrases.
+Table~\ref{table:core_features} provides an overview of some of the features
+employed for a pair $(q, h)$. 
+We denote with $\mathbf{q}$ and $\mathbf{h}$ the 100-dimensional dense
+vectorial representations of $q$ and $h$.
+Additionally, we refer to the set of basis vectors which are assigned non-zero
+weights in the reconstruction of the vectorial representation of $q$ and $h$ as
+$\phi(q)$ and $\phi(h)$.  
+Finally, we denote with $Q$ and $H$ the sequence of tokens constituting the
+query and hypernym phrases.
 %nekem kicsit furcsa nagy betűt használni erre. Nem jelölhetnék a kisbetűk
-%eleve ezt? Úgy látom, egyelőre nem használod később nagybetűs jelölést.
-Additionally, we refer to the set of basis vectors which are assigned non-zero weights in the reconstruction of the vectorial representation of $q$ and $h$ as $\phi(q)$ and $\phi(h)$. Finally, we denote with $\mathbf{q}$ and $\mathbf{h}$ the 100-dimensional dense vectorial representations of $q$ and $h$.
-
-Additionally, it is also considered as a feature whether a
+%eleve ezt?
+ 
+Irrespective of the query, it is also considered as a feature whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
-for the category of $q$ (concept or entity).
+for the category of $q$ (concept or entity, \texttt{isFreqHyp}).
 % legkésőbb itt belengetni a categoryánkénti bonáts jelentőségét
 Three additional features are defined for incorporating the concept tree output
 by FCA, whether the most specific location within the DAG for $q$
 % TODO a postevalban optional
-\begin{enumerate}
+\begin{itemize}
 	\item coincides with that of $h$,
 	\item is the parent for that of $h$,
 	\item is the child for that of $h$.
-\end{enumerate}
+\end{itemize}
 % TODO ha már az FCA rész elnyeri a végső formáját: érthető-e ennyiből (most
 % specific)
-During our ablation experiments, we refer to the above three features as the \emph{FCA} features.
+We will see in post-evaluation ablation experiments, where we refer to the
+above three features as the \emph{FCA} features, that they were not useful in
+our submissions.
 
-Finally, we define one indicator feature for every possible interaction term
+\texttt{attributePairs}$_{ij}$ above are indicator features for every possible
+\emph{interaction term}
 % esetleg a jelentőségét itt is kiemelni
 between the sparse coefficients in $\alpha$. That means that for a pair of
 words $(q, h)$ we defined $\Phi(q,h)=\phi(q) \times \phi(h)$, i.e.~candidates
@@ -247,9 +313,10 @@ coefficients in $\alpha$. Note that this feature template induces $k^2$
 features, with $k$ being the number of basis vectors introduced in the dictionary matrix $D$ according to Eq.~\ref{nonneg_SPAMS_objective}.
 
 In order to be able to rank potential candidates for previously unseen test
-query cases we trained a logistic regression classifier relying on the
-\texttt{sklearn} package. For each appropriate $(q,h)$ pair of words for which
-$h$ is a hypernym of $q$, we generated a number of negative samples $(q, h')$,
+query cases we trained a \emph{logistic regression} classifier relying on the
+\texttt{sklearn} package. The regularization parameter was set to $1.0$. 
+For each appropriate $(q,h)$ pair of words for which
+$h$ is a hypernym of $q$, we generated a number of \emph{negative samples} $(q, h')$,
 such that the training data does not include $h'$ as a valid hypernym for $q$.
 For a given query $q$, belonging to either of the \textit{Concept} or
 % TODO Concept, Entity Concept casinget egységesít
@@ -260,72 +327,60 @@ positive training sample is 50.
 % Ha beleírjuk az 5000-es dolgot is, akkor itt lehet utalni rá, hogy lásd
 % post-eval eredmények.
 
-\begin{table}
-	\begin{tabular}{lc}
-		Core feature name   & Forumla \\  \hline
-		$difference$        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\
-		$normRatio$         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert \mathbf{h} \rVert_2}$ \\
-		$cosine$            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\
-    \midrule
-		$logFrequencyRatio$ & $\log_{10}\frac{count(q)}{count(h)}$ \\
-		$hasTextualOverlap$ & $Q \cap H \neq \emptyset$ \\
-		$samePrefix$        & $Q[0] = H[0]$ \\
-		$sameSuffix$        & $Q[-1] = H[-1]$ \\
-		$qureyBeginsWith$   & $Q[0] = h$ \\
-		$queryEndsWith$     & $Q[-1] = h$ \\
-    \midrule
-		$sparseDifference_{qh}$ & $\lvert \phi(q) - \phi(h) \rvert$ \\
-		$sparseDifference_{hq}$ & $\lvert \phi(h) - \phi(q) \rvert$ \\
-		$overlappingBasis$  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\
-	\end{tabular}
-	\caption{The list of core features considering a $(q,h)$ pair of phrases.}
-	\label{table:core_features}
-\end{table}
-
-
 % why 300 in the group name (akár ott, hogy 300-as ritkával jobb is lehetett
 % volna, vagy ott, hogy 200 + 100 -- de ha magától értődő, akkor
 % ne)
 
-\section{Experimental results}
+\section{Experimental results} \label{sec:experiments}
 
-\begin{table}
-	\centering
-      \resizebox{.5\textwidth}{!}{%
-	\begin{tabular}{c|lllll}
-    \toprule
-    &  MAP  &  MRR  &  P@1  &  P@3 & P@5 \\
-       \toprule
-       % MFH: ..@15
-    1A  & 9.8\% & 21.6\% & 19.8\% & 10.0\% & 9.0\% \\
-    1A  & 8.77\% & 21.39\% & 19.8\% & 8.91\% & 7.81\% \\ % & 7.53 \\
-    \midrule
-    1B  & 8.9\% & 21.2\% & 17.1\% & 9.1\% & 8.3\% \\
-    1B  & 7.76\% & 19.37\% & 17.1\% & 8.32\% & 6.82\% \\ % & 6.51 \\
-    \midrule
-    1C  & 16.4\% & 33.3\% & 24.6\% & 17.5\% & 16.1\% \\
-    1C  & 12.16\% & 29.76\% & 24.6\% & 11.98\% & 11.26\% \\ % & 11.04 \\
-    \midrule
-    2A  & 29.0\% & 35.9\% & 32.6\% & 34.3\% & 34.2\% \\
-    2A  & 28.93\% & 35.8\% & 32.6\% & 34.27\% & 34.2\% \\ % & 21.39 \\
-    \midrule
-    2B  & 40.2\% & 58.8\% & 50.6\% & 44.6\% & 40.3\% \\
-    2B  & 33.32\% & 51.48\% & 36.2\% & 40.07\% & 35.76\% \\ % & 28.44 \\
-    \bottomrule
+\subsection{Official submissions}
+
+Our submissions were based on 200-dimensional sparse vectors computed from
+unit-normed 100-dimensional dense vectors with $\lambda=.3$. The sum of the two dimensions motivates our
+group name. For training the regression model with negative sampling, 50 false
+hypernyms were sampled for each training query. One of our submissions involved
+the interaction terms, the other not. Both submissions used the conceptually
+motivated but practically harmful FCA-based features. 
+
+\autoref{table:submissions} shows submission results.
+The figures that can be achieved with the code in the project repo
+(\texttt{reprd}) is slightly different from our official submissions
+(\texttt{offic}) for two reasons: 
+because the implementation of \texttt{isFreqHyp} contained a bug, and because
+of the natural randomness in negative sampling.  
+For reproducability, we report result without the \texttt{isFreqHyp} feature.
+The randomness introduced by negative sampling is now factored out by random
+seeding. 
+
+\begin{table*}
+%\resizebox{\textwidth}{!}{%
+  \begin{tabular}{cc|ccccccc|ccccccc}
+&&\multicolumn{7}{c}{without attribute pairs} & \multicolumn{7}{c}{with attribute pairs} \\
+    1A	&	offic	&	8.58	&	18.0	&	13.0	&	8.89	&	8.23	&	7.91	&	8.95	&	19.44	&	14.93	&	9.28	&	8.63	&	8.13	\\
+    1A	&	reprd	&9.07&18.7	&13.5	&9.41&8.77&8.45&009.17	&19.9	&14.9	&9.47	&8.73	&8.36		\\
+    1B	&	offic	&	9.36	&	19.94	&	13.2	&	9.45	&	9.32	&	8.81	&12.08	& 25.14	&	17.6	&	12.92	&	11.73	&	11.2	\\
+    1B	&	reprd	&9.16&19.5	&12.8	&8.93&8.94&8.74&012.8	&26.7	&18.9	&13.6	&12.4	&11.9	\\
+    1C	&	offic	&	12.52	&	25.87	&	16.6	&	13.58	&	12.59	&	11.48	&17.94	&	37.56	&	27.8	&	19.72	&	17.06	&	16.28	\\
+    1C	&	reprd	&12.9	&26.	&16.2	&13.9	&13.	&11.9	&018.3	&38.4	&28.5	&20.2	&17.4	&16.6	\\
+    2A	&	offic	&	14.96	&	32.18	&	24.8	&	17.73	&	15.81	&	11.6	&20.75	&	40.6	&	31.6	&	23.5	&	21.43	&	17.05	\\
+    2A	&	reprd	&15.1	&32.4	&24.4	&18.	&16.2	&11.8	&021.5	&43.7	&35.6	&25.3	&21.8	&17.	\\
+    2B	&	offic	&	19.08	&	36.71	&	27.2	&	22.97	&	20.13	&	15.44	&29.54	&	46.43	&	33.0	&	31.9	&	28.86	&	27.69	\\
+    2B	&	reprd	&21.5	&40.9	&29.6	&25.6	&22.1	&18.	&030.4	&46.8	&33.8	&31.8	&29.5	&28.9	\\
   \end{tabular}
-  }
-  \label{table:MFH}
-  \caption{Baseline results, most frequent training hypernyms. We
-  (upper) consider the most frequent hypernym in the given query type
-  (concept or entity). We show the \texttt{MFH} baseline provided by the
-  organizers (lower) that is based on the most frequent hypernyms in general for
-  comparison.}
-\end{table}
+  %}
+  \caption{Our submissions results.}
+  \label{table:submissions}
+\end{table*}
 
-\input{big_table}
+\subsection{Query type sensitive baselining}
 
-Table~\ref{table:coverage} shows the coverage of our vocabulary with respect to
-the query words on the training and test datasets of the various subtasks.
+Our submission with attribute pairs achieved first place in the category 2B of
+music entities. This is in part due to our good chioice of a fallback solution
+in the case of OOV queries: we applied a category-sensitive baseline returning
+the most frequent train hypernym in the corresponding query type (concept or
+entity).  Table~\ref{table:coverage} shows how frequently we had to rely on
+this fallback, and \autoref{table:MFH} shows the corresponding baseline
+results.
 
 \begin{table*}
 	\centering
@@ -346,11 +401,52 @@ the query words on the training and test datasets of the various subtasks.
 \bottomrule
 	\end{tabular}
   %}
-  \caption{Number of in-vocabulary (and out-of-vocabulary) queries per query
+  \caption{Number of in-vocabulary (and out-of-vocabulary, OOV) queries per query
   types.  The ratio of the latter is also shown.}
 \label{table:coverage}
 \end{table*}
 
+\begin{table}
+	\centering
+      \resizebox{.5\textwidth}{!}{%
+	\begin{tabular}{c|lllll}
+    \toprule
+    &  MAP  &  MRR  &  P@1  &  P@3 & P@5 \\
+       \toprule
+       % MFH: ..@15
+    1A  & 9.8\% &0.216 & 19.8\% & 10.0\% & 9.0\% \\
+    1A  & 8.77\% &0.2139 & 19.8\% & 8.91\% & 7.81\% \\ % & 7.53 \\
+    \midrule
+    1B  & 8.9\% &0.212 & 17.1\% & 9.1\% & 8.3\% \\
+    1B  & 7.76\% &0.1937 & 17.1\% & 8.32\% & 6.82\% \\ % & 6.51 \\
+    \midrule
+    1C  & 16.4\% &0.333 & 24.6\% & 17.5\% & 16.1\% \\
+    1C  & 12.16\% &0.2976 & 24.6\% & 11.98\% & 11.26\% \\ % & 11.04 \\
+    \midrule
+    2A  & 29.0\% &0.359 & 32.6\% & 34.3\% & 34.2\% \\
+    2A  & 28.93\% &0.358 & 32.6\% & 34.27\% & 34.2\% \\ % & 21.39 \\
+    \midrule
+    2B  & 40.2\% &0.588 & 50.6\% & 44.6\% & 40.3\% \\
+    2B  & 33.32\% &0.5148 & 36.2\% & 40.07\% & 35.76\% \\ % & 28.44 \\
+    \bottomrule
+  \end{tabular}
+  }
+  \label{table:MFH}
+  \caption{Baseline results, most frequent training hypernyms. We (upper)
+  consider the most frequent hypernym in the given query type (concept or
+  entity). For comparison, we also show the \texttt{MFH} baseline provided by
+  the organizers (lower) that is based on the most frequent hypernyms in
+  general.}
+\end{table}
+
+\subsection{Post-evaluation analysis}
+
+\input{big_table}
+
+After the evaluation closed, we conducted ablation experiments, see
+\autoref{table:ablation1A} and 
+tried more settings including longer, 1000-dimensional sparse vectors, see
+\autoref{table:1A_detailed}.
 
 \begin{table}
 	\centering
@@ -367,7 +463,11 @@ on/on   & 0.121 & 0.253 & 0.187 & 0.130 \\
 
 \subsection{Restricted cantdidates}
 
-Table~\ref{table:upper} lists the best possible results we can achieve.
+It turn out from \autoref{table:1A_detailed} that it is was useful in this
+shared task to restrict the set of possible hypernyms to those in the training
+set.  Table~\ref{table:upper} lists the results an oracle would with this
+restriction achieve. Historically we applied this restriction to speed up the
+FCA algorithm.
 
 \begin{table}
 	\centering
@@ -379,9 +479,7 @@ Table~\ref{table:upper} lists the best possible results we can achieve.
 		2A & 0.726 & 0.896 & 0.896 & 0.810 \\
 		2B & 0.954 & 0.988 & 0.988 & 0.973 \\
 	\end{tabular}
-	\caption{Best possible results obtainable on the test set for our
-submissions due to the filtration of the possible set of gold hypernyms
-we apply in order to speed up the FCA algorithm we use.}
+  \caption{Results of an oracle restricted to the training hypernyms.}
 	\label{table:upper}
 \end{table}
 
