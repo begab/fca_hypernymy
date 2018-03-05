@@ -171,7 +171,7 @@ class ThreeHundredSparsians(object):
             dataset_dir = '/home/berend/datasets/semeval2018/SemEval18-Task9'
         else:
             task_dir = '/mnt/store/friend/proj/SemEval18-hypernym/'
-            dataset_dir = os.path.join(self.task_dir, 'SemEval18-Task9')
+            dataset_dir = os.path.join(task_dir, 'SemEval18-Task9')
         return dag_basename, task_dir, dataset_dir
 
     def get_queries(self, phase):
