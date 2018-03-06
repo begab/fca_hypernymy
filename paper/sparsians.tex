@@ -330,10 +330,9 @@ query and hypernym phrases.
 Irrespective of the query, it is also considered as a feature whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
 for the category of $q$ (concept or entity, \texttt{isFreqHyp}).
-% legkésőbb itt belengetni a categoryánkénti bonáts jelentőségét
+% TODO legkésőbb itt belengetni a categoryánkénti bonáts jelentőségét
 Three additional features are defined for incorporating the concept lattice
 output by FCA, whether the most specific location within the DAG for $q$
-% TODO a postevalban optional
 \begin{itemize}
 	\item coincides with that of $h$,
 	\item is the parent for that of $h$,
@@ -371,7 +370,7 @@ positive training sample is 50. We also run post evaluation experiments in
 which we regarded all the valid hypernyms in the training set -- not being a 
 proper hypernym for $q$ -- as $h'$. We refer to such a setting as $ns=all$ in 
 Section~\ref{sec:results}.
-% Ha beleírjuk az 5000-es dolgot is, akkor itt lehet utalni rá, hogy lásd
+% TODO Ha beleírjuk az 5000-es dolgot is, akkor itt lehet utalni rá, hogy lásd
 % post-eval eredmények.
 
 When making predictions for the hypernyms of a query, we relied on our query
@@ -385,10 +384,6 @@ i.e.~reordered them according to their background frequency from the training
 corpus. Our assumption here is that more frequent words tend to refer to more
 general concepts and more general hypernymy relations potentially tend to be
 more easily detectable than more specialized ones.
-
-% why 300 in the group name (akár ott, hogy 300-as ritkával jobb is lehetett
-% volna, vagy ott, hogy 200 + 100 -- de ha magától értődő, akkor
-% ne)
 
 \section{Results} \label{sec:results}
 
@@ -440,11 +435,11 @@ seeding.
   \label{table:submissions}
 \end{table*}
 
-% \item a tanult súlyokról lehetne még írni
+% TODO Feaure weights and histograms 
 
 %\subsection{Qualitative analysis} %TODO ?  entity music, Spannish (MRR, p@1)
 
-\subsection{Specificity, frequency and vector length}
+% TODO \subsection{Specificity, frequency and vector length}
 
 \subsection{Query type sensitive baselining}
 
@@ -523,6 +518,7 @@ tried more settings including longer, 1000-dimensional sparse vectors, see
 \autoref{table:1A_detailed}.
 
 \begin{table}
+  % TODO tabular-ok sorrendje
 	% ez kéne az első post eval mérés legyen (a reprodukálós tábla után)
 	% itt még minden olyan, mint a submissionben, csak:
 	%    -  az is_frequent_hypernym már javítva lett
