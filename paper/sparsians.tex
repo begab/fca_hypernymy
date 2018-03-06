@@ -364,8 +364,6 @@ $n(q)$
 (3) is the child (immediate predictions) for that of $h$.
 Parents, and even the inverse relation, proved to be more predictive
 than the conceptually motivated  $q\le h$.
-% TODO ha már az FCA rész elnyeri a végső formáját: érthető-e ennyiből (most
-% specific)
 In \autoref{table:core_features}, $n_1\prec n_2$ denotes that $n_1$ is an
 immediate predecessor of $n_2$.
 We will see in post-evaluation ablation experiments, where we refer to the
@@ -391,7 +389,6 @@ For each appropriate $(q,h)$ pair of words for which
 $h$ is a hypernym of $q$, we generated a number of \emph{negative samples} $(q, h')$,
 such that the training data does not include $h'$ as a valid hypernym for $q$.
 For a given query $q$, belonging to either of the \textit{concept} or
-% TODO concept, entity concept casinget egységesít
 \textit{entity} category, we sampled $h'$ from those hypernyms which were
 included as a valid hypernym in the training data with respect to some $q' \neq
 q$ query phrase.
@@ -435,9 +432,11 @@ For reproducability, we report result without the \texttt{isFreqHyp} feature.
 The randomness introduced by negative sampling is now factored out by random
 seeding.
 
-% TODO Feaure weights and histograms 
+% TODO \subsection{Feaure analysis} weights and histograms 
 
-%\subsection{Qualitative analysis} %TODO ?  entity music, Spanish (MRR, p@1)
+% \subsection{Qualitative analysis} TODO Here we investigate the system's
+% ability to extract (good) hypernyms that were not seen for any word during
+% training.  This feature is sometimes called zero-shot learning. 
 
 % TODO \subsection{Generality, frequency and vector length}
 
@@ -449,7 +448,7 @@ Our submission with attribute pairs achieved first place in
 categories
   {(1B) Italian} ({all} and {entities}),
   {(1C) Spanish entities}, and
-  % TODO analyze
+  % TODO analyze why we won
   {(2B) music entities}.
 This is in part due to our good choice of a fallback solution
 in the case of OOV queries: we applied a category-sensitive baseline returning
@@ -530,7 +529,8 @@ the effects of various feature groups, we identified the importance of
 
 In this paper we demonstrated the effectiveness of sparse coding 
 
-% TODO acknowledge Kornai for more negative samples (elég a végsőben)
+% TODO acknowledge Kornai for useful comments (more negative samples) (elég a
+% végsőben)
 
 \bibliography{../../paper/Common/Bib/ml}
 \bibliographystyle{acl_natbib}
