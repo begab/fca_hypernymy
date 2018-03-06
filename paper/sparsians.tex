@@ -61,8 +61,8 @@ Department of Informatics \\ University of Szeged \\
   \emph{(1B) Italian} (\emph{all} and \emph{entities}),
   \emph{(1C) Spanish entities}, and
   \emph{(2B) music entities}.
-  Our source code in available 
-  online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
+%  Our source code in available 
+%  online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
 \end{abstract}
 
 
@@ -116,8 +116,7 @@ correspond to each other.
 Here we apply sparse feature pairs to hypernym extraction. The role of an
 attribute pair $\langle i,j\rangle\in\phi(q)\times\phi(h)$ (where $q$ is the query word,
 $h$ is the hypernym candidate, and $\phi(w)$ is the index of a nonzero
-% TODO nonzero vs nonzero vs nonzero legvégül egységesít
-% bas[ie]s, attribute, feature
+% TODO bas[ie]s, attribute, feature
 component in the sparse representations of $w$) is similar to \emph{interaction
 terms} in regression.
 
@@ -144,9 +143,14 @@ Italian, and Spanish, and two domains, medical and music. Queries have been
 categprized as concepts or entities. Result have been proclaimed in separately
 in the two categories and in overall as well, thus resulting in 15
 combinations.
-Our system took first place in the music entities subtasks (2B).
-% TODO Spanish
-%Detailed results for our system appear in \autoref{sec:results}.
+
+  Our system took first place in subtasks
+  \emph{(1B) Italian} (\emph{all} and \emph{entities}),
+  \emph{(1C) Spanish entities}, and
+  \emph{(2B) music entities}.
+Detailed results for our system appear in \autoref{sec:results}.
+Our source code in available
+online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
 
 % Here we illustrate the effectiveness of sparse coding derived word
 % representations in the task of hypernymy extraction.
@@ -263,7 +267,6 @@ ordering relationships preserved.
 	\end{tabular}
 	\caption{The list of core features considering a $(q,h)$ pair of phrases.}
 	\label{table:core_features}
-  % not in this tabular: is_frequent_hypernym
 \end{table}
 
 We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
