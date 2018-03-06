@@ -517,17 +517,21 @@ irrespective whether candidate filtration is employed or not, however, their
 effects are more pronounced when hypernym candidates are not filtered.
 
 Finally, we report our post-evaluation results for all the subtasks and compare 
-them to the official scores by the winners of the individual subtasks in 
+them to the official scores of the best performing systems 
 \autoref{table:post_eval}.
 
 \input{post_eval}
 
 \section{Conclusion}
 
-Based on our experimental results. In our ablation experiments, we investigated 
-the effects of various feature groups, we identified the importance of 
-
-In this paper we demonstrated the effectiveness of sparse coding 
+In this paper we experimented with the integration of sparse word 
+representations into the task of hypernymy discovery. We strived to utilize 
+sparse word representations in two ways, i.e.~via building concept lattices 
+using formal concept analysis and modeling the hypernymy relation with the help 
+of interaction terms obtained from sparse word representations. While our 
+former approach for deriving formal concepts from sparse word representations 
+was not successful, the interaction terms derived from sparse word 
+representations proved to be highly beneficial.
 
 \bibliography{../../paper/Common/Bib/ml}
 \bibliographystyle{acl_natbib}
