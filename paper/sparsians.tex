@@ -466,62 +466,9 @@ entity).  Table~\ref{table:coverage} shows how frequently we had to rely on
 this fallback, and \autoref{table:MFH} shows the corresponding baseline
 results.
 
-\begin{table*}
-	\centering
-      %\resizebox{\textwidth}{!}{%
-	\begin{tabular}{r|cccc|cccc}
-    \toprule
-		& \multicolumn{4}{c|}{concept} & \multicolumn{4}{c}{entity} \\
-    & \multicolumn{2}{c}{Train} &
-     \multicolumn{2}{c|}{Test} &
-     \multicolumn{2}{c}{Train} &
-     \multicolumn{2}{c}{Test} \\
-     \midrule
-1A & 975(4) & 0.41\%	&1055(4) & 0.38\%	&379(142) & 37.47\%	&344(99) & 28.78\% \\
-1B & 709(1) & 0.14\%	&767(2) & 0.26\%	&249(41) & 16.47\%	&205(26) & 12.68\% \\
-1C & 776(2) & 0.26\%	&625(2) & 0.32\%	&184(38) & 20.65\%	&328(45) & 13.72\% \\
-2A & 442(58) & 13.12\%	&433(67) & 15.47\%	&0(0) & 	& 0(0) & \\
-2B & 366(21) & 5.74\%	&341(17) & 4.99\%	&79(34) & 43.04\%	&102(40) & 39.22\% \\
-\bottomrule
-	\end{tabular}
-  %}
-  \caption{Number of in-vocabulary (and out-of-vocabulary, OOV) queries per query
-  types.  The ratio of the latter is also shown.}
-\label{table:coverage}
-\end{table*}
+\input{coverage}
 
-\begin{table}
-	\centering
-      \resizebox{.5\textwidth}{!}{%
-	\begin{tabular}{c|lllll}
-    \toprule
-    &  MAP  &  MRR  &  P@1  &  P@3 & P@5 \\
-       \midrule
-       % MFH: ..@15
-    1A  & 9.8\% &0.216 & 19.8\% & 10.0\% & 9.0\% \\
-    1A  & 8.77\% &0.2139 & 19.8\% & 8.91\% & 7.81\% \\ % & 7.53 \\
-    \midrule
-    1B  & 8.9\% &0.212 & 17.1\% & 9.1\% & 8.3\% \\
-    1B  & 7.76\% &0.1937 & 17.1\% & 8.32\% & 6.82\% \\ % & 6.51 \\
-    \midrule
-    1C  & 16.4\% &0.333 & 24.6\% & 17.5\% & 16.1\% \\
-    1C  & 12.16\% &0.2976 & 24.6\% & 11.98\% & 11.26\% \\ % & 11.04 \\
-    \midrule
-    2A  & 29.0\% &0.359 & 32.6\% & 34.3\% & 34.2\% \\
-    2A  & 28.93\% &0.358 & 32.6\% & 34.27\% & 34.2\% \\ % & 21.39 \\
-    \midrule
-    2B  & 40.2\% &0.588 & 50.6\% & 44.6\% & 40.3\% \\
-    2B  & 33.32\% &0.5148 & 36.2\% & 40.07\% & 35.76\% \\ % & 28.44 \\
-    \bottomrule
-  \end{tabular}
-  }
-  \label{table:MFH}
-  \caption{Baseline results, most frequent training hypernyms. We (upper)
-  consider the most frequent hypernym in the given query type (concept or
-  entity). For comparison, we also show the \texttt{MFH} baseline provided by
-  the organizers (lower) that is based on the most frequent hypernyms in
-  general.}
-\end{table}
+\input{baseline}
 
 \subsection{Post-evaluation analysis}
 
@@ -545,21 +492,7 @@ set.  Table~\ref{table:upper} lists the results an oracle would achieve with
 this restriction. Historically we applied this restriction to speed up the FCA
 algorithm.
 
-\begin{table}
-	\centering
-	\resizebox{.5\textwidth}{!}{
-	\begin{tabular}{c|cccccc}
-		   & MAP & MRR & P@1  & P@3 & P@5 & P@15 \\ \hline
-		1A & 76.1 & 92.2 & 92.2 & 82.3 & 76.4 & 71.6 \\
-		1B & 71.2 & 93.4 & 93.4 & 78.5 & 70.9 & 65.7 \\
-		1C & 81.0 & 95.9 & 95.9 & 87.2 & 81.7 & 76.4 \\
-		2A & 72.6 & 89.6 & 89.6 & 81.0 & 75.3 & 64.1 \\
-		2B & 95.4 & 98.8 & 98.8 & 97.3 & 96.0 &	93.7 \\
-	\end{tabular}
-	}
-  \caption{Results of an oracle restricted to the training hypernyms.}
-	\label{table:upper}
-\end{table}
+\input{upper}
 
 %\section{Conclusion}
 
