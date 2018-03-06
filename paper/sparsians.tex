@@ -477,10 +477,10 @@ tried more settings including longer, 1000-dimensional sparse vectors, see
 	\resizebox{.5\textwidth}{!}{
 	\begin{tabular}{r|cccccc}
 att-pairs/fca & MAP & MRR & P@1 & P@3 & P@5 & P@15 \\ \hline
-off/off & 10.3 & 21.3 & 15.0 & 10.6 &  & \\
-off/on  & 10.1 & 21.1 & 14.9 & 10.5 &  & \\
-on/off  & 12.1 & 25.4 & 18.9 & 12.9 &  & \\
-on/on   & 12.1 & 25.3 & 18.7 & 13.0 &  & \\
+off/off & 10.3 & 21.3 & 15.0 & 10.6 & 10.1 & 9.6  \\
+off/on  & 10.1 & 21.1 & 14.9 & 10.5 & 9.9  & 9.5  \\
+on/off  & 12.1 & 25.4 & 18.9 & 12.9 & 11.6 & 10.9 \\
+on/on   & 12.1 & 25.3 & 18.7 & 13.0 & 11.6 & 11.0 \\
 	\end{tabular}
 	}
 \caption{Ablation experiments on the 1A dataset with $k=200,ns=50$ (and the 
@@ -501,11 +501,11 @@ FCA algorithm.
 	\resizebox{.5\textwidth}{!}{
 	\begin{tabular}{c|cccccc}
 		   & MAP & MRR & P@1  & P@3 & P@5 & P@15 \\ \hline
-		1A & 76.1 & 92.2 & 92.2 & 82.3 & & \\
-		1B & 71.2 & 93.4 & 93.4 & 78.5 & & \\
-		1C & 81.0 & 95.9 & 95.9 & 87.2 & & \\
-		2A & 72.6 & 89.6 & 89.6 & 81.0 & &\\
-		2B & 95.4 & 98.8 & 98.8 & 97.3 & & \\
+		1A & 76.1 & 92.2 & 92.2 & 82.3 & 76.4 & 71.6 \\
+		1B & 71.2 & 93.4 & 93.4 & 78.5 & 70.9 & 65.7 \\
+		1C & 81.0 & 95.9 & 95.9 & 87.2 & 81.7 & 76.4 \\
+		2A & 72.6 & 89.6 & 89.6 & 81.0 & 75.3 & 64.1 \\
+		2B & 95.4 & 98.8 & 98.8 & 97.3 & 96.0 &	93.7 \\
 	\end{tabular}
 	}
   \caption{Results of an oracle restricted to the training hypernyms.}
