@@ -1,4 +1,4 @@
-\begin{table}[!ht]
+\begin{table}
   % TODO tabular-ok sorrendje
 	% ez kéne az első post eval mérés legyen (a reprodukálós tábla után)
 	% itt még minden olyan, mint a submissionben, csak:
@@ -8,11 +8,14 @@
 	\resizebox{.5\textwidth}{!}{
     % TODO textbf
 	\begin{tabular}{r|cccccc}
- & MAP & MRR & P@1 & P@3 & P@5 & P@15 \\ \hline
+	\toprule
+ & MAP & MRR & P@1 & P@3 & P@5 & P@15 \\
+ \midrule
 off/off & 10.3 & 21.3 & 15.0 & 10.6 & 10.1 & 9.6  \\
 off/on  & 10.1 & 21.1 & 14.9 & 10.5 & 9.9  & 9.5  \\
 on/off  & 12.1 & 25.4 & 18.9 & 12.9 & 11.6 & 10.9 \\
 on/on   & 12.1 & 25.3 & 18.7 & 13.0 & 11.6 & 11.0 \\
+	\bottomrule
 	\end{tabular}
 	}
 \caption{Ablation experiments, att-pairs/fca, on the 1A dataset with $k=200,ns=50$ (and the 

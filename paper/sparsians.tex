@@ -100,7 +100,8 @@ stability in the presence of noise.
 %(Donoho et al., 2006)
 %the language domain begin no exception \citep{Murphy:2012,Subramanian:2018}.
 
-\emph{Non-negativity} has also been argued to be adventageous for interpretability
+\emph{Non-negativity} has also been argued to be advantageous for 
+interpretability
 \citep{Faruqui:2015,Fyshe:2015,Arora:2016}. As \citet{Subramanian:2018}
 illustrates this in the language domain, where sparse features are interpreted
 as lexical attributes, ``to describe the city of Pittsburgh, one might talk
@@ -134,12 +135,12 @@ ancestors also do: the dimensions that correspond to top level nodes should
 focus on “general” contexts that are present in most words.
 \citet{Yogatama:2015} offer an implementation that is efficient for gigaword
 corpora. Exploiting the correspondence between the variable tree and the
-hypernym hierarchy offers itself as a natural chioice.
+hypernym hierarchy offers itself as a natural choice.
 
 The task \citep{Camacho-Collados:2018} evaluated systems at their ability to
 extract hypernyms for query word in five subtasks (three languages, English,
-Italian, and Spanish, and two domains, medical and music. Queries have been
-categprized as concepts or entities. Result have been proclaimed in separately
+Italian, and Spanish, and two domains, medical and music). Queries have been
+categorized as concepts or entities. Result have been proclaimed in separately
 in the two categories and in overall as well, thus resulting in 15
 combinations.
 
@@ -222,7 +223,7 @@ lattice.
 % Full labeling means that a concept node is depicted with its full extent and
 % intent. A reduced labeled concept lattice shows an object only in
 The smallest (w.r.t.~$\le$) concept whose extent contains a word plays an
-importand role in the concept hierarchy.  We say that this concept
+important role in the concept hierarchy.  We say that this concept
 % is called the object concept, or the concept that
 introduces the object.
 % Likewise, an attribute is shown only in the largest concept of whose intent
@@ -244,12 +245,8 @@ ordering relationships preserved.
     \midrule
 		{cosine}            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\ % 1
 		{difference}        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\ % 8
-		{normRatio}         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert \mathbf{h} \rVert_2}$ \\ % 9
-    \midrule
-    attributePair$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3..
-		{overlappingBasis}  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\ % 7
-		{sparseDifference$_{q\setminus h}$} & $\lvert \phi(q) - \phi(h) \rvert$ \\ % 11
-		{sparseDifference$_{h\setminus q}$} & $\lvert \phi(h) - \phi(q) \rvert$ \\
+		{normRatio}         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert 
+		\mathbf{h} \rVert_2}$ \\ % 9
     \midrule
 		{qureyBeginsWith}   & $Q[0] = h$ \\ % 4
 		{queryEndsWith}     & $Q[-1] = h$ \\
@@ -257,23 +254,29 @@ ordering relationships preserved.
 		{sameFirstWord}        & $Q[0] = H[0]$ \\ % 6
 		{sameLastWord}        & $Q[-1] = H[-1]$ \\
 		{logFrequencyRatio} & $\log_{10}\frac{count(q)}{count(h)}$ \\ % 10
+	    {frequent}\footnote\footnotemark & $c \in MF_{50}(q.type)$\\
     \midrule
     sameConcept & $n(h)=n(q)$ \\
     parent  & $n(q)\prec n(h)$ \\
     child  & $n(h)\prec n(q)$ \\
-    \midrule 
-    frequent & see the footnote\footnotemark \\
+    \midrule
+{overlappingBasis}  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\ % 7
+{sparseDifference$_{q\setminus h}$} & $\lvert \phi(q) - \phi(h) \rvert$ \\ % 11
+{sparseDifference$_{h\setminus q}$} & $\lvert \phi(h) - \phi(q) \rvert$ \\
+attributePair$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3..
     \bottomrule
 	\end{tabular}
-  \caption{The feature in our classifier.}
+  \caption{The features employed in our classifier. $MF_{50}(q.type)$ refers to 
+  the set of top-50 most frequent hypernyms for a given query type.}
   %The list of core features considering a $(q,h)$ pair of phrases.}
 	\label{table:core_features}
 \end{table}
 
-\footnotetext{This feature indicates whether $h$ is among the 50 most frequent
-training hypernyms for the category of $q$ (concept or entity).
-At the time of submission, this feature did not work the way it should have
-done.}
+\footnotetext{At submission time, 
+	this feature did not work properly.}
+
+%\footnotetext{This feature indicates whether $h$ is among the 50 most frequent
+%training hypernyms for the category of $q$ (concept or entity).}
 
 We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
 approach \citep{Mikolov:2013f} to train $d=100$ dimensional dense distributed
@@ -292,7 +295,8 @@ As a subsequent step we turn the dense vectorial word representations for subtas
 \min\limits_{D \in \mathcal{C}, \alpha \in \mathbb{R}_{\geq0}} \lVert D\alpha - W_{x} \rVert_F + \lambda \lVert \alpha \rVert_1,
 \label{nonneg_SPAMS_objective}
 \end{equation}
-where $\mathcal{C}$ refers to the convex set of $\mathbb{R}^{\lvert d \times k}$ matrices consisting of $d$-dimensional columns vectors
+where $\mathcal{C}$ refers to the convex set of $\mathbb{R}^{ d \times k}$ 
+matrices consisting of $d$-dimensional columns vectors
 with norm at most $1$, and $\alpha$ contains the sparse coefficients for the elements of the vocabulary. The only difference
 compared to \citet{Berend:2017} is that here we ensure a non-negativity
 constraint over the elements of $\alpha$.
@@ -386,19 +390,16 @@ For a given query $q$, belonging to either of the \textit{concept} or
 % TODO concept, entity concept casinget egységesít
 \textit{entity} category, we sampled $h'$ from those hypernyms which were
 included as a valid hypernym in the training data with respect to some $q' \neq
-q$ query phrase. The default number of negative samples ($ns$) generated for
-each
-positive training sample is 50. We also run post evaluation experiments in
-which we regarded all the valid hypernyms in the training set -- not being a
-proper hypernym for $q$ -- as $h'$. We refer to such a setting as $ns=all$ in
-Section~\ref{sec:results}.
+q$ query phrase.
 
 When making predictions for the hypernyms of a query, we relied on our query
 type sensitive logistic regression model to determine the ranking of the
 hypernym candidates. In our original submission we decided to treat such
 phrases to rank for potentially being a proper hypernym which served as a
 proper hypernym of at least one times on the training data for a given query
-type. After the appropriate model ranked the hypernym candidates, we selected
+type.
+
+After the appropriate model ranked the hypernym candidates, we selected
 the top 15 ranked candidates and applied a post-ranking heuristic over them,
 i.e.~reordered them according to their background frequency from the training
 corpus. Our assumption here is that more frequent words tend to refer to more
@@ -438,7 +439,7 @@ seeding.
 \subsection{Query type sensitive baselining}
 
 Our submission with attribute pairs achieved first place in the category 2B of
-music entities. This is in part due to our good chioice of a fallback solution
+music entities. This is in part due to our good choice of a fallback solution
 in the case of OOV queries: we applied a category-sensitive baseline returning
 the most frequent train hypernym in the corresponding query type (concept or
 entity).  Table~\ref{table:coverage} shows how frequently we had to rely on
@@ -461,7 +462,7 @@ tried more settings including longer, 1000-dimensional sparse vectors, see
 \input{post_eval}
 % tabular 6 winner TODO
 
-\subsection{Cantdidate restriction}
+\subsection{Candidate restriction}
 
 It turns out from \autoref{table:1A_detailed} that it is was useful in this
 shared task to restrict the set of possible hypernyms to those in the training
