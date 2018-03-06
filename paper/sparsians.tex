@@ -77,12 +77,57 @@ Department of Informatics \\ University of Szeged \\
 
 \section{Introduction}
 
-Natural language phenomena are extremely sparse by their nature, whereas
-continuous word embeddings employ dense representations of words. Turning
-these dense representations into a much sparser form can help in focusing on
-most salient parts of word representations
+Natural language phenomena are extremely \emph{sparse} by their nature,
+whereas continuous word embeddings employ dense representations of words.
+Turning these dense representations into a much sparser form can help in
+focusing on most salient parts of word representations
 \citep{Faruqui:2015,Berend:2017,Subramanian:2018}.
 
+%\citet{Bengio:2013} discusses,
+%\begin{quotation}
+%  [In vision,] Coates and Ng (2011a) demonstrated on the CIFAR-10 object
+%  classification task (Krizhevsky and Hinton, 2009) with a patch-base feature
+%  extraction pipeline, that in the regime with few labeled training examples
+%  per class, the sparse coding representation significantly outperformed other
+%  highly competitive encoding schemes. [\dots] There are numerous examples of its
+%  successful application as a feature representation scheme, including [\dots]
+%  NLP (Bagnell and Bradley, 2009) as well as being a very successful model of
+%  the early visual cortex (Olshausen and Field, 1996). Sparsity criteria can
+%  also be generalized successfully to yield groups of features that prefer to
+%  all be zero, but if one or a few of them are active then the penalty for
+%  activating others in the group is small. Different group sparsity patterns
+%  can incorporate different forms of prior knowledge (Kavukcuoglu et al., 2009;
+%  Jenatton et al., 2009; Bach et al., 2011; Gregor et al., 2011).
+%\end{quotation}
+
+Sparsity-based techniques often involve the coding of a large number of signals
+over the same dictionary \citep{Rubinstein:2008}. Sparse, overcomplete
+representations have been motivated in various domains as a way to increase
+separability and interpretability \citep{Olshausen:1997} and
+% Lewicki and Sejnowski, 2000)
+stability in the presence of noise, 
+%(Donoho et al., 2006)
+the language domain begin no exception
+\citep{Murphy:2012,Faruqui:2015,Subramanian:2018}.
+
+Non-negativity has also been argued to be adventageous for interpretability
+\citep{Faruqui:2015,Fyshe:2015,Arora:2016}. As \citet{Subramanian:2018}
+illustrates this in the language domain, where sparse features are interpreted
+as lexical attributes, ``to describe the city of Pittsburgh, one might talk
+about phenomena typical of the city, like erratic weather and large bridges. It
+is redundant and inefficient to list negative properties, like the absence of
+the Statue of Liberty''.  
+% \cite{Berend:2016} shows the utitlity of sparse word representations in
+% low-resource setting,
+\citet{Berend:2018} utilizes sparse coding for word translation
+by training sparse word representations for the two languages where coding
+bases correspond to each other. 
+
+Here apply sparse feature pairs to hypernym extraction. The role of an
+attribute pair $\langle \phi(q),\phi(h)\rangle$ (where $q$ is the query word,
+$h$ is the hypernym candidate, and $\phi(w)$ is the index of a non-zero
+component in the sparse representations of $w$) is similar to \emph{interaction
+terms} in regression.
 Sparse representation is related to hypernymy in natural ways.
 One formulation is hierarchical sparse coding \citep{Zhao:2009}, where trees
 describe the order in which variables “enter the model” (i.e., take nonzero
@@ -92,10 +137,12 @@ dimensions that correspond to top level nodes should focus on “general”
 contexts that are present in most words. \citet{Yogatama:2015} offer an
 implementation that is efficient for gigaword corpora.
 
-Here we illustrate the effectiveness of sparse coding derived word representations in the task of hypernymy extraction. Additionally, we employ sparse word representations in a different way, namely through Formal Concept Analysis (FCA).
+Here we illustrate the effectiveness of sparse coding derived word
+representations in the task of hypernymy extraction. Additionally, we employ
+sparse word representations in a different way, namely through Formal Concept
+Analysis (FCA).
 Our source code in available at \url{https://github.com/begab/fca_hypernymy}.
 
-% nonneg \citep{Faruqui:2015,Fyshe:2015}
 % a SPINE idézi Danish+ 16-ot, de az önhivatkozás
 
 %entities, music, Spanish
@@ -355,7 +402,9 @@ seeding.
 \begin{table*}
 %\resizebox{\textwidth}{!}{%
   \begin{tabular}{cc|ccccccc|ccccccc}
+    \toprule
 &&\multicolumn{7}{c}{without attribute pairs} & \multicolumn{7}{c}{with attribute pairs} \\
+\midrule
     1A	&	offic	&	8.58	&	18.0	&	13.0	&	8.89	&	8.23	&	7.91	&	8.95	&	19.44	&	14.93	&	9.28	&	8.63	&	8.13	\\
     1A	&	reprd	&9.07&18.7	&13.5	&9.41&8.77&8.45&009.17	&19.9	&14.9	&9.47	&8.73	&8.36		\\
     1B	&	offic	&	9.36	&	19.94	&	13.2	&	9.45	&	9.32	&	8.81	&12.08	& 25.14	&	17.6	&	12.92	&	11.73	&	11.2	\\
@@ -366,6 +415,7 @@ seeding.
     2A	&	reprd	&15.1	&32.4	&24.4	&18.	&16.2	&11.8	&021.5	&43.7	&35.6	&25.3	&21.8	&17.	\\
     2B	&	offic	&	19.08	&	36.71	&	27.2	&	22.97	&	20.13	&	15.44	&29.54	&	46.43	&	33.0	&	31.9	&	28.86	&	27.69	\\
     2B	&	reprd	&21.5	&40.9	&29.6	&25.6	&22.1	&18.	&030.4	&46.8	&33.8	&31.8	&29.5	&28.9	\\
+    \bottomrule
   \end{tabular}
   %}
   \caption{Our submissions results.}
@@ -412,7 +462,7 @@ results.
 	\begin{tabular}{c|lllll}
     \toprule
     &  MAP  &  MRR  &  P@1  &  P@3 & P@5 \\
-       \toprule
+       \midrule
        % MFH: ..@15
     1A  & 9.8\% &0.216 & 19.8\% & 10.0\% & 9.0\% \\
     1A  & 8.77\% &0.2139 & 19.8\% & 8.91\% & 7.81\% \\ % & 7.53 \\
@@ -454,8 +504,8 @@ tried more settings including longer, 1000-dimensional sparse vectors, see
 att-pairs/fca & MAP & MRR & P@1 & P@3 \\ \hline
 off/off & 0.103 & 0.213 & 0.150 & 0.106 \\
 off/on  & 0.101 & 0.211 & 0.149 & 0.105 \\
-on/off  & 0.121 & 0.254 & 0.189 & 0.129 \\
-on/on   & 0.121 & 0.253 & 0.187 & 0.130 \\
+    on/off  & \textbf{0.121} & \textbf{0.254} & \textbf{0.189} & 0.129 \\
+    on/on   & \textbf{0.121} & 0.253 & 0.187 & \textbf{0.130} \\
 	\end{tabular}
 \caption{Ablation experiments for the 1A dataset.}
 \label{table:ablation1A}
