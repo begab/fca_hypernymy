@@ -470,17 +470,18 @@ After the evaluation closed, we conducted ablation experiments the results of
 which are included in
 \autoref{table:ablation1A}. In these experiments, we investigated the 
 contribution of the features derived from sparse attribute pairs and FCA.
-These ablation experiments reveal that turining off FCA-based features does 
-not hurt performance at all. For this reason -- even though our official shared 
-task submission included FCA-related features -- we no longer employed them in 
-our post-evaluation experiments.
+These ablation experiments corroborates the importance of features derived 
+from sparse attribute pairs and reveal that turning off FCA-based features 
+does not hurt performance at all. For this reason -- even though our official 
+shared task submission included FCA-related features -- we no longer employed 
+them in our post-evaluation experiments.
 
 \autoref{table:1A_detailed} includes the detailed behavior of our model on 
 subtask 1A with respect three distinct factors, that is
 \begin{enumerate}
 	\item the number of basis vectors employed during sparse coding ($k \in 
 	\{200, 300, 1000\}$),
-	\item the number of negative training samples per a positive sample ($ns 
+	\item the number of negative training samples per positive sample ($ns 
 	\in \{50, all\}$),
 	\item candidate filtration being turned on/off.
 \end{enumerate}
@@ -493,17 +494,32 @@ proper hypernym for $q$ -- as $h'$ upon the creation of the $(q, h')$ negative
 training instances. This latter strategy is referenced as $ns=all$ in 
 \autoref{table:1A_detailed}.
 
+In our official submission we regarded only those hypernyms as potential 
+candidates to rank during test time which occurred at least once as a correct 
+hypernym in the training data. We call this strategy as candidate filtration. 
+Historically, we applied this restriction to speed up the FCA algorithm because 
+this way the size of the concept lattice could be made smaller.
+As there are valid hypernyms on the test set which never occurred in the 
+training data, our official submission would not be able to obtain a perfect 
+score even in theory. \autoref{table:upper} contains the best possible metrics 
+on the test set that we could achieve as a result of candidate filtration. In 
+our post evaluation experiments we also investigated the effects of turning 
+this kind of filtration step off. As \autoref{table:1A_detailed} illustrates, 
+however, our scores degrade after turning candidate filtration off.
+
+\input{upper}
+
+Our post evaluation experiments in \autoref{table:1A_detailed} suggest that it 
+is advantageous to apply sparse representation of more expressive power (i.e.~a 
+higher number of basis vectors). Generating more negative samples also provide 
+some additional boost in the performance. The previous observations hold 
+irrespective whether candidate filtration is employed or not, however, their 
+effects are more pronounced when hypernym candidates are not filtered.
+
 \input{post_eval}
 
 %\subsection{Candidate restriction}
 
-It turns out from \autoref{table:1A_detailed} that it is was useful in this
-shared task to restrict the set of possible hypernyms to those in the training
-set. % Table~\ref{table:upper} lists the results an oracle would achieve with
-this restriction. Historically we applied this restriction to speed up the FCA
-algorithm.
-
-%\input{upper}
 
 \section{Discussion of the results}
 
