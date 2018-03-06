@@ -1,0 +1,32 @@
+\begin{table}
+	\centering
+      \resizebox{.5\textwidth}{!}{%
+	\begin{tabular}{c|lllll}
+    \toprule
+    &  MAP  &  MRR  &  P@1  &  P@3 & P@5 \\
+       \midrule
+       % MFH: ..@15
+    1A  & 9.8\% &0.216 & 19.8\% & 10.0\% & 9.0\% \\
+    1A  & 8.77\% &0.2139 & 19.8\% & 8.91\% & 7.81\% \\ % & 7.53 \\
+    \midrule
+    1B  & 8.9\% &0.212 & 17.1\% & 9.1\% & 8.3\% \\
+    1B  & 7.76\% &0.1937 & 17.1\% & 8.32\% & 6.82\% \\ % & 6.51 \\
+    \midrule
+    1C  & 16.4\% &0.333 & 24.6\% & 17.5\% & 16.1\% \\
+    1C  & 12.16\% &0.2976 & 24.6\% & 11.98\% & 11.26\% \\ % & 11.04 \\
+    \midrule
+    2A  & 29.0\% &0.359 & 32.6\% & 34.3\% & 34.2\% \\
+    2A  & 28.93\% &0.358 & 32.6\% & 34.27\% & 34.2\% \\ % & 21.39 \\
+    \midrule
+    2B  & 40.2\% &0.588 & 50.6\% & 44.6\% & 40.3\% \\
+    2B  & 33.32\% &0.5148 & 36.2\% & 40.07\% & 35.76\% \\ % & 28.44 \\
+    \bottomrule
+  \end{tabular}
+  }
+  \label{table:MFH}
+  \caption{Baseline results, most frequent training hypernyms. We (upper)
+  consider the most frequent hypernym in the given query type (concept or
+  entity). For comparison, we also show the \texttt{MFH} baseline provided by
+  the organizers (lower) that is based on the most frequent hypernyms in
+  general.}
+\end{table}
