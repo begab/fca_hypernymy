@@ -59,21 +59,6 @@ Department of Informatics \\ University of Szeged \\
   subtask).
 \end{abstract}
 
-% bázisok alapján épített fca-val akartuk megoldani az egészet, de aztán azt
-% láttuk h ez önmagában nem lenne elég, mert a bázisok nem viselkedtek olyan
-% szépen, mint amennyire kellett volna nekik ahhoz, hogy az fca-ból
-% kipottyanjon a fogalmi hierarchia
-
-% a potenciális hipernímákat jelentősen meg kellett szűrni ahhoz h az fca-n
-% gyorsítani tudjunk ezáltal viszont a hipernímaként való rangsorolás
-% tekintetében is egy szűkített halmazzal dolgoztunk a szervezők által
-% kiadottakhoz képest
-% ami miatt 0.5 körüli MAP-nál jobbat elvileg sem érhettünk volna el
-
-% \item sűrű vektoros és felszíni jegyek
-% \item ritka reprezentációból származtatott descartes szorzatos jegyeket
-% \item ablációs kísérletek erre (descaretes on/off)
-% \item a tanult súlyokról lehetne még írni
 
 \section{Introduction}
 
@@ -124,8 +109,10 @@ correspond to each other.
 
 Here we apply sparse feature pairs to hypernym extraction. The role of an
 attribute pair $\langle \phi(q),\phi(h)\rangle$ (where $q$ is the query word,
+% TODO
 $h$ is the hypernym candidate, and $\phi(w)$ is the index of a non-zero
 % TODO nonzero vs non zero vs non-zero legvégül egységesít 
+% bas[ie]s, attribute, feature
 component in the sparse representations of $w$) is similar to \emph{interaction
 terms} in regression.
 
@@ -136,7 +123,6 @@ is relatively new \citep{Cimiano:2005}.
 Our submissions experiment with formal concept analysis tool by
 \citet{Endres:2010}. See the next section for a describtion of formal concept
 lattices, and how hypernymys can be found in them.
-%by FCA, whether the most specific location within the DAG for $q$
 
 Another natural formulation is related to hierarchical sparse coding
 \citep{Zhao:2009}, where trees describe the order in which variables “enter the
@@ -154,7 +140,7 @@ categprized as concepts or entities. Result have been proclaimed in separately
 in the two categories and in overall as well, thus resulting in 15
 combinations.
 Our system took first place in the music entities subtasks (2B).
-Detailed results for our system appear in \autoref{sec:experiments}.
+Detailed results for our system appear in \autoref{sec:results}.
 Our source code in available online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
 
 % Here we illustrate the effectiveness of sparse coding derived word
@@ -309,14 +295,14 @@ As we will see in the next section, this restriction turns out to be very useful
 		{difference}        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\ % 8
 		{normRatio}         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert \mathbf{h} \rVert_2}$ \\ % 9
     \midrule
-    attributePairs$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3..
+    attributePair$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3..
 		{overlappingBasis}  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\ % 7
-		{sparseDifference$_{qh}$} & $\lvert \phi(q) - \phi(h) \rvert$ \\ % 11
-		{sparseDifference$_{hq}$} & $\lvert \phi(h) - \phi(q) \rvert$ \\
+		{sparseDifference$_{q\setminus h}$} & $\lvert \phi(q) - \phi(h) \rvert$ \\ % 11
+		{sparseDifference$_{h\setminus q}$} & $\lvert \phi(h) - \phi(q) \rvert$ \\
     \midrule
 		{qureyBeginsWith}   & $Q[0] = h$ \\ % 4
 		{queryEndsWith}     & $Q[-1] = h$ \\
-		{hasTextualOverlap} & $Q \cap H \neq \emptyset$ \\ % 5
+		{hasCommonWord} & $Q \cap H \neq \emptyset$ \\ % 5
 		{sameFirstWord}        & $Q[0] = H[0]$ \\ % 6
 		{sameLastWord}        & $Q[-1] = H[-1]$ \\
 		{logFrequencyRatio} & $\log_{10}\frac{count(q)}{count(h)}$ \\ % 10
@@ -345,9 +331,8 @@ Irrespective of the query, it is also considered as a feature whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
 for the category of $q$ (concept or entity, \texttt{isFreqHyp}).
 % legkésőbb itt belengetni a categoryánkénti bonáts jelentőségét
-Three additional features are defined for incorporating the concept tree output
-% lattice
-by FCA, whether the most specific location within the DAG for $q$
+Three additional features are defined for incorporating the concept lattice
+output by FCA, whether the most specific location within the DAG for $q$
 % TODO a postevalban optional
 \begin{itemize}
 	\item coincides with that of $h$,
@@ -360,11 +345,11 @@ We will see in post-evaluation ablation experiments, where we refer to the
 above three features as the \emph{FCA} features, that they were not useful in
 our submissions.
 
-\texttt{attributePairs}$_{ij}$ above are indicator features for every possible
+\texttt{attributePair}$_{ij}$ above are indicator features for every possible
 \emph{interaction term}
 % esetleg a jelentőségét itt is kiemelni
 between the sparse coefficients in $\alpha$. That means that for a pair of
-words $(q, h)$ we defined $\Phi(q,h)=\phi(q) \times \phi(h)$, i.e.~candidates
+words $(q, h)$ we defined $\phi(q) \times \phi(h)$, i.e.~candidates
 get assigned with the Descartes product derived from the indices of the nonzero
 coefficients in $\alpha$. Note that this feature template induces $k^2$
 features, with $k$ being the number of basis vectors introduced in the dictionary matrix $D$ according to Eq.~\ref{nonneg_SPAMS_objective}.
@@ -385,7 +370,7 @@ each
 positive training sample is 50. We also run post evaluation experiments in 
 which we regarded all the valid hypernyms in the training set -- not being a 
 proper hypernym for $q$ -- as $h'$. We refer to such a setting as $ns=all$ in 
-Section~\ref{sec:experiments}.
+Section~\ref{sec:results}.
 % Ha beleírjuk az 5000-es dolgot is, akkor itt lehet utalni rá, hogy lásd
 % post-eval eredmények.
 
@@ -405,9 +390,9 @@ more easily detectable than more specialized ones.
 % volna, vagy ott, hogy 200 + 100 -- de ha magától értődő, akkor
 % ne)
 
-\section{Experimental results} \label{sec:experiments}
+\section{Results} \label{sec:results}
 
-\subsection{Official submissions}
+\subsection{Our submissions}
 
 Our submissions were based on 200-dimensional sparse vectors computed from
 unit-normed 100-dimensional dense vectors with $\lambda=.3$. The sum of the two
@@ -451,6 +436,12 @@ seeding.
   \caption{Our submissions results.}
   \label{table:submissions}
 \end{table*}
+
+% \item a tanult súlyokról lehetne még írni
+
+%\subsection{Qualitative analysis} %TODO ?  entity music, Spannish (MRR, p@1)
+
+\subsection{Specificity, frequency and vector length}
 
 \subsection{Query type sensitive baselining}
 
@@ -549,7 +540,7 @@ implementation of the is\_frequent\_hypernym fixed).}
 \label{table:ablation1A}
 \end{table}
 
-\subsection{Restricted cantdidates}
+\subsection{Cantdidate restriction}
 
 It turns out from \autoref{table:1A_detailed} that it is was useful in this
 shared task to restrict the set of possible hypernyms to those in the training
@@ -575,15 +566,7 @@ algorithm.
 
 entity length ratio figure %TODO
 
-\subsection{All provided cantdidates}
-
-weights of dense and surface features %TODO
-
-\subsection{Qualitative analysis} %TODO ?
-
-entity music, Spannish (MRR, p@1)
-
-\section{Conclusion}
+%\section{Conclusion}
 
 \bibliography{../../paper/Common/Bib/ml}
 \bibliographystyle{acl_natbib}
