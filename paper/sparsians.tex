@@ -56,6 +56,7 @@ Department of Informatics \\ University of Szeged \\
   We apply a concept hierarchy obtained from a word embedding by combining the
   methods of sparse coding and formal concept analysis (concept lattices).
   Our experiments place first in four subtasks (e.g.~the music entities
+  % TODO Spannish
   subtask).
 \end{abstract}
 
@@ -140,6 +141,7 @@ categprized as concepts or entities. Result have been proclaimed in separately
 in the two categories and in overall as well, thus resulting in 15
 combinations.
 Our system took first place in the music entities subtasks (2B).
+% TODO Spannish
 Detailed results for our system appear in \autoref{sec:results}.
 Our source code in available online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
 
@@ -165,7 +167,6 @@ the indices of its non-zero sparse coding coordinates $i\in\at$.
 % It is customary to represent the context as a cross table, where the
 % row(column) headings are the object(attribute) names.  For each pair (g, m) ∈
 % \inci, the corresponding cell in the cross table has an “×”.
-% TODO example
 FCA finds formal \emph{concept}, pairs \oaconc of object sets and attribute sets
 ($O\subseteq \ob,A \subseteq \at$) such that $A$
 % We define the prime operator $'$ both for objects and attributes in a dual
@@ -210,7 +211,7 @@ we write $\langle A_1 , B_1 \rangle \le \langle A_2 , B_2 \rangle$.
 % $C$ and 
 The concept order forms a %complete
 lattice.  
-% The concept lattice of the context in Table 1, with full and reduced % TODO
+% The concept lattice of the context in Table 1, with full and reduced % 
 % figure % In-Close2 draws only reduced if I'm not mistaken.  labeling, is
 % shown in \ref{fig:monkeylattice}.
 % Full labeling means that a concept node is depicted with its full extent and
@@ -370,8 +371,6 @@ positive training sample is 50. We also run post evaluation experiments in
 which we regarded all the valid hypernyms in the training set -- not being a 
 proper hypernym for $q$ -- as $h'$. We refer to such a setting as $ns=all$ in 
 Section~\ref{sec:results}.
-% TODO Ha beleírjuk az 5000-es dolgot is, akkor itt lehet utalni rá, hogy lásd
-% post-eval eredmények.
 
 When making predictions for the hypernyms of a query, we relied on our query
 type sensitive logistic regression model to determine the ranking of the
@@ -439,7 +438,7 @@ seeding.
 
 %\subsection{Qualitative analysis} %TODO ?  entity music, Spannish (MRR, p@1)
 
-% TODO \subsection{Specificity, frequency and vector length}
+% TODO \subsection{Generality, frequency and vector length}
 
 \subsection{Query type sensitive baselining}
 
@@ -510,8 +509,6 @@ results.
 
 \subsection{Post-evaluation analysis}
 
-\input{big_table}
-
 After the evaluation closed, we conducted ablation experiments, see
 \autoref{table:ablation1A} and 
 tried more settings including longer, 1000-dimensional sparse vectors, see
@@ -539,6 +536,9 @@ implementation of the is\_frequent\_hypernym fixed).}
 \label{table:ablation1A}
 \end{table}
 
+\input{big_table}
+% tabular 6 winner TODO
+
 \subsection{Cantdidate restriction}
 
 It turns out from \autoref{table:1A_detailed} that it is was useful in this
@@ -562,8 +562,6 @@ algorithm.
   \caption{Results of an oracle restricted to the training hypernyms.}
 	\label{table:upper}
 \end{table}
-
-entity length ratio figure %TODO
 
 %\section{Conclusion}
 
