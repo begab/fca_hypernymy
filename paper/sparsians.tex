@@ -7,8 +7,8 @@
 
 % To debug "\pdfendlink ended up in different nesting level than \pdfstartlink"
 \usepackage[nohyperref]{naaclhlt2018}
-%\usepackage[draft]{hyperref}
-\usepackage{hyperref}
+\usepackage[draft]{hyperref}
+%\usepackage{hyperref}
 
 \usepackage{times}
 \usepackage{latexsym}
@@ -233,6 +233,37 @@ ordering relationships preserved.
 
 \section{Our approach}
 
+\begin{table}
+	\begin{tabular}{lc}
+    \toprule
+		Core feature name   & Formula \\
+    \midrule
+		{cosine}            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\ % 1
+		{difference}        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\ % 8
+		{normRatio}         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert \mathbf{h} \rVert_2}$ \\ % 9
+    \midrule
+    attributePair$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3..
+		{overlappingBasis}  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\ % 7
+		{sparseDifference$_{q\setminus h}$} & $\lvert \phi(q) - \phi(h) \rvert$ \\ % 11
+		{sparseDifference$_{h\setminus q}$} & $\lvert \phi(h) - \phi(q) \rvert$ \\
+    \midrule
+		{qureyBeginsWith}   & $Q[0] = h$ \\ % 4
+		{queryEndsWith}     & $Q[-1] = h$ \\
+		{hasCommonWord} & $Q \cap H \neq \emptyset$ \\ % 5
+		{sameFirstWord}        & $Q[0] = H[0]$ \\ % 6
+		{sameLastWord}        & $Q[-1] = H[-1]$ \\
+		{logFrequencyRatio} & $\log_{10}\frac{count(q)}{count(h)}$ \\ % 10
+    \bottomrule
+    % TODO vegyük be az fca-sokat is?  mert az att_pairs is bekerült
+    % TODO illetve az is_frequent_hypernym (plusz esetleg ott is
+    % megcsillagozni, hogy a beküldés pillanatában nem úgy működött mint ahogy
+    % kellett volna neki)
+	\end{tabular}
+	\caption{The list of core features considering a $(q,h)$ pair of phrases.}
+	\label{table:core_features}
+  % not in this tabular: is_frequent_hypernym
+\end{table}
+
 We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
 approach \citep{Mikolov:2013f} to train $d=100$ dimensional dense distributed
 word representations for each sub-corpora. The word embeddings are trained over the text corpora provided by the shared task organizers with the default training parameters of \texttt{word2vec} (w2v), i.e.~a window size of 10 and negative 25 negative samples for each positive contexts.
@@ -287,37 +318,6 @@ As we will see in the next section, this restriction turns out to be very useful
 %  ...
 %  freq_ratios_log 0.087
 %  att_diffB -0.03
-
-\begin{table}
-	\begin{tabular}{lc}
-    \toprule
-		Core feature name   & Formula \\
-    \midrule
-		{cosine}            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\ % 1
-		{difference}        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\ % 8
-		{normRatio}         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert \mathbf{h} \rVert_2}$ \\ % 9
-    \midrule
-    attributePair$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3..
-		{overlappingBasis}  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\ % 7
-		{sparseDifference$_{q\setminus h}$} & $\lvert \phi(q) - \phi(h) \rvert$ \\ % 11
-		{sparseDifference$_{h\setminus q}$} & $\lvert \phi(h) - \phi(q) \rvert$ \\
-    \midrule
-		{qureyBeginsWith}   & $Q[0] = h$ \\ % 4
-		{queryEndsWith}     & $Q[-1] = h$ \\
-		{hasCommonWord} & $Q \cap H \neq \emptyset$ \\ % 5
-		{sameFirstWord}        & $Q[0] = H[0]$ \\ % 6
-		{sameLastWord}        & $Q[-1] = H[-1]$ \\
-		{logFrequencyRatio} & $\log_{10}\frac{count(q)}{count(h)}$ \\ % 10
-    \bottomrule
-    % TODO vegyük be az fca-sokat is?  mert az att_pairs is bekerült
-    % TODO illetve az is_frequent_hypernym (plusz esetleg ott is
-    % megcsillagozni, hogy a beküldés pillanatában nem úgy működött mint ahogy
-    % kellett volna neki)
-	\end{tabular}
-	\caption{The list of core features considering a $(q,h)$ pair of phrases.}
-	\label{table:core_features}
-  % not in this tabular: is_frequent_hypernym
-\end{table}
 
 Next, we determine a handful of features for a pair of expressions $(q, h)$
 consisting of a query $q$ and its potential hypernym $h$.
@@ -391,26 +391,6 @@ more easily detectable than more specialized ones.
 
 \section{Results} \label{sec:results}
 
-\subsection{Our submissions}
-
-Our submissions were based on 200-dimensional sparse vectors computed from
-unit-normed 100-dimensional dense vectors with $\lambda=.3$. The sum of the two
-dimensions motivates our group name. For training the regression model with
-negative sampling, 50 false hypernyms were sampled for each training query. One
-of our submissions involved the interaction terms, the other not. Both
-submissions used the conceptually motivated but practically harmful FCA-based
-features.
-
-\autoref{table:submissions} shows submission results.
-The figures that can be achieved with the code in the project repo
-(\texttt{reprd}) is slightly different from our official submissions
-(\texttt{offic}) for two reasons:
-because the implementation of \texttt{isFreqHyp} contained a bug, and because
-of the natural randomness in negative sampling.
-For reproducability, we report result without the \texttt{isFreqHyp} feature.
-The randomness introduced by negative sampling is now factored out by random
-seeding.
-
 \begin{table*}
 \resizebox{\textwidth}{!}{%
   \begin{tabular}{cc|cccccc|cccccc}
@@ -449,6 +429,26 @@ seeding.
   \caption{Our submissions results.}
   \label{table:submissions}
 \end{table*}
+
+\subsection{Our submissions}
+
+Our submissions were based on 200-dimensional sparse vectors computed from
+unit-normed 100-dimensional dense vectors with $\lambda=.3$. The sum of the two
+dimensions motivates our group name. For training the regression model with
+negative sampling, 50 false hypernyms were sampled for each training query. One
+of our submissions involved the interaction terms, the other not. Both
+submissions used the conceptually motivated but practically harmful FCA-based
+features.
+
+\autoref{table:submissions} shows submission results.
+The figures that can be achieved with the code in the project repo
+(\texttt{reprd}) is slightly different from our official submissions
+(\texttt{offic}) for two reasons:
+because the implementation of \texttt{isFreqHyp} contained a bug, and because
+of the natural randomness in negative sampling.
+For reproducability, we report result without the \texttt{isFreqHyp} feature.
+The randomness introduced by negative sampling is now factored out by random
+seeding.
 
 % TODO Feaure weights and histograms 
 
