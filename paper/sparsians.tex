@@ -455,31 +455,57 @@ results.
 
 \subsection{Post-evaluation analysis}
 
+\input{big_table}
+
 \input{ablation1A}
 
+After the evaluation closed, we conducted ablation experiments the results of 
+which are included in
+\autoref{table:ablation1A}. In these experiments, we investigated the 
+contribution of the features derived from sparse attribute pairs and FCA.
+These ablation experiments reveal that turining off FCA-based features does 
+not hurt performance at all. For this reason -- even though our official shared 
+task submission included FCA-related features -- we no longer employed them in 
+our post-evaluation experiments.
 
-\input{big_table}
-After the evaluation closed, we conducted ablation experiments, see
-\autoref{table:ablation1A} and 
-tried more settings including longer, 1000-dimensional sparse vectors, see
+\autoref{table:1A_detailed} includes the detailed behavior of our model on 
+subtask 1A with respect three distinct factors, that is
+\begin{enumerate}
+	\item the number of basis vectors employed during sparse coding ($k \in 
+	\{200, 300, 1000\}$),
+	\item the number of negative training samples per a positive sample ($ns 
+	\in \{50, all\}$),
+	\item candidate filtration being turned on/off.
+\end{enumerate}
+The default number of negative samples ($ns$) generated for
+each positive training sample -- also applied in our official submission -- is 
+50. In our post evaluation experiments we investigated the effects of 
+generating more negative samples, i.e.~we regarded all the valid hypernyms over 
+the training set -- not being a
+proper hypernym for $q$ -- as $h'$ upon the creation of the $(q, h')$ negative 
+training instances. This latter strategy is referenced as $ns=all$ in 
 \autoref{table:1A_detailed}.
 
 \input{post_eval}
 
-\subsection{Candidate restriction}
+%\subsection{Candidate restriction}
 
 It turns out from \autoref{table:1A_detailed} that it is was useful in this
 shared task to restrict the set of possible hypernyms to those in the training
-set.  Table~\ref{table:upper} lists the results an oracle would achieve with
+set. % Table~\ref{table:upper} lists the results an oracle would achieve with
 this restriction. Historically we applied this restriction to speed up the FCA
 algorithm.
 
-\input{upper}
+%\input{upper}
 
 \section{Discussion of the results}
 
-Based on our experimental results, we identified the importance of 
+Based on our experimental results. In our ablation experiments, we investigated 
+the effects of various feature groups, we identified the importance of 
 
+\section{Conclusion}
+
+In this paper we demonstrated the effectiveness of sparse coding 
 
 \bibliography{../../paper/Common/Bib/ml}
 \bibliographystyle{acl_natbib}
