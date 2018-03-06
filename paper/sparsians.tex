@@ -116,7 +116,7 @@ correspond to each other.
 
 Here we apply sparse feature pairs to hypernym extraction. The role of an
 attribute pair $\langle i,j\rangle\in\phi(q)\times\phi(h)$ (where $q$ is the query word,
-$h$ is the hypernym candidate, and $\phi(w)$ is the index of a nonzero
+$h$ is the hypernym candidate, and $\phi(w)$ is the index of a non-zero
 component in the sparse representations of $w$) is similar to \emph{interaction
 terms} in regression.
 
@@ -130,7 +130,7 @@ lattices, and how hypernymys can be found in them.
 
 Another natural formulation is related to \emph{hierarchical sparse coding}
 \citep{Zhao:2009}, where trees describe the order in which variables “enter the
-model” (i.e., take nonzero values). A node may take a nonzero value only if its
+model” (i.e., take non-zero values). A node may take a non-zero value only if its
 ancestors also do: the dimensions that correspond to top level nodes should
 focus on “general” contexts that are present in most words.
 \citet{Yogatama:2015} offer an implementation that is efficient for gigaword
@@ -138,12 +138,11 @@ corpora. Exploiting the correspondence between the variable tree and the
 hypernym hierarchy offers itself as a natural choice.
 
 The task \citep{Camacho-Collados:2018} evaluated systems at their ability to
-extract hypernyms for query word in five subtasks (three languages, English,
+extract hypernyms for query words in five subtasks (three languages, English,
 Italian, and Spanish, and two domains, medical and music). Queries have been
-categorized as concepts or entities. Result have been proclaimed in separately
-in the two categories and in overall as well, thus resulting in 15
-combinations.
-
+categorized as concepts or entities. Result have been proclaimed separately
+in the two categories and in overall as well, thus resulting in $5\times 3$
+combinations.  
   Our system took first place in subtasks
   \emph{(1B) Italian} (\emph{all} and \emph{entities}),
   \emph{(1C) Spanish entities}, and
@@ -166,26 +165,26 @@ Formal concept Analysis (FCA) is the mathematization of \emph{concept} and conce
 hierarchy \citep{Ganter:2012,Endres:2010}. % vagy 2009
 An FCA context %$C = \langle \ob, \at, \inci\rangle$
 comprises of
-a set of \emph{objects} $\ob$, a set of \emph{attributes} $\at$ and
+a set of \emph{objects} $\ob$, a set of \emph{attributes} $\at$, and
 a binary incidency relation $\inci \subseteq \ob \times \at$
-between members of \ob and \at.
-In our application, $\inci$ associates a word $w\in\ob$ to its
-the indices of its nonzero sparse coding coordinates $i\in\at$.
+between members of \ob~and \at.
+In our application, $\inci$ associates a word $w\in\ob$ to 
+the indices of its non-zero sparse coding coordinates $i\in\at$.
 % It is customary to represent the context as a cross table, where the
 % row(column) headings are the object(attribute) names.  For each pair (g, m) ∈
 % \inci, the corresponding cell in the cross table has an “×”.
-FCA finds formal \emph{concept}, pairs \oaconc of object sets and attribute sets
+FCA finds formal \emph{concept}, pairs \oaconc~of object sets and attribute sets
 ($O\subseteq \ob,A \subseteq \at$) such that $A$
 % We define the prime operator $'$ both for objects and attributes in a dual
 % way: $O'$ is defined as $\{ a\in \at\mid \forall o\in O, \langle o,a \rangle
 % \in \inci\}$ i.e.~$O'$
-consists of the shared attributes of objects in $O$ (and no more); and
+consists of the shared attributes of objects in $O$ (and no more), and
 $O$ consists of
 % $A'$ is defined as $\{ o\in \ob\mid \forall a\in A, \langle o,a \rangle \in
 % \inci\}$ i.e.~$A'$
 the objects in $\ob$ that have all the attributes in $A$ (and no more).
-(There is a closure-operator related to each FAC context, for which $O$ and $A$
-are closed sets iff \oaconc is a concept.)
+(There is a closure-operator related to each FCA context, for which $O$ and $A$
+are closed sets iff \oaconc~is a concept.)
 % A formal concept in a context $C$ is a pair \oaconc~ such that $O' = A$ and $A' = O$.
 $O$ is called the extent and $A$ is the intent of the concept.
 % \footnote{
@@ -209,10 +208,10 @@ $O$ is called the extent and $A$ is the intent of the concept.
 There is an order defined in the context:
 if $\langle A_1 , B_1 \rangle$ and $\langle A_2 , B_2 \rangle$ are concepts in
 $C$, $\langle A_1 , B_1 \rangle$ is a \emph{subconcept} of $\langle A_2 , B_2
-\rangle$ if $A_1 \subseteq A_2 $ which is equivalent to $B_1 \supseteq B_2 $.  In this case
-%, $\langle A_2 , B_2 \rangle$ is a \emph{superconcept} of $\langle A_1 , B_1 \rangle$
-%and
-we write $\langle A_1 , B_1 \rangle \le \langle A_2 , B_2 \rangle$.
+\rangle$ if $A_1 \subseteq A_2 $ which is equivalent to $B_1 \supseteq B_2 $.  
+% In this case %, $\langle A_2 , B_2 \rangle$ is a \emph{superconcept} of
+% $\langle A_1 , B_1 \rangle$ %and we write $\langle A_1 , B_1 \rangle \le
+% \langle A_2 , B_2 \rangle$.
 % The relation $\le$ is called the \emph{order} of the concepts.
 % $C$ and
 The concept order forms a %complete
@@ -222,21 +221,58 @@ lattice.
 % shown in \ref{fig:monkeylattice}.
 % Full labeling means that a concept node is depicted with its full extent and
 % intent. A reduced labeled concept lattice shows an object only in
-The smallest (w.r.t.~$\le$) concept whose extent contains a word plays an
-important role in the concept hierarchy.  We say that this concept
+The smallest concept whose extent contains a word is said to
 % is called the object concept, or the concept that
-introduces the object.
+\emph{introduce} the object.
 % Likewise, an attribute is shown only in the largest concept of whose intent
 % the attribute is a member.%, the attribute concept, which introduces the
 % attribute.
+We expect that $h$ will be a hypernymy of $q$ iff $n(q)\le n(h)$ where $n(w)$
+denotes the node in the concept lattice that introduces $w$.
 
-The closedness of extents and intents has an important consequence for
-neuroscientific applications. Adding attributes to \at~(e.g.~responses of
+The closedness of extents and intents has an important structural consequence. 
+Adding attributes to \at~(e.g.~responses of
 additional neurons) will very probably grow the model.  However, the original
 concepts will be embedded as a substructure in the larger lattice, with their
 ordering relationships preserved.
 
 \section{Our approach}
+
+Now we describe our system that is based on sparse non-negative word
+representations and FCA besides more traditional features.
+
+%\footnotetext{This feature indicates whether $h$ is among the 50 most frequent
+%training hypernyms for the category of $q$ (concept or entity).}
+
+We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
+approach \citep{Mikolov:2013f} to train $d=100$ dimensional dense distributed
+word representations for each sub-corpora. The word embeddings are trained over the text corpora provided by the shared task organizers with the default training parameters of \texttt{word2vec} (w2v), i.e.~a window size of 10 and negative 25 negative samples for each positive contexts.
+
+We derived \emph{multi-token units} by relying on the \texttt{word2phrase} software accompanying the w2v toolkit. An additional source for identifying multi-token units in the training corpus was the list of potential hypernyms released for each subtask by the shared task organizers.
+
+Given the the dense embedding matrix $W_x \in \mathbb{R}^{d \times \lvert V_x
+\rvert}$, 
+for some subcorpus of the shared task $x\in\{1A, 1B, 1C, 2A, 2B\}$, 
+where $\lvert V_x \rvert$ is the size of the vocabulary and $d$ is set
+to 100,
+as a subsequent step, we turn $W_x$ into
+\emph{sparse word vectors} akin to \citet{Berend:2017} by solving for
+\begin{equation}
+\min\limits_{D \in \mathcal{C}, \alpha \in \mathbb{R}_{\geq0}} \lVert D\alpha - W_{x} \rVert_F + \lambda \lVert \alpha \rVert_1,
+\label{nonneg_SPAMS_objective}
+\end{equation}
+where $\mathcal{C}$ refers to the convex set of $\mathbb{R}^{ d \times k}$ 
+matrices consisting of $d$-dimensional columns vectors
+with norm at most $1$, and $\alpha$ contains the sparse coefficients for the elements of the vocabulary. The only difference
+compared to \citet{Berend:2017} is that here we ensure a non-negativity
+constraint over the elements of $\alpha$.
+
+For the elements of the vocabulary we ran the \emph{formal concept analysis} tool of
+\citet{Endres:2010}\footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}.
+In order to keep the size of the DAG outputted by the FCA algorithm manageable,
+we only included the query words and those hypernyms in the analysis which
+occur in the training dataset for the corpora.
+As we will see in the next section, this restriction turns out to be very useful.
 
 \begin{table}
 	\begin{tabular}{lc}
@@ -272,41 +308,7 @@ attributePair$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3..
 	\label{table:core_features}
 \end{table}
 
-\footnotetext{At submission time, 
-	this feature did not work properly.}
-
-%\footnotetext{This feature indicates whether $h$ is among the 50 most frequent
-%training hypernyms for the category of $q$ (concept or entity).}
-
-We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
-approach \citep{Mikolov:2013f} to train $d=100$ dimensional dense distributed
-word representations for each sub-corpora. The word embeddings are trained over the text corpora provided by the shared task organizers with the default training parameters of \texttt{word2vec} (w2v), i.e.~a window size of 10 and negative 25 negative samples for each positive contexts.
-
-We derived \emph{multi-token units} by relying on the \texttt{word2phrase} software accompanying the w2v toolkit. An additional source for identifying multi-token units in the training corpus was the list of potential hypernyms released for each subtask by the shared task organizers.
-
-For some subcorpus of the shared task $x\in\{1A, 1B, 1C, 2A, 2B\}$, we denote
-the embedding matrix as $W_x \in \mathbb{R}^{d \times \lvert V_x \rvert}$ where
-$\lvert V_x \rvert$ is the size of the vocabulary and $d$ is set to 100.
-%as stated previously.
-
-As a subsequent step we turn the dense vectorial word representations for subtask $x$ into
-\emph{sparse word vectors} akin to \citet{Berend:2017} by solving for
-\begin{equation}
-\min\limits_{D \in \mathcal{C}, \alpha \in \mathbb{R}_{\geq0}} \lVert D\alpha - W_{x} \rVert_F + \lambda \lVert \alpha \rVert_1,
-\label{nonneg_SPAMS_objective}
-\end{equation}
-where $\mathcal{C}$ refers to the convex set of $\mathbb{R}^{ d \times k}$ 
-matrices consisting of $d$-dimensional columns vectors
-with norm at most $1$, and $\alpha$ contains the sparse coefficients for the elements of the vocabulary. The only difference
-compared to \citet{Berend:2017} is that here we ensure a non-negativity
-constraint over the elements of $\alpha$.
-
-For the elements of the vocabulary we ran the \emph{formal concept analysis} tool of
-\citet{Endres:2010}\footnote{\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}}.
-In order to keep the size of the DAG outputted by the FCA algorithm manageable,
-we only included the query words and those hypernyms in the analysis which
-occur in the training dataset for the corpora.
-As we will see in the next section, this restriction turns out to be very useful.
+\footnotetext{At submission time, this feature did not work properly.}
 
 % official submission ('concept', '
 %  cosines 8.8
@@ -336,35 +338,37 @@ As we will see in the next section, this restriction turns out to be very useful
 
 Next, we determine a handful of features for a pair of expressions $(q, h)$
 consisting of a query $q$ and its potential hypernym $h$.
-Table~\ref{table:core_features} provides an overview of some of the features
+Table~\ref{table:core_features} provides an overview of the features
 employed for a pair $(q, h)$.
 We denote with $\mathbf{q}$ and $\mathbf{h}$ the 100-dimensional dense
 vectorial representations of $q$ and $h$.
-Additionally, we refer to the set of basis vectors (in the FCA terminology,
-attributes) which are assigned nonzero
-weights in the reconstruction of the vectorial representation of $q$ and $h$ as
-$\phi(q)$ and $\phi(h)$.
-Finally, we denote with $Q$ and $H$ the sequence of tokens constituting the
-query and hypernym phrases.
-%nekem kicsit furcsa nagy betűt használni erre. Nem jelölhetnék a kisbetűk
-%eleve ezt?
-
-Irrespective of the query, it is also considered as a feature whether a
+Additionally, we denote with $Q$ and $H$ the sequence of tokens constituting
+the query and hypernym phrases.
+% nekem kicsit furcsa nagy betűt használni erre. Nem jelölhetnék a kisbetűk
+% eleve ezt?
+Finally, we refer to the set of basis vectors (in the FCA terminology,
+attributes) which are assigned non-zero weights in the reconstruction of the
+vectorial representation of $q$ and $h$ as $\phi(q)$ and $\phi(h)$.  
+It is also considered as a feature whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
 for the category of $q$ (concept or entity, \texttt{isFreqHyp}).
-% TODO legkésőbb itt belengetni a categoryánkénti bonáts jelentőségét
+Modelling categories concept separately played an important role in the success
+of our systems.
+
 Three additional features are defined for incorporating the concept lattice
-output by FCA, whether the most specific location within the DAG for $q$
-\begin{itemize}
-	\item coincides with that of $h$,
-	\item is the parent for that of $h$,
-	\item is the child for that of $h$.
-\end{itemize}
+output by FCA, whether $n(q)$, the most specific location within the DAG for
+$q$,
+(1) coincides with that of $h$,
+(2) is the parent (immediate successor) for that of $h$, or
+(3) is the child (immediate predictions) for that of $h$.
+Immediate parents, and even the inverse relation prooved to be more predictive
+than the conceptually motivated  $q\le h$.
 % TODO ha már az FCA rész elnyeri a végső formáját: érthető-e ennyiből (most
 % specific)
 $n(w)$ in \autoref{table:core_features} denotes the node in the formal concept
 lattice that introduces $w$, and $n_1\prec n_2$ denotes that $n_1$ is an
 immediate predecessor of $n_2$.
+% TODO write why immediate
 We will see in post-evaluation ablation experiments, where we refer to the
 above three features as the \emph{FCA} features, that they were not useful in
 our submissions.
@@ -375,7 +379,7 @@ Our most important features are \texttt{attributePair}$_{ij}$s above that are
 indicator features for every possible interaction term 
 between the sparse coefficients in $\alpha$. That means that for a pair of
 words $(q, h)$ we defined $\phi(q) \times \phi(h)$, i.e.~candidates
-get assigned with the Descartes product derived from the indices of the nonzero
+get assigned with the Descartes product derived from the indices of the non-zero
 coefficients in $\alpha$. Note that this feature template induces $k^2$
 features, with $k$ being the number of basis vectors introduced in the dictionary matrix $D$ according to Eq.~\ref{nonneg_SPAMS_objective}.
 
