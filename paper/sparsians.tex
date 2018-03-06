@@ -7,8 +7,8 @@
 
 % To debug "\pdfendlink ended up in different nesting level than \pdfstartlink"
 \usepackage[nohyperref]{naaclhlt2018}
-\usepackage[draft]{hyperref}
-%\usepackage{hyperref}
+%\usepackage[draft]{hyperref}
+\usepackage{hyperref}
 
 \usepackage{times}
 \usepackage{latexsym}
@@ -356,26 +356,25 @@ Modelling categories concept separately played an important role in the success
 of our systems.
 
 Three additional features are defined for incorporating the concept lattice
-output by FCA, whether $n(q)$, the most specific location within the DAG for
-$q$,
+output by FCA. With $n(w)$ denoting the concept that introduces $w$, i.e.~the
+most specific location within the DAG for $w$, our features indicate whether
+$n(q)$ 
 (1) coincides with that of $h$,
 (2) is the parent (immediate successor) for that of $h$, or
 (3) is the child (immediate predictions) for that of $h$.
-Immediate parents, and even the inverse relation prooved to be more predictive
+Parents, and even the inverse relation, proved to be more predictive
 than the conceptually motivated  $q\le h$.
 % TODO ha már az FCA rész elnyeri a végső formáját: érthető-e ennyiből (most
 % specific)
-$n(w)$ in \autoref{table:core_features} denotes the node in the formal concept
-lattice that introduces $w$, and $n_1\prec n_2$ denotes that $n_1$ is an
+In \autoref{table:core_features}, $n_1\prec n_2$ denotes that $n_1$ is an
 immediate predecessor of $n_2$.
-% TODO write why immediate
 We will see in post-evaluation ablation experiments, where we refer to the
 above three features as the \emph{FCA} features, that they were not useful in
 our submissions.
 
 \input{our_submissions}
 
-Our most important features are \texttt{attributePair}$_{ij}$s above that are
+The \texttt{attributePair}$_{ij}$s above, our most important features, are 
 indicator features for every possible interaction term 
 between the sparse coefficients in $\alpha$. That means that for a pair of
 words $(q, h)$ we defined $\phi(q) \times \phi(h)$, i.e.~candidates
@@ -386,7 +385,8 @@ features, with $k$ being the number of basis vectors introduced in the dictionar
 In order to be able to rank potential candidates for previously unseen test
 query cases we trained a separate \emph{logistic regression} classifier for the
 \textit{concept} and \textit{entity} types of queries relying on the
-\texttt{sklearn} package with the regularization parameter defaulting to $1.0$.
+\texttt{sklearn} package
+\citep{Pedregosa:2011}\footnote{\url{scikit-learn.org}} with the regularization parameter defaulting to $1.0$.
 For each appropriate $(q,h)$ pair of words for which
 $h$ is a hypernym of $q$, we generated a number of \emph{negative samples} $(q, h')$,
 such that the training data does not include $h'$ as a valid hypernym for $q$.
@@ -404,11 +404,13 @@ proper hypernym of at least one times on the training data for a given query
 type.
 
 After the appropriate model ranked the hypernym candidates, we selected
-the top 15 ranked candidates and applied a post-ranking heuristic over them,
+the top 15 ranked candidates and applied a \emph{post-ranking} heuristic over them,
 i.e.~reordered them according to their background frequency from the training
 corpus. Our assumption here is that more frequent words tend to refer to more
+% szerintem nem, de nem baj
 general concepts and more general hypernymy relations potentially tend to be
 more easily detectable than more specialized ones.
+% ezt meg nem is biztos, hogy értem
 
 \section{Results} \label{sec:results}
 
@@ -424,7 +426,7 @@ submissions used the conceptually motivated but practically harmful FCA-based
 features.
 
 \autoref{table:submissions} shows submission results.
-The figures that can be achieved with the code in the project repo
+The figures that can be reproduced with the code in the project repo
 (\texttt{reprd}) is slightly different from our official submissions
 (\texttt{offic}) for two reasons:
 because the implementation of \texttt{isFreqHyp} contained a bug, and because
@@ -443,12 +445,17 @@ seeding.
 
 \subsection{Query type sensitive baselining}
 
-Our submission with attribute pairs achieved first place in the category 2B of
-music entities. This is in part due to our good choice of a fallback solution
+Our submission with attribute pairs achieved first place in 
+categories
+  {(1B) Italian} ({all} and {entities}),
+  {(1C) Spanish entities}, and
+  % TODO analyze
+  {(2B) music entities}.
+This is in part due to our good choice of a fallback solution
 in the case of OOV queries: we applied a category-sensitive baseline returning
 the most frequent train hypernym in the corresponding query type (concept or
 entity).  Table~\ref{table:coverage} shows how frequently we had to rely on
-this fallback, and \autoref{table:MFH} shows the corresponding baseline
+this fallback, and \autoref{table:MFH} shows the corresponding pure baseline
 results.
 
 \input{coverage}
