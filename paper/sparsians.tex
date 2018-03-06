@@ -290,7 +290,7 @@ As we will see in the next section, this restriction turns out to be very useful
 		{sameFirstWord}        & $Q[0] = H[0]$ \\ % 6
 		{sameLastWord}        & $Q[-1] = H[-1]$ \\
 		{logFrequencyRatio} & $\log_{10}\frac{count(q)}{count(h)}$ \\ % 10
-	    {frequent}\footnote\footnotemark & $c \in MF_{50}(q.type)$\\
+	    {isFrequentHypernym}\footnote\footnotemark & $c \in MF_{50}(q.type)$\\
     \midrule
     sameConcept & $n(h)=n(q)$ \\
     parent  & $n(q)\prec n(h)$ \\
@@ -351,7 +351,7 @@ attributes) which are assigned non-zero weights in the reconstruction of the
 vectorial representation of $q$ and $h$ as $\phi(q)$ and $\phi(h)$.  
 It is also considered as a feature whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
-for the category of $q$ (concept or entity, \texttt{isFreqHyp}).
+for the category of $q$ (concept or entity, \texttt{isFrequentHypernym}).
 Modelling categories concept separately played an important role in the success
 of our systems.
 
@@ -442,7 +442,7 @@ seeding.
 
 \input{baseline}
 
-\subsection{A query type sensitive baseline}
+\subsection{Query type sensitive baselining}
 
 Our submission with attribute pairs achieved first place in 
 categories
@@ -511,21 +511,22 @@ however, our scores degrade after turning candidate filtration off.
 Our post evaluation experiments in \autoref{table:1A_detailed} suggest that it 
 is advantageous to apply sparse representation of more expressive power (i.e.~a 
 higher number of basis vectors). Generating more negative samples also provide 
-some additional boost in the performance. The previous observations hold 
+some additional performance boost. These previous observations hold 
 irrespective whether candidate filtration is employed or not, however, their 
 effects are more pronounced when hypernym candidates are not filtered.
 
+Finally, we report our post-evaluation results for all the subtasks and compare
+them to the official scores by the winners of the individual subtasks in
+\autoref{table:post_eval}. It can be seen from these enhanced results for
+``all'' (concepts and entities mixed) that we would win (1B) Italian and (1C)
+Spanish. Our system would also place second in (1A) English.
+
 \input{post_eval}
 
-%\subsection{Candidate restriction}
-
-
-\section{Discussion of the results}
+\section{Conclusion}
 
 Based on our experimental results. In our ablation experiments, we investigated 
 the effects of various feature groups, we identified the importance of 
-
-\section{Conclusion}
 
 In this paper we demonstrated the effectiveness of sparse coding 
 
