@@ -53,11 +53,13 @@ Department of Informatics \\ University of Szeged \\
 \maketitle
 
 \begin{abstract}
-  We apply a concept hierarchy obtained from a word embedding by combining the
-  methods of sparse coding and formal concept analysis (concept lattices).
-  Our experiments place first in four subtasks (e.g.~the music entities
-  % TODO Spannish
-  subtask).
+  This paper describes 300-sparsians’s participation in SemEval-2018 Task 9:
+  \emph{Hypernym Discovery}, with a system based on sparse coding and a formal
+  concept hierarchy obtained from word embeddings.
+  Our system took first place in subtasks
+  \emph{(1B) Italian} (\emph{all} and \emph{entities}),
+  \emph{(1C) Spanish entities}, and
+  \emph{(2B) music entities}.
 \end{abstract}
 
 
@@ -101,25 +103,24 @@ illustrates this in the language domain, where sparse features are interpreted
 as lexical attributes, ``to describe the city of Pittsburgh, one might talk
 about phenomena typical of the city, like erratic weather and large bridges. It
 is redundant and inefficient to list negative properties, like the absence of
-the Statue of Liberty''.  
+the Statue of Liberty''.
 % \cite{Berend:2016} shows the utitlity of sparse word representations in
 % low-resource setting,
 \citet{Berend:2018} utilizes non-negative sparse coding for word translation by
 training sparse word vectors for the two languages such that coding bases
-correspond to each other. 
+correspond to each other.
 
 Here we apply sparse feature pairs to hypernym extraction. The role of an
-attribute pair $\langle \phi(q),\phi(h)\rangle$ (where $q$ is the query word,
-% TODO
-$h$ is the hypernym candidate, and $\phi(w)$ is the index of a non-zero
-% TODO nonzero vs non zero vs non-zero legvégül egységesít 
+attribute pair $\langle i,j\rangle\in\phi(q)\times\phi(h)$ (where $q$ is the query word,
+$h$ is the hypernym candidate, and $\phi(w)$ is the index of a nonzero
+% TODO nonzero vs nonzero vs nonzero legvégül egységesít
 % bas[ie]s, attribute, feature
 component in the sparse representations of $w$) is similar to \emph{interaction
 terms} in regression.
 
 Sparse representation is related to hypernymy in various natural ways.  One of
-them is through \emph{Formal Concept Analysis (FCA)}.  The idea of acquiring concept
-hierarchies from a text corpus with the tools of Formal Concept Analysis (FCA)
+them is through \emph{Formal concept Analysis (FCA)}.  The idea of acquiring concept
+hierarchies from a text corpus with the tools of Formal concept Analysis (FCA)
 is relatively new \citep{Cimiano:2005}.
 Our submissions experiment with formal concept analysis tool by
 \citet{Endres:2010}. See the next section for a describtion of formal concept
@@ -141,12 +142,12 @@ categprized as concepts or entities. Result have been proclaimed in separately
 in the two categories and in overall as well, thus resulting in 15
 combinations.
 Our system took first place in the music entities subtasks (2B).
-% TODO Spannish
+% TODO Spanish
 Detailed results for our system appear in \autoref{sec:results}.
 Our source code in available online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
 
 % Here we illustrate the effectiveness of sparse coding derived word
-% representations in the task of hypernymy extraction. 
+% representations in the task of hypernymy extraction.
 
 \subsection{Formal concept analysis}
 
@@ -155,15 +156,15 @@ Our source code in available online\footnote{\url{https://github.com/begab/fca_h
 \newcommand{\inci}{\ensuremath{\mathcal I}}
 \newcommand{\oaconc}{\ensuremath{\langle O, A\rangle}}
 
-Formal Concept Analysis (FCA) is the mathematization of \emph{concept} and conceptual
+Formal concept Analysis (FCA) is the mathematization of \emph{concept} and conceptual
 hierarchy \citep{Ganter:2012,Endres:2010}. % vagy 2009
-An FCA context %$C = \langle \ob, \at, \inci\rangle$ 
+An FCA context %$C = \langle \ob, \at, \inci\rangle$
 comprises of
 a set of \emph{objects} $\ob$, a set of \emph{attributes} $\at$ and
 a binary incidency relation $\inci \subseteq \ob \times \at$
 between members of \ob and \at.
-In our application, $\inci$ associates a word $w\in\ob$ to its 
-the indices of its non-zero sparse coding coordinates $i\in\at$.
+In our application, $\inci$ associates a word $w\in\ob$ to its
+the indices of its nonzero sparse coding coordinates $i\in\at$.
 % It is customary to represent the context as a cross table, where the
 % row(column) headings are the object(attribute) names.  For each pair (g, m) ∈
 % \inci, the corresponding cell in the cross table has an “×”.
@@ -171,11 +172,11 @@ FCA finds formal \emph{concept}, pairs \oaconc of object sets and attribute sets
 ($O\subseteq \ob,A \subseteq \at$) such that $A$
 % We define the prime operator $'$ both for objects and attributes in a dual
 % way: $O'$ is defined as $\{ a\in \at\mid \forall o\in O, \langle o,a \rangle
-% \in \inci\}$ i.e.~$O'$ 
+% \in \inci\}$ i.e.~$O'$
 consists of the shared attributes of objects in $O$ (and no more); and
 $O$ consists of
 % $A'$ is defined as $\{ o\in \ob\mid \forall a\in A, \langle o,a \rangle \in
-% \inci\}$ i.e.~$A'$ 
+% \inci\}$ i.e.~$A'$
 the objects in $\ob$ that have all the attributes in $A$ (and no more).
 (There is a closure-operator related to each FAC context, for which $O$ and $A$
 are closed sets iff \oaconc is a concept.)
@@ -207,22 +208,22 @@ $C$, $\langle A_1 , B_1 \rangle$ is a \emph{subconcept} of $\langle A_2 , B_2
 %, $\langle A_2 , B_2 \rangle$ is a \emph{superconcept} of $\langle A_1 , B_1 \rangle$
 %and
 we write $\langle A_1 , B_1 \rangle \le \langle A_2 , B_2 \rangle$.
-% The relation $\le$ is called the \emph{order} of the concepts.  
-% $C$ and 
+% The relation $\le$ is called the \emph{order} of the concepts.
+% $C$ and
 The concept order forms a %complete
-lattice.  
-% The concept lattice of the context in Table 1, with full and reduced % 
+lattice.
+% The concept lattice of the context in Table 1, with full and reduced %
 % figure % In-Close2 draws only reduced if I'm not mistaken.  labeling, is
 % shown in \ref{fig:monkeylattice}.
 % Full labeling means that a concept node is depicted with its full extent and
-% intent. A reduced labeled concept lattice shows an object only in 
+% intent. A reduced labeled concept lattice shows an object only in
 The smallest (w.r.t.~$\le$) concept whose extent contains a word plays an
-importand role in the concept hierarchy.  We say that this concept 
-% is called the object concept, or the concept that 
-introduces the object.  
+importand role in the concept hierarchy.  We say that this concept
+% is called the object concept, or the concept that
+introduces the object.
 % Likewise, an attribute is shown only in the largest concept of whose intent
 % the attribute is a member.%, the attribute concept, which introduces the
-% attribute.  
+% attribute.
 
 The closedness of extents and intents has an important consequence for
 neuroscientific applications. Adding attributes to \at~(e.g.~responses of
@@ -261,28 +262,28 @@ we only included the query words and those hypernyms in the analysis which
 occur in the training dataset for the corpora.
 As we will see in the next section, this restriction turns out to be very useful.
 
-% official submission ('Concept', '
-%  cosines 8.8 
+% official submission ('concept', '
+%  cosines 8.8
 %  is_frequent_hypernym 2.8
 %  60_186 2.5
 %  cand_is_first_w -2.4
 %  textual_overlap 2.4
 %  ...
 % OFF OFF 1000
-%  ... 
+%  ...
 %  same_first_w -1.0
 %  att_intersect 0.8
 %  diff_features -0.44
-%  norm_ratios 0.27 
+%  norm_ratios 0.27
 %  ...
 %  freq_ratios_log 0.1
 %  att_diffB -0.06
-% OFF OFF 200 ('Concept'
+% OFF OFF 200 ('concept'
 %  ...
 %  same_first_w -1.0
 %  att_intersect 0.62
 %  diff_features -0.43
-%  norm_ratios 0.28 
+%  norm_ratios 0.28
 %  ...
 %  freq_ratios_log 0.087
 %  att_diffB -0.03
@@ -290,7 +291,7 @@ As we will see in the next section, this restriction turns out to be very useful
 \begin{table}
 	\begin{tabular}{lc}
     \toprule
-		Core feature name   & Formula \\  
+		Core feature name   & Formula \\
     \midrule
 		{cosine}            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\ % 1
 		{difference}        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\ % 8
@@ -308,26 +309,30 @@ As we will see in the next section, this restriction turns out to be very useful
 		{sameLastWord}        & $Q[-1] = H[-1]$ \\
 		{logFrequencyRatio} & $\log_{10}\frac{count(q)}{count(h)}$ \\ % 10
     \bottomrule
+    % TODO vegyük be az fca-sokat is?  mert az att_pairs is bekerült
+    % TODO illetve az is_frequent_hypernym (plusz esetleg ott is
+    % megcsillagozni, hogy a beküldés pillanatában nem úgy működött mint ahogy
+    % kellett volna neki)
 	\end{tabular}
 	\caption{The list of core features considering a $(q,h)$ pair of phrases.}
 	\label{table:core_features}
   % not in this tabular: is_frequent_hypernym
-\end{table} 
+\end{table}
 
 Next, we determine a handful of features for a pair of expressions $(q, h)$
-consisting of a query $q$ and its potential hypernym $h$. 
+consisting of a query $q$ and its potential hypernym $h$.
 Table~\ref{table:core_features} provides an overview of some of the features
-employed for a pair $(q, h)$. 
+employed for a pair $(q, h)$.
 We denote with $\mathbf{q}$ and $\mathbf{h}$ the 100-dimensional dense
 vectorial representations of $q$ and $h$.
-Additionally, we refer to the set of basis vectors which are assigned non-zero
+Additionally, we refer to the set of basis vectors which are assigned nonzero
 weights in the reconstruction of the vectorial representation of $q$ and $h$ as
-$\phi(q)$ and $\phi(h)$.  
+$\phi(q)$ and $\phi(h)$.
 Finally, we denote with $Q$ and $H$ the sequence of tokens constituting the
 query and hypernym phrases.
 %nekem kicsit furcsa nagy betűt használni erre. Nem jelölhetnék a kisbetűk
 %eleve ezt?
- 
+
 Irrespective of the query, it is also considered as a feature whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
 for the category of $q$ (concept or entity, \texttt{isFreqHyp}).
@@ -355,21 +360,21 @@ coefficients in $\alpha$. Note that this feature template induces $k^2$
 features, with $k$ being the number of basis vectors introduced in the dictionary matrix $D$ according to Eq.~\ref{nonneg_SPAMS_objective}.
 
 In order to be able to rank potential candidates for previously unseen test
-query cases we trained a separate \emph{logistic regression} classifier for the 
-\textit{Concept} and \textit{Entity} types of queries relying on the
-\texttt{sklearn} package with the regularization parameter defaulting to $1.0$. 
+query cases we trained a separate \emph{logistic regression} classifier for the
+\textit{concept} and \textit{entity} types of queries relying on the
+\texttt{sklearn} package with the regularization parameter defaulting to $1.0$.
 For each appropriate $(q,h)$ pair of words for which
 $h$ is a hypernym of $q$, we generated a number of \emph{negative samples} $(q, h')$,
 such that the training data does not include $h'$ as a valid hypernym for $q$.
-For a given query $q$, belonging to either of the \textit{Concept} or
-% TODO Concept, Entity Concept casinget egységesít
-\textit{Entity} category, we sampled $h'$ from those hypernyms which were
+For a given query $q$, belonging to either of the \textit{concept} or
+% TODO concept, entity concept casinget egységesít
+\textit{entity} category, we sampled $h'$ from those hypernyms which were
 included as a valid hypernym in the training data with respect to some $q' \neq
-q$ query phrase. The default number of negative samples ($ns$) generated for 
+q$ query phrase. The default number of negative samples ($ns$) generated for
 each
-positive training sample is 50. We also run post evaluation experiments in 
-which we regarded all the valid hypernyms in the training set -- not being a 
-proper hypernym for $q$ -- as $h'$. We refer to such a setting as $ns=all$ in 
+positive training sample is 50. We also run post evaluation experiments in
+which we regarded all the valid hypernyms in the training set -- not being a
+proper hypernym for $q$ -- as $h'$. We refer to such a setting as $ns=all$ in
 Section~\ref{sec:results}.
 
 When making predictions for the hypernyms of a query, we relied on our query
@@ -394,17 +399,17 @@ dimensions motivates our group name. For training the regression model with
 negative sampling, 50 false hypernyms were sampled for each training query. One
 of our submissions involved the interaction terms, the other not. Both
 submissions used the conceptually motivated but practically harmful FCA-based
-features. 
+features.
 
 \autoref{table:submissions} shows submission results.
 The figures that can be achieved with the code in the project repo
 (\texttt{reprd}) is slightly different from our official submissions
-(\texttt{offic}) for two reasons: 
+(\texttt{offic}) for two reasons:
 because the implementation of \texttt{isFreqHyp} contained a bug, and because
-of the natural randomness in negative sampling.  
+of the natural randomness in negative sampling.
 For reproducability, we report result without the \texttt{isFreqHyp} feature.
 The randomness introduced by negative sampling is now factored out by random
-seeding. 
+seeding.
 
 \begin{table*}
 %\resizebox{\textwidth}{!}{%
@@ -436,7 +441,7 @@ seeding.
 
 % TODO Feaure weights and histograms 
 
-%\subsection{Qualitative analysis} %TODO ?  entity music, Spannish (MRR, p@1)
+%\subsection{Qualitative analysis} %TODO ?  entity music, Spanish (MRR, p@1)
 
 % TODO \subsection{Generality, frequency and vector length}
 
@@ -455,7 +460,7 @@ results.
       %\resizebox{\textwidth}{!}{%
 	\begin{tabular}{r|cccc|cccc}
     \toprule
-		& \multicolumn{4}{c|}{Concept} & \multicolumn{4}{c}{Entity} \\
+		& \multicolumn{4}{c|}{concept} & \multicolumn{4}{c}{entity} \\
     & \multicolumn{2}{c}{Train} &
      \multicolumn{2}{c|}{Test} &
      \multicolumn{2}{c}{Train} &
