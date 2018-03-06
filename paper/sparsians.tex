@@ -113,7 +113,6 @@ correspond to each other.
 Here we apply sparse feature pairs to hypernym extraction. The role of an
 attribute pair $\langle i,j\rangle\in\phi(q)\times\phi(h)$ (where $q$ is the query word,
 $h$ is the hypernym candidate, and $\phi(w)$ is the index of a nonzero
-% TODO bas[ie]s, attribute, feature
 component in the sparse representations of $w$) is similar to \emph{interaction
 terms} in regression.
 
@@ -125,7 +124,7 @@ Our submissions experiment with formal concept analysis tool by
 \citet{Endres:2010}. See the next section for a describtion of formal concept
 lattices, and how hypernymys can be found in them.
 
-Another natural formulation is related to hierarchical sparse coding
+Another natural formulation is related to \emph{hierarchical sparse coding}
 \citep{Zhao:2009}, where trees describe the order in which variables “enter the
 model” (i.e., take nonzero values). A node may take a nonzero value only if its
 ancestors also do: the dimensions that correspond to top level nodes should
@@ -200,8 +199,7 @@ $O$ is called the extent and $A$ is the intent of the concept.
 %      %with respect to $A\mapsto\bar A$
 %      and $O=A'$.
 %  \end{itemize}
-% }
-
+% } 
 
 There is an order defined in the context:
 if $\langle A_1 , B_1 \rangle$ and $\langle A_2 , B_2 \rangle$ are concepts in
@@ -238,7 +236,7 @@ ordering relationships preserved.
 \begin{table}
 	\begin{tabular}{lc}
     \toprule
-		Core feature name   & Formula \\
+		Core feature name   & \\
     \midrule
 		{cosine}            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\ % 1
 		{difference}        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\ % 8
@@ -255,15 +253,24 @@ ordering relationships preserved.
 		{sameFirstWord}        & $Q[0] = H[0]$ \\ % 6
 		{sameLastWord}        & $Q[-1] = H[-1]$ \\
 		{logFrequencyRatio} & $\log_{10}\frac{count(q)}{count(h)}$ \\ % 10
+    \midrule
+    sameConcept & $n(h)=n(q)$ \\
+    parent  & $n(q)\prec n(h)$ \\
+    child  & $n(h)\prec n(q)$ \\
+    \midrule 
+    frequent & see the footnote\footnotemark \\
     \bottomrule
-    % TODO vegyük be az fca-sokat is?  mert az att_pairs is bekerült
-    % TODO illetve az is_frequent_hypernym (plusz esetleg ott is
-    % megcsillagozni, hogy a beküldés pillanatában nem úgy működött mint ahogy
-    % kellett volna neki)
+     a beküldés pillanatában nem úgy működött mint ahogy kellett volna neki)
 	\end{tabular}
-	\caption{The list of core features considering a $(q,h)$ pair of phrases.}
+  \caption{The feature in our classifier.}
+  %The list of core features considering a $(q,h)$ pair of phrases.}
 	\label{table:core_features}
 \end{table}
+
+\footnotetext{This feature indicates whether $h$ is among the 50 most frequent
+training hypernyms for the category of $q$ (concept or entity).
+At the time of submission, this feature did not work the way it should have
+done.}
 
 We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
 approach \citep{Mikolov:2013f} to train $d=100$ dimensional dense distributed
@@ -326,7 +333,8 @@ Table~\ref{table:core_features} provides an overview of some of the features
 employed for a pair $(q, h)$.
 We denote with $\mathbf{q}$ and $\mathbf{h}$ the 100-dimensional dense
 vectorial representations of $q$ and $h$.
-Additionally, we refer to the set of basis vectors which are assigned nonzero
+Additionally, we refer to the set of basis vectors (in the FCA terminology,
+attributes) which are assigned nonzero
 weights in the reconstruction of the vectorial representation of $q$ and $h$ as
 $\phi(q)$ and $\phi(h)$.
 Finally, we denote with $Q$ and $H$ the sequence of tokens constituting the
@@ -347,13 +355,16 @@ output by FCA, whether the most specific location within the DAG for $q$
 \end{itemize}
 % TODO ha már az FCA rész elnyeri a végső formáját: érthető-e ennyiből (most
 % specific)
+$n(w)$ in \autoref{tab:core_features} denotes the node in the formal concept
+lattice that introduces $w$, and $n_1\prec n_2$ denotes that $n_1$ is an
+immediate predecessor of $n_2$.
 We will see in post-evaluation ablation experiments, where we refer to the
 above three features as the \emph{FCA} features, that they were not useful in
 our submissions.
 
-\texttt{attributePair}$_{ij}$ above are indicator features for every possible
-\emph{interaction term}
-% esetleg a jelentőségét itt is kiemelni
+Our most important features are \texttt{attributePair}$_{ij}$s above are that
+are indicator features for every possible
+interaction term
 between the sparse coefficients in $\alpha$. That means that for a pair of
 words $(q, h)$ we defined $\phi(q) \times \phi(h)$, i.e.~candidates
 get assigned with the Descartes product derived from the indices of the nonzero
@@ -437,7 +448,7 @@ Our submissions were based on 200-dimensional sparse vectors computed from
 unit-normed 100-dimensional dense vectors with $\lambda=.3$. The sum of the two
 dimensions motivates our group name. For training the regression model with
 negative sampling, 50 false hypernyms were sampled for each training query. One
-of our submissions involved the interaction terms, the other not. Both
+of our submissions involved attribute pairs, the other not. Both
 submissions used the conceptually motivated but practically harmful FCA-based
 features.
 
