@@ -313,8 +313,9 @@ coefficients in $\alpha$. Note that this feature template induces $k^2$
 features, with $k$ being the number of basis vectors introduced in the dictionary matrix $D$ according to Eq.~\ref{nonneg_SPAMS_objective}.
 
 In order to be able to rank potential candidates for previously unseen test
-query cases we trained a \emph{logistic regression} classifier relying on the
-\texttt{sklearn} package. The regularization parameter was set to $1.0$. 
+query cases we trained a separate \emph{logistic regression} classifier for the 
+\textit{Concept} and \textit{Entity} types of queries relying on the
+\texttt{sklearn} package with the regularization parameter defaulting to $1.0$. 
 For each appropriate $(q,h)$ pair of words for which
 $h$ is a hypernym of $q$, we generated a number of \emph{negative samples} $(q, h')$,
 such that the training data does not include $h'$ as a valid hypernym for $q$.
@@ -322,10 +323,27 @@ For a given query $q$, belonging to either of the \textit{Concept} or
 % TODO Concept, Entity Concept casinget egységesít
 \textit{Entity} category, we sampled $h'$ from those hypernyms which were
 included as a valid hypernym in the training data with respect to some $q' \neq
-q$ query phrase. The default number of negative samples generated for each
-positive training sample is 50.
+q$ query phrase. The default number of negative samples ($ns$) generated for 
+each
+positive training sample is 50. We also run post evaluation experiments in 
+which we regarded all the valid hypernyms in the training set -- not being a 
+proper hypernym for $q$ -- as $h'$. We refer to such a setting as $ns=all$ in 
+Section~\ref{sec:experiments}.
 % Ha beleírjuk az 5000-es dolgot is, akkor itt lehet utalni rá, hogy lásd
 % post-eval eredmények.
+
+When making predictions for the hypernyms of a query, we relied on our query 
+type sensitive logistic regression model to determine the ranking of the 
+hypernym candidates. In our original submission we decided to treat such 
+phrases to rank for potentially being a 
+proper hypernym which served as a proper hypernym of at least one 
+times on the training data for a given query type. After the appropriate model 
+ranked the hypernym candidates, we selected the top 15 ranked candidates and 
+applied a post-ranking heuristic over them, i.e.~reordered them according to 
+their background frequency from the training corpus. Our assumption here is 
+that more frequent words tend to refer to more general concepts and more 
+general hypernymy relations potentially tend to be more easily detectable than 
+more specialized ones.
 
 % why 300 in the group name (akár ott, hogy 300-as ritkával jobb is lehetett
 % volna, vagy ott, hogy 200 + 100 -- de ha magától értődő, akkor
@@ -361,9 +379,11 @@ seeding.
     1B	&	offic	&	9.36	&	19.94	&	13.2	&	9.45	&	9.32	&	8.81	&12.08	& 25.14	&	17.6	&	12.92	&	11.73	&	11.2	\\
     1B	&	reprd	&9.16&19.5	&12.8	&8.93&8.94&8.74&012.8	&26.7	&18.9	&13.6	&12.4	&11.9	\\
     1C	&	offic	&	12.52	&	25.87	&	16.6	&	13.58	&	12.59	&	11.48	&17.94	&	37.56	&	27.8	&	19.72	&	17.06	&	16.28	\\
-    1C	&	reprd	&12.9	&26.	&16.2	&13.9	&13.	&11.9	&018.3	&38.4	&28.5	&20.2	&17.4	&16.6	\\
+    1C	&	reprd	&12.9	&26.	& 16.2	&13.9	&13.	&11.9	&018.3	
+    &38.4	&28.5	&20.2	&17.4	& 16.6	\\
     2A	&	offic	&	14.96	&	32.18	&	24.8	&	17.73	&	15.81	&	11.6	&20.75	&	40.6	&	31.6	&	23.5	&	21.43	&	17.05	\\
-    2A	&	reprd	&15.1	&32.4	&24.4	&18.	&16.2	&11.8	&021.5	&43.7	&35.6	&25.3	&21.8	&17.	\\
+    2A	&	reprd	&15.1	&32.4	& 24.4	&18.	&16.2	&11.8	&021.5	
+    &43.7	&35.6	&25.3	&21.8	&17.	\\
     2B	&	offic	&	19.08	&	36.71	&	27.2	&	22.97	&	20.13	&	15.44	&29.54	&	46.43	&	33.0	&	31.9	&	28.86	&	27.69	\\
     2B	&	reprd	&21.5	&40.9	&29.6	&25.6	&22.1	&18.	&030.4	&46.8	&33.8	&31.8	&29.5	&28.9	\\
   \end{tabular}
@@ -449,15 +469,22 @@ tried more settings including longer, 1000-dimensional sparse vectors, see
 \autoref{table:1A_detailed}.
 
 \begin{table}
+	% ez kéne az első post eval mérés legyen (a reprodukálós tábla után)
+	% itt még minden olyan, mint a submissionben, csak:
+	%    -  az is_frequent_hypernym már javítva lett
+	%    -  és az att_pair/fca ki/be lett kapcsolgatva
 	\centering
-	\begin{tabular}{r|ccccc}
-att-pairs/fca & MAP & MRR & P@1 & P@3 \\ \hline
-off/off & 0.103 & 0.213 & 0.150 & 0.106 \\
-off/on  & 0.101 & 0.211 & 0.149 & 0.105 \\
-on/off  & 0.121 & 0.254 & 0.189 & 0.129 \\
-on/on   & 0.121 & 0.253 & 0.187 & 0.130 \\
+	\resizebox{.5\textwidth}{!}{
+	\begin{tabular}{r|cccccc}
+att-pairs/fca & MAP & MRR & P@1 & P@3 & P@5 & P@15 \\ \hline
+off/off & 10.3 & 21.3 & 15.0 & 10.6 &  & \\
+off/on  & 10.1 & 21.1 & 14.9 & 10.5 &  & \\
+on/off  & 12.1 & 25.4 & 18.9 & 12.9 &  & \\
+on/on   & 12.1 & 25.3 & 18.7 & 13.0 &  & \\
 	\end{tabular}
-\caption{Ablation experiments for the 1A dataset.}
+	}
+\caption{Ablation experiments on the 1A dataset with $k=200,ns=50$ (and the 
+implementation of the is\_frequent\_hypernym fixed).}
 \label{table:ablation1A}
 \end{table}
 
@@ -471,14 +498,16 @@ FCA algorithm.
 
 \begin{table}
 	\centering
-	\begin{tabular}{c|cccc}
-		   & MAP & MRR & P@1  & P@3 \\ \hline
-		1A & 0.761 & 0.922 & 0.922 & 0.823 \\
-		1B & 0.712 & 0.934 & 0.934 & 0.785 \\
-		1C & 0.810 & 0.959 & 0.959 & 0.872 \\
-		2A & 0.726 & 0.896 & 0.896 & 0.810 \\
-		2B & 0.954 & 0.988 & 0.988 & 0.973 \\
+	\resizebox{.5\textwidth}{!}{
+	\begin{tabular}{c|cccccc}
+		   & MAP & MRR & P@1  & P@3 & P@5 & P@15 \\ \hline
+		1A & 76.1 & 92.2 & 92.2 & 82.3 & & \\
+		1B & 71.2 & 93.4 & 93.4 & 78.5 & & \\
+		1C & 81.0 & 95.9 & 95.9 & 87.2 & & \\
+		2A & 72.6 & 89.6 & 89.6 & 81.0 & &\\
+		2B & 95.4 & 98.8 & 98.8 & 97.3 & & \\
 	\end{tabular}
+	}
   \caption{Results of an oracle restricted to the training hypernyms.}
 	\label{table:upper}
 \end{table}

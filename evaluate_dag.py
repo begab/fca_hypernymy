@@ -136,14 +136,15 @@ class ThreeHundredSparsians(object):
             self.dag = None
 
     def main(self, regularizations, repeats):
-        if not self.args.baseline_only:
+        if self.args.baseline_only:
+            self.test(None, -1)  # this corresponds to running the baselines
+        else:
             train_data, feature_ids, labels = self.get_training_pairs()
             for _ in range(repeats):
                 for c in regularizations:
                     models = self.train(train_data, feature_ids, labels, c)
                     self.test(models, c)
-        else:
-            self.test(None, -1)  # this corresponds to running the baselines
+
 
     def init_potential_hypernyms(self):
         vocab_file = '{}/vocabulary/{}.{}.vocabulary.txt'.format(
@@ -586,9 +587,9 @@ class ThreeHundredSparsians(object):
                                    pred_or_met)
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
-            return '{}_{}_{}_{}_{}_ns{}_{}.output.txt'.format(
-                os.path.join(out_dir,
-                             self.dataset_mapping[self.args.subtask][0]),
+            return '{}.{}_{}_{}_{}_{}_ns{}_{}.output.txt'.format(
+                os.path.join(out_dir, self.args.dataset_id),
+                self.dataset_mapping[self.args.dataset_id][0],
                 self.dag_basename,
                 self.args.include_sparse_att_pairs,
                 regularization,
