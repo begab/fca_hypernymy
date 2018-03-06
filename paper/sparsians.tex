@@ -419,8 +419,8 @@ more easily detectable than more specialized ones.
 Our submissions were based on $k=200$ dimensional sparse vectors computed from
 unit-normed 100-dimensional dense vectors with $\lambda=.3$. The sum of the two
 dimensions motivates our group name. For training the regression model with
-negative samples, 50 false hypernyms were sampled for each positive $(q,h)$ 
-training instance. One
+negative samples, 50 false hypernyms were sampled for each query $q$ in the 
+training dataset. One
 of our submissions involved attribute pairs, the other not. Both
 submissions used the conceptually motivated but practically harmful FCA-based
 features.
@@ -487,11 +487,10 @@ subtask 1A with respect three distinct factors, that is
 	\in \{50, all\}$),
 	\item candidate filtration being turned on/off.
 \end{enumerate}
-The default number of negative samples ($ns$) generated for
-each positive training sample -- also applied in our official submission -- is 
-50. In our post evaluation experiments we investigated the effects of 
-generating more negative samples, i.e.~we regarded all the valid hypernyms over 
-the training set -- not being a
+In our original submission we generated 50 negative samples ($ns$) generated 
+per query $q$ during training. In our post evaluation experiments we 
+investigated the effects of generating more negative samples, i.e.~we regarded 
+all the valid hypernyms over the training set -- not being a
 proper hypernym for $q$ -- as $h'$ upon the creation of the $(q, h')$ negative 
 training instances. This latter strategy is referenced as $ns=all$ in 
 \autoref{table:1A_detailed}.
