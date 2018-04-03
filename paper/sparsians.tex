@@ -61,8 +61,6 @@ Department of Informatics \\ University of Szeged \\
   \emph{(1B) Italian} (\emph{all} and \emph{entities}),
   \emph{(1C) Spanish entities}, and
   \emph{(2B) music entities}.
-%  Our source code in available 
-%  online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
 \end{abstract}
 
 
@@ -121,12 +119,13 @@ component in the sparse representations of $w$) is similar to \emph{interaction
 terms} in regression.
 
 Sparse representation is related to hypernymy in various natural ways.  One of
-them is through \emph{Formal concept Analysis (FCA)}.  The idea of acquiring concept
+them is through \emph{Formal concept Analysis (FCA)}.  The idea of acquiring 
+concept
 hierarchies from a text corpus with the tools of Formal concept Analysis (FCA)
 is relatively new \citep{Cimiano:2005}.
 Our submissions experiment with formal concept analysis tool by
 \citet{Endres:2010}. See the next section for a description of formal concept
-lattices, and how hypernymys can be found in them.
+lattices, and how hypernyms can be found in them.
 
 Another natural formulation is related to \emph{hierarchical sparse coding}
 \citep{Zhao:2009}, where trees describe the order in which variables “enter the
@@ -137,22 +136,19 @@ focus on “general” contexts that are present in most words.
 corpora. Exploiting the correspondence between the variable tree and the
 hypernym hierarchy offers itself as a natural choice.
 
-The task \citep{Camacho-Collados:2018} evaluated systems at their ability to
+The task \citep{Camacho-Collados:2018} evaluated systems on their ability to
 extract hypernyms for query words in five subtasks (three languages, English,
 Italian, and Spanish, and two domains, medical and music). Queries have been
-categorized as concepts or entities. Result have been proclaimed separately
-in the two categories and in overall as well, thus resulting in $5\times 3$
+categorized as concepts or entities. Results were reported for each category 
+separately as well as in combined form, thus resulting in $5\times 3$ 
 combinations.  
   Our system took first place in subtasks
   \emph{(1B) Italian} (\emph{all} and \emph{entities}),
   \emph{(1C) Spanish entities}, and
   \emph{(2B) music entities}.
 Detailed results for our system appear in \autoref{sec:results}.
-Our source code in available
+Our source code is available
 online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
-
-% Here we illustrate the effectiveness of sparse coding derived word
-% representations in the task of hypernymy extraction.
 
 \subsection{Formal concept analysis}
 
@@ -173,8 +169,8 @@ the indices of its non-zero sparse coding coordinates $i\in\at$.
 % It is customary to represent the context as a cross table, where the
 % row(column) headings are the object(attribute) names.  For each pair (g, m) ∈
 % \inci, the corresponding cell in the cross table has an “×”.
-FCA finds formal \emph{concept}, pairs \oaconc~of object sets and attribute sets
-($O\subseteq \ob,A \subseteq \at$) such that $A$
+FCA finds formal \emph{concepts}, pairs \oaconc~of object sets and attribute 
+sets ($O\subseteq \ob,A \subseteq \at$) such that $A$
 % We define the prime operator $'$ both for objects and attributes in a dual
 % way: $O'$ is defined as $\{ a\in \at\mid \forall o\in O, \langle o,a \rangle
 % \in \inci\}$ i.e.~$O'$
@@ -227,7 +223,7 @@ The smallest concept whose extent contains a word is said to
 % Likewise, an attribute is shown only in the largest concept of whose intent
 % the attribute is a member.%, the attribute concept, which introduces the
 % attribute.
-We expect that $h$ will be a hypernymy of $q$ iff $n(q)\le n(h)$ where $n(w)$
+We expect that $h$ will be a hypernym of $q$ iff $n(q)\le n(h)$ where $n(w)$
 denotes the node in the concept lattice that introduces $w$.
 
 The closedness of extents and intents has an important structural consequence. 
@@ -246,7 +242,10 @@ representations and FCA besides more traditional features.
 
 We use the popular skip-gram (SG) %and continuous-bag-of-words (CBOW)
 approach \citep{Mikolov:2013f} to train $d=100$ dimensional dense distributed
-word representations for each sub-corpora. The word embeddings are trained over the text corpora provided by the shared task organizers with the default training parameters of \texttt{word2vec} (w2v), i.e.~a window size of 10 and negative 25 negative samples for each positive contexts.
+word representations for each sub-corpus. The word embeddings are trained over 
+the text corpora provided by the shared task organizers with the default 
+training parameters of \texttt{word2vec} (w2v), i.e.~a window size of 10 and 
+25 negative samples for each positive context.
 
 We derived \emph{multi-token units} by relying on the \texttt{word2phrase} 
 software accompanying the w2v toolkit. An additional source for identifying 
@@ -349,10 +348,10 @@ the query and hypernym phrases.
 Finally, we refer to the set of basis vectors (in the FCA terminology,
 attributes) which are assigned non-zero weights in the reconstruction of the
 vectorial representation of $q$ and $h$ as $\phi(q)$ and $\phi(h)$.  
-It is also considered as a feature whether a
+It is also considered as a feature (\texttt{isFrequentHypernym}) whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
-for the category of $q$ (concept or entity, \texttt{isFrequentHypernym}).
-Modeling categories separately played an important role in the success
+for the category of $q$ (i.e.~concept or entity).
+Modeling the 2 categories separately played an important role in the success
 of our systems.
 
 \footnotetext{At submission time, this feature did not work properly.}
@@ -378,7 +377,7 @@ The \texttt{attributePair}$_{ij}$s above, our most important features, are
 indicator features for every possible interaction term 
 between the sparse coefficients in $\alpha$. That means that for a pair of
 words $(q, h)$ we defined $\phi(q) \times \phi(h)$, i.e.~candidates
-get assigned with the Descartes product derived from the indices of the non-zero
+get assigned with the Cartesian product derived from the indices of the non-zero
 coefficients in $\alpha$. Note that this feature template induces $k^2$
 features, with $k$ being the number of basis vectors introduced in the dictionary matrix $D$ according to Eq.~\ref{nonneg_SPAMS_objective}.
 
@@ -431,7 +430,7 @@ The figures that can be reproduced with the code in the project repo
 (\texttt{offic}) for two reasons:
 because the implementation of \texttt{isFreqHyp} contained a bug, and because
 of the natural randomness in negative sampling.
-For reproducability, we report result without the \texttt{isFreqHyp} feature.
+For reproducibility, we report result without the \texttt{isFreqHyp} feature.
 The randomness introduced by negative sampling is now factored out by random
 seeding.
 
@@ -472,7 +471,7 @@ After the evaluation closed, we conducted ablation experiments the results of
 which are included in
 \autoref{table:ablation1A}. In these experiments, we investigated the 
 contribution of the features derived from sparse attribute pairs and FCA.
-These ablation experiments corroborates the importance of features derived 
+These ablation experiments corroborate the importance of features derived 
 from sparse attribute pairs and reveal that turning off FCA-based features 
 does not hurt performance at all. For this reason -- even though our official 
 shared task submission included FCA-related features -- we no longer employed 
@@ -485,7 +484,7 @@ subtask 1A with respect three distinct factors, that is
 	\{200, 300, 1000\}$),
 	\item the number of negative training samples per positive sample ($ns 
 	\in \{50, all\}$),
-	\item candidate filtration being turned on/off.
+	\item candidate filtering being turned on/off.
 \end{enumerate}
 In our original submission we generated 50 negative samples ($ns$) generated 
 per query $q$ during training. In our post evaluation experiments we 
@@ -497,24 +496,24 @@ training instances. This latter strategy is referenced as $ns=all$ in
 
 In our official submission we regarded only those hypernyms as potential 
 candidates to rank during test time which occurred at least once as a correct 
-hypernym in the training data. We call this strategy as candidate filtration. 
+hypernym in the training data. We call this strategy as candidate filtering. 
 Historically, we applied this restriction to speed up the FCA algorithm because 
 this way the size of the concept lattice could be made smaller.
 As there are valid hypernyms on the test set which never occurred in the 
 training data, our official submission would not be able to obtain a perfect 
 score even in theory. \autoref{table:upper} contains the best possible metrics 
-on the test set that we could achieve when candidate filtration is applied. In 
+on the test set that we could achieve when candidate filtering is applied. In 
 our post evaluation experiments we also investigated the effects of turning 
 this kind of filtration step off. As \autoref{table:1A_detailed} illustrates, 
-however, our scores degrade after turning candidate filtration off.
+however, our scores degrade after turning candidate filtering off.
 
 \input{upper}
 
 Our post evaluation experiments in \autoref{table:1A_detailed} suggest that it 
 is advantageous to apply sparse representation of more expressive power (i.e.~a 
-higher number of basis vectors). Generating more negative samples also provide 
+higher number of basis vectors). Generating more negative samples also provides 
 some additional performance boost. These previous observations hold 
-irrespective whether candidate filtration is employed or not, however, their 
+irrespective whether candidate filtering is employed or not, however, their 
 effects are more pronounced when hypernym candidates are not filtered.
 
 Finally, we report our post-evaluation results for all the subtasks and compare
