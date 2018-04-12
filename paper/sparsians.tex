@@ -29,7 +29,7 @@
 % smaller than 5cm (the original size); we will check this
 % in the camera-ready version and ask you to change it back.
 
-\title{300-sparsians at SemEval-2018 Task 9: \\
+\title{300-sparsans at SemEval-2018 Task 9: \\
 Hypernymy as interaction of sparse attributes}
 
 \author{Gábor Berend \\
@@ -54,7 +54,7 @@ Department of Informatics \\ University of Szeged \\
 \maketitle
 
 \begin{abstract}
-  This paper describes 300-sparsians’ participation in SemEval-2018 Task 9:
+  This paper describes 300-sparsans’ participation in SemEval-2018 Task 9:
   \emph{Hypernym Discovery}, with a system based on sparse coding and a formal
   concept hierarchy obtained from word embeddings.
   Our system took first place in subtasks
@@ -131,7 +131,7 @@ Another natural formulation is related to \emph{hierarchical sparse coding}
 \citep{Zhao:2009}, where trees describe the order in which variables “enter the
 model” (i.e., take non-zero values). A node may take a non-zero value only if its
 ancestors also do: the dimensions that correspond to top level nodes should
-focus on “general” contexts that are present in most words.
+focus on “general” meaning components that are present in most words.
 \citet{Yogatama:2015} offer an implementation that is efficient for gigaword
 corpora. Exploiting the correspondence between the variable tree and the
 hypernym hierarchy offers itself as a natural choice.
@@ -139,7 +139,7 @@ hypernym hierarchy offers itself as a natural choice.
 The task \citep{Camacho-Collados:2018} evaluated systems on their ability to
 extract hypernyms for query words in five subtasks (three languages, English,
 Italian, and Spanish, and two domains, medical and music). Queries have been
-categorized as concepts or entities. Results were reported for each category 
+categorized as meaning components or entities. Results were reported for each category 
 separately as well as in combined form, thus resulting in $5\times 3$ 
 combinations.  
   Our system took first place in subtasks
@@ -159,8 +159,7 @@ online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
 
 Formal concept Analysis (FCA) is the mathematization of \emph{concept} and conceptual
 hierarchy \citep{Ganter:2012,Endres:2010}. % vagy 2009
-An FCA context %$C = \langle \ob, \at, \inci\rangle$
-comprises of
+In FCA terminology, a \emp{context} is
 a set of \emph{objects} $\ob$, a set of \emph{attributes} $\at$, and
 a binary incidency relation $\inci \subseteq \ob \times \at$
 between members of \ob~and \at.
@@ -351,7 +350,7 @@ vectorial representation of $q$ and $h$ as $\phi(q)$ and $\phi(h)$.
 It is also considered as a feature (\texttt{isFrequentHypernym}) whether a
 particular candidate hypernym $h$ belongs to the top-50 most frequent hypernyms
 for the category of $q$ (i.e.~concept or entity).
-Modeling the 2 categories separately played an important role in the success
+Modeling the two categories separately played an important role in the success
 of our systems.
 
 \footnotetext{At submission time, this feature did not work properly.}
@@ -382,8 +381,8 @@ coefficients in $\alpha$. Note that this feature template induces $k^2$
 features, with $k$ being the number of basis vectors introduced in the dictionary matrix $D$ according to Eq.~\ref{nonneg_SPAMS_objective}.
 
 In order to be able to rank potential candidates for previously unseen test
-query cases we trained a separate \emph{logistic regression} classifier for the
-\textit{concept} and \textit{entity} types of queries relying on the
+query cases we trained \emph{logistic regression} classifier, (one each for
+concepts and entities) relying on the
 \texttt{sklearn} package
 \citep{Pedregosa:2011}\footnote{\url{scikit-learn.org}} with the regularization 
 parameter defaulting to $1.0$.
@@ -504,7 +503,7 @@ training data, our official submission would not be able to obtain a perfect
 score even in theory. \autoref{table:upper} contains the best possible metrics 
 on the test set that we could achieve when candidate filtering is applied. In 
 our post evaluation experiments we also investigated the effects of turning 
-this kind of filtration step off. As \autoref{table:1A_detailed} illustrates, 
+this kind of filtering step off. As \autoref{table:1A_detailed} illustrates, 
 however, our scores degrade after turning candidate filtering off.
 
 \input{upper}
