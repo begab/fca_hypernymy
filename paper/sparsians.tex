@@ -159,7 +159,7 @@ online\footnote{\url{https://github.com/begab/fca_hypernymy}}.
 
 Formal concept Analysis (FCA) is the mathematization of \emph{concept} and conceptual
 hierarchy \citep{Ganter:2012,Endres:2010}. % vagy 2009
-In FCA terminology, a \emp{context} is
+In FCA terminology, a \emph{context} is
 a set of \emph{objects} $\ob$, a set of \emph{attributes} $\at$, and
 a binary incidency relation $\inci \subseteq \ob \times \at$
 between members of \ob~and \at.
@@ -380,10 +380,9 @@ get assigned with the Cartesian product derived from the indices of the non-zero
 coefficients in $\alpha$. Note that this feature template induces $k^2$
 features, with $k$ being the number of basis vectors introduced in the dictionary matrix $D$ according to Eq.~\ref{nonneg_SPAMS_objective}.
 
-In order to be able to rank potential candidates for previously unseen test
-query cases we trained \emph{logistic regression} classifier, (one each for
-concepts and entities) relying on the
-\texttt{sklearn} package
+In order to rank potential hypernym candidates over the test set we trained a 
+\emph{logistic regression} classifier for concepts and entities utilizing the
+\texttt{sklearn} package 
 \citep{Pedregosa:2011}\footnote{\url{scikit-learn.org}} with the regularization 
 parameter defaulting to $1.0$.
 
