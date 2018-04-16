@@ -90,7 +90,7 @@ focusing on most salient parts of word representations
 %\end{quotation}
 
 Sparsity-based techniques often involve the coding of a large number of signals
-over the same dictionary \citep{Rubinstein:2008}. Sparse, overcomplete
+over the same dictionary \citep{Rubinstein:2008}. Sparse, over-complete
 representations have been motivated in various domains as a way to increase
 separability and interpretability \citep{Olshausen:1997} and
 % Lewicki and Sejnowski, 2000)
@@ -116,7 +116,7 @@ Here we apply sparse feature pairs to hypernym extraction. The role of an
 attribute pair $\langle i,j\rangle\in\phi(q)\times\phi(h)$ (where $q$ is the query word,
 $h$ is the hypernym candidate, and $\phi(w)$ is the index of a non-zero
 component in the sparse representations of $w$) is similar to \emph{interaction
-terms} in regression, see \autoref{sec:approach} for detailes.
+terms} in regression, see \autoref{sec:approach} for details.
 
 Sparse representation is related to hypernymy in various natural ways.  One of
 them is through \emph{Formal concept Analysis (FCA)}.  The idea of acquiring 
@@ -161,7 +161,7 @@ Formal concept Analysis (FCA) is the mathematization of \emph{concept} and conce
 hierarchy \citep{Ganter:2012,Endres:2010}. % vagy 2009
 In FCA terminology, a \emph{context} is
 a set of \emph{objects} $\ob$, a set of \emph{attributes} $\at$, and
-a binary incidency relation $\inci \subseteq \ob \times \at$
+a binary incidence relation $\inci \subseteq \ob \times \at$
 between members of \ob~and \at.
 In our application, $\inci$ associates a word $w\in\ob$ to 
 the indices of its non-zero sparse coding coordinates $i\in\at$.
