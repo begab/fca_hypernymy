@@ -116,7 +116,7 @@ Here we apply sparse feature pairs to hypernym extraction. The role of an
 attribute pair $\langle i,j\rangle\in\phi(q)\times\phi(h)$ (where $q$ is the query word,
 $h$ is the hypernym candidate, and $\phi(w)$ is the index of a non-zero
 component in the sparse representations of $w$) is similar to \emph{interaction
-terms} in regression.
+terms} in regression, see \autoref{sec:approach} for detailes.
 
 Sparse representation is related to hypernymy in various natural ways.  One of
 them is through \emph{Formal concept Analysis (FCA)}.  The idea of acquiring 
@@ -231,7 +231,7 @@ additional neurons) will very probably grow the model.  However, the original
 concepts will be embedded as a substructure in the larger lattice, with their
 ordering relationships preserved.
 
-\section{Our approach}
+\section{Our approach} \label{sec:approach}
 
 Now we describe our system that is based on sparse non-negative word
 representations and FCA besides more traditional features.
