@@ -76,7 +76,7 @@
 %\setbeamercolor{block alerted body}{fg=black,bg=dblue!10}
 \setbeamercolor{alerted text}{fg=sred}%szegedgreen}
 %\setbeamercolor{item}{fg=dgreen}
-%\setbeamercolor{item projected}{bg=dgreen}
+\setbeamercolor{item projected}{bg=brown}
 
 
 \newcommand{\bull}[1]{
@@ -409,7 +409,7 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
 
   \begin{block}{Implementation and tricks}
     \begin{itemize}
-      \item \alert{dense vectors}: skip-gram (\cite{Mikolov:2013f}, $d=100$) trained
+      \item \alert{dense vectors}: skip-gram (\citealt{Mikolov:2013f}, $d=100$) trained
         for each sub-corpus provided by the organizers 
         % with the default training parameters of \texttt{word2vec} (w2v),
         % i.e.~a window size of 10 and 25 negative samples for each positive
@@ -438,7 +438,7 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
           \item motivation: more frequent words refer to more general concepts
             and more general hypernymy relations may be more easily to detect
         \end{itemize}
-      \item {OOV backoff by query type}
+      \item \alert{OOV backoff} by query type
 
         % \input{../baseline} 
         % \begin{itemize}
@@ -531,7 +531,7 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
 \end{column}
 
 \begin{column}{\onecolwid} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      \begin{block}{All the subtasks}
+  \begin{block}{(Post-evaluation conted:) All the subtasks}
 
         \input{../post_eval}
 
