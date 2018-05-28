@@ -267,11 +267,11 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
           % 2A, 2B\}$, where $\lvert V_x \rvert$ is the size of the vocabulary and
           % $d$ is set to 100. As a subsequent step, we turn $W_x$ into
           % \emph{sparse word vectors}
-          \begin{equation}
+          \begin{equation*}
             \min\limits_{D \in \mathcal{C}, \alpha \in
             \mathbb{R}_{\geq0}^{k\times |V|}} \lVert D\alpha - W_{x} \rVert_F + \lambda \lVert \alpha \rVert_1,
             \label{nonneg_SPAMS_objective}
-          \end{equation}
+          \end{equation*}
         \item $\mathcal{C}$ is the convex set of $\mathbb{R}^{ d \times k}$
           matrices \\ with column norms $\le 1$, and
         \item $\alpha$ contains the sparse coefficients for the words
@@ -285,6 +285,7 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
       \end{itemize}
     \end{block}
 
+    \bigskip
     \begin{block}{Feaures summarized}{ for query $q$ and its hypernym candidate $h$ }
       \begin{table}
         \begin{tabular}{lc}
@@ -375,6 +376,7 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
 \end{itemize}
 \end{block}
 
+  \bigskip
   \begin{block}{Two submissions}
     \begin{itemize}
         % TODO \item The sum of the two dimensions motivates our group name
@@ -395,7 +397,6 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     % by random seeding
   \end{block}
 
-  %\vskip2cm
 
 \end{column}
 
@@ -464,6 +465,7 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
   %
   % \end{block}
 
+  \bigskip
   \begin{block}{Post-evaluation analysis (without FCA)}
 
     Features derived with \alert{sparse attribute pairs} and/or \alert{FCA}:
@@ -487,6 +489,7 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     \end{itemize}
 
   \end{block}
+  \bigskip
   \begin{block}{1A}
     \input{../big_table}
 
@@ -510,6 +513,16 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     % \end{itemize}
 
     \end{block}
+
+  \vskip3cm
+  \begin{alertblock}{} \url{https://github.com/begab/fca_hypernymy} \end{alertblock} 
+
+    \begin{block}{}
+        {\footnotesize Research supported by the project \emph{Integrated
+        program for training new generation of scientists in the fields of computer
+        science}, no.~EFOP-3.6.3-VEKOP-16-2017-0002. The project has been supported
+        by the European Union and co-funded by the European Social Fund.}
+  \end{block}
 \end{column}
 
 %\end{columns} \end{column}
@@ -553,20 +566,12 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     \end{itemize}
   \end{block}
 
-  \begin{alertblock}{} \url{https://github.com/begab/fca_hypernymy} \end{alertblock} 
 
   \begin{block}{References}
-    \scriptsize
+    \footnotesize
     %\fontsize{26}{32}
     \bibliographystyle{abbrvnat}
     \bibliography{../../../paper/Common/Bib/ml}
-  \end{block}
-
-    \begin{block}{}
-        {\footnotesize Research supported by the project \emph{Integrated
-        program for training new generation of scientists in the fields of computer
-        science}, no.~EFOP-3.6.3-VEKOP-16-2017-0002. The project has been supported
-        by the European Union and co-funded by the European Social Fund.}
   \end{block}
 \end{column} \end{columns} \end{frame}
 
