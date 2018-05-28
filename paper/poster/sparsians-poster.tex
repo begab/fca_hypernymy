@@ -60,17 +60,23 @@
 % Define colours (see beamerthemeconfposter.sty to change these colour
 % definitions)
 
-% not working \definecolor{spartared}{rgb}{199,27,53}
-% not working \definecolor{spartabrown}{rgb}{87,59,45}
+\definecolor{spartared}{rgb}{199,27,53}
 
-\setbeamercolor{block title}{fg=dblue,bg=white}
+  \setbeamercolor{palette tertiary}  {bg=brown,fg=white}
+  \setbeamercolor{structure}{fg=brown}
+  \setbeamercolor{titlelike}         {bg=brown,fg=white}
+  \setbeamercolor{frametitle}        {bg=brown!10,fg=brown}
+  \setbeamercolor{cboxb}{fg=black,bg=brown}
+  \setbeamercolor{block alerted title}{fg=white,bg=brown}
+  \setbeamercolor{block alerted body}{fg=black,bg=brown!10}
+\setbeamercolor{block title}{fg=brown,bg=white}
 %\setbeamercolor{block body}{fg=black,bg=white}
 %\setbeamercolor{alerted title}{fg=white,bg=dblue}
 %\setbeamercolor{block alerted title}{fg=white,bg=dblue!70}
 %\setbeamercolor{block alerted body}{fg=black,bg=dblue!10}
-\setbeamercolor{alerted text}{fg=szegedgreen}
+\setbeamercolor{alerted text}{fg=sred}%szegedgreen}
 %\setbeamercolor{item}{fg=dgreen}
-\setbeamercolor{item projected}{bg=dgreen}
+%\setbeamercolor{item projected}{bg=dgreen}
 
 
 \newcommand{\bull}[1]{
@@ -98,8 +104,11 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     at (current page.north east)
     {\includegraphics[height=8cm]{SZTE}
     \hspace{1cm}
-    \includegraphics[height=8cm]{../../../paper/Common/Logo/nytud/logo_only_tr.png}};
-    % img//home/makrai/repo/paper/Common/Logo/nytud/.png}};
+    \includegraphics[height=8cm]{../../../paper/Common/Logo/nytud/logo_only_tr.png}}; 
+    \node  [shift={(19cm,-7.5cm)}]
+    at (current page.north west)
+    {\includegraphics[height=12cm]{movie-poster.jpg}};
+
   \end{tikzpicture}
 
 }
@@ -366,7 +375,27 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
 \end{itemize}
 \end{block}
 
-  \begin{alertblock}{} \url{https://github.com/begab/fca_hypernymy} \end{alertblock} 
+  \begin{block}{Two submissions}
+    \begin{itemize}
+        % TODO \item The sum of the two dimensions motivates our group name
+      \item one of our submissions involved attribute pairs, the other not
+      \item both submissions used the FCA-based features
+        \bull{conceptually motivated but practically harmful}
+    \end{itemize}
+
+    % \input{../our_submissions}
+
+    % \autoref{table:submissions} shows submission results.  The figures that
+    % can be reproduced with the code in the project repo (\texttt{reprd}) is
+    % slightly different from our official submissions (\texttt{offic}) for two
+    % reasons: because the implementation of \texttt{isFreqHyp} contained a
+    % bug, and because of the natural randomness in negative sampling.  For
+    % reproducibility, we report result without the \texttt{isFreqHyp} feature
+    % The randomness introduced by negative sampling is now factored out
+    % by random seeding
+  \end{block}
+
+  %\vskip2cm
 
 \end{column}
 
@@ -422,48 +451,12 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
 
   \section{Results} \label{sec:results}
 
-  \begin{block}{Two submissions}
-    \begin{itemize}
-        % TODO \item The sum of the two dimensions motivates our group name
-      \item one of our submissions involved attribute pairs, the other not
-      \item both submissions used the FCA-based features
-        \bull{conceptually motivated but practically harmful}
-    \end{itemize}
-
-    % \input{../our_submissions}
-
-    % \autoref{table:submissions} shows submission results.  The figures that
-    % can be reproduced with the code in the project repo (\texttt{reprd}) is
-    % slightly different from our official submissions (\texttt{offic}) for two
-    % reasons: because the implementation of \texttt{isFreqHyp} contained a
-    % bug, and because of the natural randomness in negative sampling.  For
-    % reproducibility, we report result without the \texttt{isFreqHyp} feature
-    % The randomness introduced by negative sampling is now factored out
-    % by random seeding
-  \end{block}
-  \bigskip
-      %\includegraphics[width=\columnwidth]{movie-poster.jpg}
-  \begin{figure}
-  %\includegraphics[\textwidth]{movie-poster}
-  \end{figure}
-
   % TODO or not TODO
   %   \subsection{Feaure analysis} weights and histograms
   %   \subsection{Qualitative analysis} Here we investigate the system's
   %     ability to extract (good) hypernyms that were not seen for any word
   %     during training.  This setting is sometimes called zero-shot learning
   %   \subsection{Generality, frequency and vector length}
-
-
-
-\end{column}
-
-%\end{columns} \end{column}
-
-\begin{column}{\sepwid} % empty spacer column
-\end{column}
-
-\begin{column}{\onecolwid} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   % \begin{block}{Vocabulary coverage}
   %
@@ -517,6 +510,14 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     % \end{itemize}
 
     \end{block}
+\end{column}
+
+%\end{columns} \end{column}
+
+\begin{column}{\sepwid} % empty spacer column
+\end{column}
+
+\begin{column}{\onecolwid} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       \begin{block}{All the subtasks}
 
         \input{../post_eval}
@@ -537,6 +538,7 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
 
       \end{block}
 
+
   \begin{block}{Future work: hierarchical sparse coding}
     \begin{itemize}
       \item trees describe the order in which variables “enter the model”
@@ -549,7 +551,18 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
       \item correspondence between
         the variable tree and the hypernym hierarchy
     \end{itemize}
+  \end{block}
 
+  \begin{alertblock}{} \url{https://github.com/begab/fca_hypernymy} \end{alertblock} 
+
+  \begin{block}{References}
+    \scriptsize
+    %\fontsize{26}{32}
+    \bibliographystyle{abbrvnat}
+    \bibliography{../../../paper/Common/Bib/ml}
+  \end{block}
+
+    \begin{block}{}
         {\footnotesize Research supported by the project \emph{Integrated
         program for training new generation of scientists in the fields of computer
         science}, no.~EFOP-3.6.3-VEKOP-16-2017-0002. The project has been supported
@@ -557,11 +570,4 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
   \end{block}
 \end{column} \end{columns} \end{frame}
 
-  \begin{block}{References}
-    \footnotesize
-    %\fontsize{26}{32}
-    \bibliographystyle{abbrvnat}
-    \bibliography{../../../paper/Common/Bib/ml}
-  \end{block}
-\end{document}
-
+\end{document} 
