@@ -17,7 +17,7 @@
 \usepackage[round]{natbib}
 \usepackage{tikz}
 \usepackage{url}
-%\usepackage[magyar]{babel} 
+%\usepackage[magyar]{babel}
 \usepackage{comment}
 \usepackage{subfig}
 
@@ -53,12 +53,15 @@
 % That is, put the \caption after the \includegraphics
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\usecaptiontemplate{ 
-\small
+\usecaptiontemplate{
+  \small
 \structure{\insertcaptionnumber.~\insertcaptionname} \insertcaption}
 
 % Define colours (see beamerthemeconfposter.sty to change these colour
 % definitions)
+
+% not working \definecolor{spartared}{rgb}{199,27,53}
+% not working \definecolor{spartabrown}{rgb}{87,59,45}
 
 \setbeamercolor{block title}{fg=dblue,bg=white}
 %\setbeamercolor{block body}{fg=black,bg=white}
@@ -69,8 +72,6 @@
 %\setbeamercolor{item}{fg=dgreen}
 \setbeamercolor{item projected}{bg=dgreen}
 
-\definecolor{amber}{rgb}{1.0, 0.75, 0.0}
-\definecolor{darkgoldenrod}{rgb}{0.72, 0.53, 0.04}
 
 \newcommand{\bull}[1]{
   \begin{itemize}
@@ -85,7 +86,7 @@ Hypernymy as interaction of sparse attributes}
   \inst{1} Department of Informatics, University of Szeged
 \url{berendg@inf.u-szeged.hu} \and
 \inst{2} Research Institute for Linguistics of the Hungarian Academy of
-Sciences \url{makrai.marton@nytud.mta.hu} \and 
+Sciences \url{makrai.marton@nytud.mta.hu} \and
 \inst{3} Secret Sauce Partners \url{Peter.Foldiak@gmail.com}}
 
 \begin{document}
@@ -100,6 +101,7 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     \includegraphics[height=8cm]{../../../paper/Common/Logo/nytud/logo_only_tr.png}};
     % img//home/makrai/repo/paper/Common/Logo/nytud/.png}};
   \end{tikzpicture}
+
 }
 
 \newcommand{\ob}{\ensuremath{\mathcal O}}
@@ -114,162 +116,178 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
 % \renewcommand{\resizebox}[3]{#3}
 \renewcommand{\caption}[1]{}
 
-\begin{frame}[t] 
+\begin{frame}[t]
   \begin{columns}[t] % the [t] option aligns the column's content at the top
 
     \begin{column}{\sepwid} % empty spacer column
-    \end{column}   
+    \end{column}
 
     \begin{column}{\onecolwid} % 1st %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       \begin{block}{Sparse word representations}
 
-        \begin{itemize} 
-          \item Natural language phenomena are extremely sparse 
-            % continuous word embeddings employ dense representations of words.
+        \begin{itemize}
+            %\item Natural language phenomena are extremely sparse
+            % continuous word embeddings employ dense representations of words
             % Turning these dense representations into a much sparser form can
             % help in
-          \item focus on most salient parts of word representations \\
-            \citep{Faruqui:2015,Berend:2017,Subramanian:2018}
+          \item motivation
+            \begin{itemize}
+              \item focus on most salient parts of word representations \\
+                \citep{Faruqui:2015,Berend:2017,Subramanian:2018}
 
-            % Sparsity-based techniques often involve the coding of a large
-            % number of signals over the same dictionary
-            % \citep{Rubinstein:2008}. 
-          \item motivation: increase separability and interpretability
-            \citep{Olshausen:1997} and stability against noise.
-            % (Donoho et al., 2006) the language domain begin no exception
-            % \citep{Murphy:2012,Subramanian:2018}.
+                % Sparsity-based techniques often involve the coding of a large
+                % number of signals over the same dictionary
+                % \citep{Rubinstein:2008}
+              \item  increase separability, interpretability
+                \citep{Olshausen:1997} and stability against noise
+                % (Donoho et al., 2006) the language domain begin no exception
+                % \citep{Murphy:2012,Subramanian:2018}
+            \end{itemize}
 
-          \item \emph{Non-negativity} for interpretability
-            \citep{Faruqui:2015,Fyshe:2015,Arora:2016}. 
+          \item \emph{Non-negative sparse coding}
+            \begin{itemize}
+              \item for interpretability \\
+                \citep{Faruqui:2015,Fyshe:2015,Arora:2016} 
 
-            \begin{quotation} 
-              to describe the city of Pittsburgh, one might talk about phenomena
-              typical of the city, like erratic weather and large bridges. It is
-              redundant and inefficient to list negative properties, like the
-              absence of the Statue of Liberty \citep{Subramanian:2018}
-            \end{quotation} 
-            % in the language domain, where sparse features are interpreted as
-            % lexical attributes, \cite{Berend:2016} shows the utitlity of
-            % sparse word representations in low-resource setting,
-          \item non-negative sparse coding for word translation \\
-            \citep{Berend:2018} 
-            \bull{sparse word vectors for the two languages such that \\ coding
-            bases correspond to each other}
+                \begin{quotation}
+                  to describe the city of Pittsburgh, one might talk about phenomena
+                  typical of the city, like erratic weather and large bridges. It is
+                  redundant and inefficient to list negative properties, like the
+                  absence of the Statue of Liberty 
+                    \begin{flushright} \citep{Subramanian:2018}\end{flushright}
+                \end{quotation}
 
-            % \item relation to hypernymy 
-            % \begin{itemize} 
-            % \item \emph{Formal concept Analysis (FCA)}
+                % in the language domain, where sparse features are interpreted as
+                % lexical attributes, \cite{Berend:2016} shows the utitlity of
+                % sparse word representations in low-resource setting,
+              \item in word translation \citep{Berend:2018}
+                \bull{sparse word vectors for the two languages such that \\ coding
+                bases correspond to each other}
+            \end{itemize}
+        \end{itemize}
+      \end{block}
+
+      \begin{block}{Formal concept analysis (FCA)}
+        \begin{itemize}
+          \item FCA is the mathematization of a conceptual hierarchy
+            \begin{itemize}
+              \item a set of \emph{objects}, now words $w\in\ob$,
+              \item a set of \emph{attributes}, now word vector indices $i\in\at$, and
+              \item a binary incidence relation
+                $\inci \subseteq \ob \times \at$, now \\ 
+                $\langle w,i\rangle\in$ iff the $i$th coordinate in the sparse code
+                of $w$ is \alert{non-zero}
+            \end{itemize}
+          \item FCA finds formal \emph{concepts}, pairs \oaconc,
+            %~of object sets and attribute sets (
+            $O\subseteq \ob,A \subseteq \at$, such that
+            \begin{itemize}
+              \item $A$ consists of the shared attributes of objects in $O$
+                (and no more), and
+              \item $O$ consists of
+                the objects in $\ob$ that have all the attributes in $A$ (and
+                no more)
+              \item %(There is a closure-operator related to each FCA context, for which 
+                $O$ and $A$ are closed sets iff \oaconc~is a concept
+            \end{itemize}
+          \item $O$ is called the extent and $A$ is the intent of the concept
+          \item order defined in the context:
+            if $\langle O_i , A_i \rangle$ are concepts in $C$, \\
+            $\langle O_1 , A_1 \rangle$ is a \emph{subconcept} of $\langle
+            O_2 , A_2 \rangle$ \\
+            if $O_1 \subseteq O_2 $ which is equivalent to $A_1 \supseteq A_2 $
+          \item lattice
+          \item Adding attributes to \at,
+            %will very probably grow the model.  However,
+            the original concepts will be embedded as a substructure
+            %in the larger lattice, with their ordering relationships preserved
+          \item The smallest node in the concept lattice $n(w)$ whose extent contains a word
+            $w$ is said to \emph{introduce} the object
+          \item $h$ should be a hypernym of $q$ iff $n(q)\le n(h)$
+          \item tools: \citet{Endres:2010,Cimiano:2005}
+            %\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}
+          \item features in the next column:%related to the \alert{FCA concept lattice}
+            \begin{itemize}
+              \item $n(w)$ is the concept that introduces $w$, i.e.~the most specific
+                location within the DAG for $w$
+                %, our features indicate whether $n(q)$
+                % (1) coincides with that of $h$,
+                % (2) is the parent (immediate successor) for that of $h$, or
+                % (3) is the child (immediate predictions) for that of $h$
+
+              \item $n_1\prec n_2$ denotes that $n_1$ is an immediate predecessor of $n_2$
+              \item Parents, and even the inverse relation, proved to be more predictive
+                than the conceptually motivated  $q\le h$
+              \item not useful (see post-evaluation ablation experiments)
+            \end{itemize}
         \end{itemize}
       \end{block}
 
       \begin{block}{The task and our results}
         \begin{itemize}
-          \item \cite{Camacho-Collados:2018} 
-          \item extract hypernyms for query words 
-          \item $5\times 3$ subtasks 
+          \item extract hypernyms for query words \\ \cite{Camacho-Collados:2018}
+          \item $(3\text{languages}+2)\times 3$ subtasks
             \begin{itemize}
-              \item three languages, English, Italian, and Spanish + 
-                two domains, medical and music
-              \item queries: concepts or entities
+              \item three languages, English, Italian, and Spanish 
+              \item  + two domains, medical and music
+              \item queries \alert{types}: concepts, entities, or all
             \end{itemize}
-          \item Results reported for each category separately as well as in
-            combined form, thus resulting in $5\times 3$ combinations.  
-          \item Our system took first place in subtasks 
+          \item Our system took first place in subtasks
             \begin{itemize}
               \item \emph{(1B) Italian} (\emph{all} and \emph{entities})
-              \item \emph{(1C) Spanish entities} and 
+              \item \emph{(1C) Spanish entities} and
               \item \emph{(2B) music entities}
             \end{itemize}
         \end{itemize}
       \end{block}
 
-\begin{block}{Formal concept analysis (FCA)} 
-  \begin{itemize}
-    \item FCA is the mathematization of a conceptual hierarchy 
-      \begin{itemize}
-        \item a set of \emph{objects}, now words $w\in\ob$, 
-        \item a set of \emph{attributes}, now vector indices $i\in\at$, and
-        \item a binary incidence relation 
-          $\inci \subseteq \ob \times \at$,
-          now 
-          $\langle w,i\rangle\in$
-          iff
-          $i$ is a  non-zero sparse coding coordinate of $w$
-      \end{itemize}
-    \item FCA finds formal \emph{concepts}, pairs \oaconc,
-      %~of object sets and attribute sets (
-      $O\subseteq \ob,A \subseteq \at$, such that
-      \begin{itemize}
-        \item $A$ consists of the shared attributes of objects in $O$
-          (and no more), and
-        \item $O$ consists of
-          the objects in $\ob$ that have all the attributes in $A$ (and
-          no more).
-      \end{itemize}
-    \item (There is a closure-operator related to each FCA context, for
-      which $O$ and $A$ are closed sets iff \oaconc~is a concept.)
-    \item $O$ is called the extent and $A$ is the intent of the concept.  
-    \item order defined in the context: 
-      if $\langle O_i , A_i \rangle$ are concepts in $C$, \\ 
-      $\langle O_1 , A_1 \rangle$ is a \emph{subconcept} of $\langle
-      O_2 , A_2 \rangle$ \\
-      if $O_1 \subseteq O_2 $ which is equivalent to $A_1 \supseteq A_2 $.  
-    \item lattice
-    \item Adding attributes to \at,
-      %will very probably grow the model.  However, 
-      the original concepts will be embedded as a substructure 
-      %in the larger lattice, with their ordering relationships preserved.
-    \item The smallest node in the concept lattice $n(w)$ whose extent contains a word
-      $w$ is said to \emph{introduce} the object.
-    \item $h$ should be a hypernym of $q$ iff $n(q)\le n(h)$ 
-    \item tools: \citet{Endres:2010,Cimiano:2005}
-          %\url{www.compsens.uni-tuebingen.de/pub/pages/personals/3/concepts.py}
-  \end{itemize}
-\end{block} 
-
-\end{column}
+    \end{column}
 
 \begin{column}{\sepwid} % empty spacer column
-\end{column}   
+\end{column}
 
 %\begin{column}{\twocolwid} \begin{columns}
   \begin{column}{\onecolwid}
 
     \begin{block}{Sparse vectors}
       \begin{itemize}
-        \item for each subtask 
+        \item for each subtask, we solve for
           % Given the dense embedding matrix $W_x \in \mathbb{R}^{d \times \lvert
           % V_x \rvert}$, for some subcorpus of the shared task $x\in\{1A, 1B, 1C,
           % 2A, 2B\}$, where $\lvert V_x \rvert$ is the size of the vocabulary and
           % $d$ is set to 100. As a subsequent step, we turn $W_x$ into
-          % \emph{sparse word vectors} 
-        \item akin to \citet{Berend:2017} by solving for
+          % \emph{sparse word vectors}
           \begin{equation}
-            \min\limits_{D \in \mathcal{C}, \alpha \in \mathbb{R}_{\geq0}} \lVert D\alpha - W_{x} \rVert_F + \lambda \lVert \alpha \rVert_1,
+            \min\limits_{D \in \mathcal{C}, \alpha \in
+            \mathbb{R}_{\geq0}^{k\times |V|}} \lVert D\alpha - W_{x} \rVert_F + \lambda \lVert \alpha \rVert_1,
             \label{nonneg_SPAMS_objective}
           \end{equation}
         \item $\mathcal{C}$ is the convex set of $\mathbb{R}^{ d \times k}$
-          matrices with column norms $\le 1$, and 
-        \item $\alpha$ contains the sparse coefficients for the words. The only 
+          matrices \\ with column norms $\le 1$, and
+        \item $\alpha$ contains the sparse coefficients for the words
         \item akin to \citet{Berend:2017} + new non-negativity constraint over the
-          elements of $\alpha$.
+          elements of $\alpha$
         \item To keep the size of the FCA tree manageable, we only included the
-          query words and the training hypernyms This restriction turns out to be
+          query words and the training hypernyms. This restriction turns out to be
           very useful.
+        \item dense embedding $W$ unit-normed, $\lambda=.3$
+
       \end{itemize}
     \end{block}
 
-    \begin{block}{Feaures summarized}
+    \begin{block}{Feaures summarized}{ for query $q$ and its hypernym candidate $h$ }
       \begin{table}
         \begin{tabular}{lc}
           \toprule
-          Core feature name   & \\
-          \midrule
+          \alert{dense vectors $W_x$}   & skip-gram in $d=100$-dimensions
+          \\ \midrule
           {cosine}            & $\frac{\mathbf{q}^\intercal \mathbf{h}}{\lVert \mathbf{q} \rVert_2\lVert \mathbf{h} \rVert_2}$ \\ % 1
           {difference}        & $\lVert \mathbf{q} - \mathbf{h} \rVert_2$ \\ % 8
-          {normRatio}         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert 
+          {normRatio}         & $\frac{\lVert \mathbf{q}\rVert_2}{\lVert
           \mathbf{h} \rVert_2}$ \\ % 9
+          \midrule 
+          \alert{word strings}   & \\ 
           \midrule
           {qureyBeginsWith}   & $Q[0] = h$ \\ % 4
           {queryEndsWith}     & $Q[-1] = h$ \\
@@ -278,15 +296,20 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
           {sameLastWord}        & $Q[-1] = H[-1]$ \\
           {logFrequencyRatio} & $\log_{10}\frac{count(q)}{count(h)}$ \\ % 10
           {isFrequentHypernym}\footnotemark & $c \in MF_{50}(q.type)$\\
+          \midrule 
+          \alert{FCA} & see previous column    \\ 
           \midrule
           sameConcept & $n(h)=n(q)$ \\
           parent  & $n(q)\prec n(h)$ \\
           child  & $n(h)\prec n(q)$ \\
+          \midrule 
+          \alert{sparse vectors}   &  $\phi(w)$: set of non-zero coordinates,
+          $k=200$  \\
           \midrule
           {overlappingBasis}  & $\phi(q) \cap \phi(h) \neq \emptyset$ \\ % 7
           {sparseDifference$_{q\setminus h}$} & $\lvert \phi(q) - \phi(h) \rvert$ \\ % 11
           {sparseDifference$_{h\setminus q}$} & $\lvert \phi(h) - \phi(q) \rvert$ \\
-          attributePair$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3..
+          attributePair$_{ij}$      & $\langle i,j\rangle\in\phi(q)\times\phi(h)$ \\ % 3.
           \bottomrule
         \end{tabular}
         \caption{The features employed in our classifier. \\
@@ -301,57 +324,39 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
       %  60_186 2.5
       %  cand_is_first_w -2.4
       %  textual_overlap 2.4
-      %  ...
+      %  ..
       % OFF OFF 1000
-      %  ...
+      %  ..
       %  same_first_w -1.0
       %  att_intersect 0.8
       %  diff_features -0.44
       %  norm_ratios 0.27
-      %  ...
+      %  ..
       %  freq_ratios_log 0.1
       %  att_diffB -0.06
       % OFF OFF 200 ('concept'
-      %  ...
+      %  ..
       %  same_first_w -1.0
       %  att_intersect 0.62
       %  diff_features -0.43
       %  norm_ratios 0.28
-      %  ...
+      %  ..
       %  freq_ratios_log 0.087
       %  att_diffB -0.03
 
 \begin{itemize}
-  \item query $q$ and its hypernym candidate $h$
-  \item $\mathbf{q}$ and $\mathbf{h}$ are the 100-dimensional dense vectors of
-    $q$ and $h$.
-  \item $Q$ and $H$ are the corresponding sequences of tokens 
-  \item $\phi(q)$ and $\phi(h)$ are the set of basis vectors (attributes) with
-    non-zero weights in the reconstruction of $\mathbf q$ and $\mathbf h$.
   \item $MF_{50}(q.type)$: 50 most frequent hypernyms for the query type
     (i.e.~concept or entity). Debugged after submission.
-  \item three features related to the \alert{FCA concept lattice}
-    \begin{itemize}
-      \item $n(w)$ is the concept that introduces $w$, i.e.~the most specific
-        location within the DAG for $w$
-        %, our features indicate whether $n(q)$ 
-        % (1) coincides with that of $h$,
-        % (2) is the parent (immediate successor) for that of $h$, or
-        % (3) is the child (immediate predictions) for that of $h$.
-
-      \item $n_1\prec n_2$ denotes that $n_1$ is an immediate predecessor of $n_2$.
-      \item Parents, and even the inverse relation, proved to be more predictive
-        than the conceptually motivated  $q\le h$.
-      \item not useful (see post-evaluation ablation experiments)
-    \end{itemize}
+    % \item attributes $\phi(w)$: the set of basis vectors with non-zero weights
+    % in the reconstruction of $\mathbf q$ and $\mathbf h$
 
 
   \item \texttt{attributePair}$_{ij}$s are the most important features
     \begin{itemize}
       \item indicator features for the interaction terms between the sparse
-        coefficients in $\alpha$.
+        coefficients in $\alpha$
         % Candidates get assigned with the Cartesian product derived from the
-        % indices of the non-zero coefficients in $\alpha$. 
+        % indices of the non-zero coefficients in $\alpha$
       \item This feature template induces $k^2$ features, with $k$ being the
         number of basis vectors introduced in the dictionary matrix $D$
         according to Eq.~\ref{nonneg_SPAMS_objective}
@@ -360,71 +365,69 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     \end{itemize}
 \end{itemize}
 \end{block}
-\end{column} 
+
+  \begin{alertblock}{} \url{https://github.com/begab/fca_hypernymy} \end{alertblock} 
+
+\end{column}
 
 \begin{column}{\sepwid} % empty spacer column
-\end{column}   
+\end{column}
 
 \begin{column}{\onecolwid}
 
-  \begin{alertblock}{}
-    \url{https://github.com/begab/fca_hypernymy}
-  \end{alertblock}
 
-  \begin{block}{Standard ingredients}
-    \begin{itemize}
-      \item dense: skip-gram (SG) \citep{Mikolov:2013f}, $d=100$ trained for each
-        sub-corpus. 
-        % The word embeddings are trained over the text corpora provided by the
-        % shared task organizers with the default training parameters of
-        % \texttt{word2vec} (w2v), i.e.~a window size of 10 and 25 negative
-        % samples for each positive context.
-      \item \emph{multi-token units} with the \texttt{word2phrase}
-        software accompanying w2v 
-        % An additional source for identifying multi-token units in the training
-        % corpora was the list of potential hypernyms released for each subtask
-        % by the shared task organizers.
-        % a kettő hogy viszonyul egymáshoz?
-    \end{itemize}
-  \end{block}
 
   \begin{block}{Implementation and tricks}
     \begin{itemize}
-      \item \alert{logistic regression} classifier trained for concepts and
-        entities \bull{\texttt{sklearn}
+      \item \alert{dense vectors}: skip-gram (\cite{Mikolov:2013f}, $d=100$) trained
+        for each sub-corpus provided by the organizers 
+        % with the default training parameters of \texttt{word2vec} (w2v),
+        % i.e.~a window size of 10 and 25 negative samples for each positive
+        % context
+      \item multi-token \alert{phrases} with the \texttt{word2phrase}
+        software accompanying w2v
+        % An additional source for identifying multi-token units in the training
+        % corpora was the list of potential hypernyms released for each subtask
+        % by the shared task organizers
+        % a kettő hogy viszonyul egymáshoz?
+      \item top 15 selected by \alert{logistic regression} trained for concepts
+        and entities 
+        \bull{\texttt{sklearn}
         \citep{Pedregosa:2011},%\footnote{\url{scikit-learn.org}},
         regularization parameter set to the default $1.0$}
 
       \item For each training pair $(q,h)$, we generated a number of \alert{negative
-        samples} (the training data does not include $h'$ as a valid hypernym for
-        $q$) 
-        \bull{given the query category (\textit{concept} or \textit{entity}) $h'$
-        sampled from the valid training hypernyms}
+        samples} (i.e.~the training data does not include $h'$ as a valid hypernym for
+        $q$)
+        \bull{$h'$ sampled from the valid training hypernyms in  the query type
+        (\textit{concept} or \textit{entity})}
 
-        After the appropriate model ranked the hypernym candidates, we selected
-        the top 15 ranked candidates and applied a 
-      \item \alert{post-ranking} heuristic 
+      \item \alert{post-ranking} heuristic
         \begin{itemize}
-          \item re-ranking according to background frequency in the training corpus. 
-          \item motivation: more frequent words tend to refer to more general concepts
+          \item re-ranking according to background frequency in the training corpus
+          \item motivation: more frequent words refer to more general concepts
             and more general hypernymy relations may be more easily to detect
         \end{itemize}
-    \end{itemize}
-  \end{block}
+      \item {OOV backoff by query type}
+
+        % \input{../baseline} 
+        % \begin{itemize}
+        % \item \alert{upper:} type-sensitive baseline, most frequent train
+        % hypernym in the corresponding query type, concept or entity
+        % \item \alert{lower:} the MFH baseline provided by the organizers (the
+        % most frequent hypernyms in general)
+        % \end{itemize}
+  \end{itemize}
+\end{block}
 
   \section{Results} \label{sec:results}
 
-  \begin{block}{Our submissions}
-    \begin{itemize} 
-        % Our submissions were based on 
-      \item $k=200$ dimensional sparse vectors 
-      \item computed from unit-normed 100-dimensional dense vectors with
-        $\lambda=.3$. 
-      \item The sum of the two dimensions motivates our group name
-      \item 50 negative samples for each query $q$ in the training dataset. 
-      \item One of our submissions involved attribute pairs, the other not. 
-      \item Both submissions used the conceptually motivated but practically
-        harmful FCA-based features.
+  \begin{block}{Two submissions}
+    \begin{itemize}
+        % TODO \item The sum of the two dimensions motivates our group name
+      \item one of our submissions involved attribute pairs, the other not
+      \item both submissions used the FCA-based features
+        \bull{conceptually motivated but practically harmful}
     \end{itemize}
 
     % \input{../our_submissions}
@@ -434,32 +437,26 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     % slightly different from our official submissions (\texttt{offic}) for two
     % reasons: because the implementation of \texttt{isFreqHyp} contained a
     % bug, and because of the natural randomness in negative sampling.  For
-    % reproducibility, we report result without the \texttt{isFreqHyp} feature.
+    % reproducibility, we report result without the \texttt{isFreqHyp} feature
     % The randomness introduced by negative sampling is now factored out
-    % by random seeding.
+    % by random seeding
   \end{block}
+  \bigskip
+      %\includegraphics[width=\columnwidth]{movie-poster.jpg}
+  \begin{figure}
+  %\includegraphics[\textwidth]{movie-poster}
+  \end{figure}
 
-  % TODO or not TODO 
-  %   \subsection{Feaure analysis} weights and histograms 
+  % TODO or not TODO
+  %   \subsection{Feaure analysis} weights and histograms
   %   \subsection{Qualitative analysis} Here we investigate the system's
   %     ability to extract (good) hypernyms that were not seen for any word
-  %     during training.  This setting is sometimes called zero-shot learning.  
+  %     during training.  This setting is sometimes called zero-shot learning
   %   \subsection{Generality, frequency and vector length}
 
 
-\begin{block}{Query type sensitive baselining for OOV}
 
-  \input{../baseline}
-
-  \begin{itemize}
-    \item \alert{upper:} category-sensitive baseline, most frequent train
-      hypernym in the corresponding query type, concept or entity
-    \item \alert{lower:} the MFH baseline provided by the organizers (the
-      most frequent hypernyms in general)
-  \end{itemize}
-\end{block}
-
-\end{column} 
+\end{column}
 
 %\end{columns} \end{column}
 
@@ -469,9 +466,9 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
 \begin{column}{\onecolwid} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   % \begin{block}{Vocabulary coverage}
-  % 
+  %
   % \input{../coverage}
-  % 
+  %
   % \end{block}
 
   \begin{block}{Post-evaluation analysis (without FCA)}
@@ -480,13 +477,13 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
     \input{../ablation1A}
 
     \begin{itemize}
-      \item number of basis vectors in sparse coding ($k \in 
+      \item number of basis vectors in sparse coding ($k \in
         \{\mathbf{200}, 300, 1000\}$),
-      \item number of \alert negative training \alert samples per positive sample 
+      \item number of \alert negative training \alert samples per positive sample
         \begin{itemize}
-          \item submissions: 50 negative samples generated per query $q$
-          \item post evaluation: \textbf{all} hypernyms in the training set
-            \\ except for the proper hypernyms for $q$ 
+          \item submissions: \textbf{50} negative samples generated per query $q$
+          \item post evaluation: all hypernyms in the training set
+            \\ except for the proper hypernyms for $q$
         \end{itemize}
       \item candidates filtered to those present in the training data
         \begin{itemize}
@@ -498,53 +495,58 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
 
   \end{block}
   \begin{block}{1A}
-      \input{../big_table} 
+    \input{../big_table}
 
-      % Coverage with candidate filtering:
-      % 
-      % \input{../upper}
+    % Coverage with candidate filtering:
+    %
+    % \input{../upper}
 
-      %  \end{block}
-      %
-      % \begin{block}{Discussion}
-      % 
-      % \begin{itemize}
-      % \item it is advantageous to apply sparse representation of more
-      % expressive power (i.e.~a higher number of basis vectors).
-      % \item Generating more negative samples also provides some additional
-      % performance boost. 
-      % \item longer sparse vector help irrespective whether candidate
-      % filtering is employed or not
-      % \bull{effect more pronounced when hypernym candidates are not
-      % filtered}
-      % \end{itemize}
+    %  \end{block}
+    %
+    % \begin{block}{Discussion}
+    %
+    % \begin{itemize}
+    % \item it is advantageous to apply sparse representation of more
+    % expressive power (i.e.~a higher number of basis vectors)
+    % \item Generating more negative samples also provides some additional
+    % performance boost
+    % \item longer sparse vector help irrespective whether candidate
+    % filtering is employed or not
+    % \bull{effect more pronounced when hypernym candidates are not
+    % filtered}
+    % \end{itemize}
 
-      \end{block}
+    \end{block}
       \begin{block}{All the subtasks}
-        with comparison to the official scores of the winners
 
-        \input{../post_eval} 
+        \input{../post_eval}
+
+        \begin{itemize}
+          \item upper: our system, ($k = 1000, ns = 50$, hypernym candidate
+            filtering on, FCA off) 
+          \item lower: subtask winner, official scores 
+        \end{itemize}
 
         % \autoref{table:post_eval}. It can be seen from these enhanced results
-        % for category ``all'' (concepts and entities mixed) that 
+        % for all types (concepts and entities mixed) that
         % we would win (1B) Italian and (1C) Spanish. Our post-evaluation
         % system -- which only differs from our participating system that it
         % fixes the calculation of a features, does not rely on FCA-based
         % features and uses $k=1000$ -- would also place third in the rest of
-        % the subtasks.  
+        % the subtasks
 
-      \end{block} 
+      \end{block}
 
   \begin{block}{Future work: hierarchical sparse coding}
     \begin{itemize}
       \item trees describe the order in which variables “enter the model”
         (i.e., take non-zero values, \cite{Zhao:2009})
       \item a node may enter only if its ancestors also do
-      \item % the dimensions that correspond to 
-        top level nodes should focus on \emph{general} meaning components 
+      \item % the dimensions that correspond to
+        top level nodes should focus on \emph{general} meaning components
         % that are present in most words
-      \item efficient implementation \citep{Yogatama:2015} 
-      \item correspondence between 
+      \item efficient implementation \citep{Yogatama:2015}
+      \item correspondence between
         the variable tree and the hypernym hierarchy
     \end{itemize}
 
@@ -553,13 +555,13 @@ Sciences \url{makrai.marton@nytud.mta.hu} \and
         science}, no.~EFOP-3.6.3-VEKOP-16-2017-0002. The project has been supported
         by the European Union and co-funded by the European Social Fund.}
   \end{block}
-\end{column} \end{columns} \end{frame} 
+\end{column} \end{columns} \end{frame}
 
   \begin{block}{References}
     \footnotesize
     %\fontsize{26}{32}
     \bibliographystyle{abbrvnat}
-    \bibliography{../../../paper/Common/Bib/ml} 
+    \bibliography{../../../paper/Common/Bib/ml}
   \end{block}
 \end{document}
 
