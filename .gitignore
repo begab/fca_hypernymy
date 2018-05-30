@@ -5,7 +5,10 @@ __pycache__/
 
 *.log
 *.aux
+*.nav
+*.toc
 *.out
+*.snm
 *.pdf
 *.blg
 *.bbl
