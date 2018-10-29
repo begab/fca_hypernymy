@@ -481,7 +481,9 @@ class ThreeHundredSparsians(object):
 
     def train(self, features, feature_names, labels, regularization):
         fallback_model = None
-        models = {c: make_pipeline(LogisticRegression(C=regularization))
+        models = {c: make_pipeline(LogisticRegression(solver='lbfgs',
+                                                      max_iter=10000,
+                                                      C=regularization))
                   for c in self.categories}
         for cat in self.categories:
             if cat not in features or features[cat].shape[0] == 0:
@@ -588,8 +590,8 @@ class ThreeHundredSparsians(object):
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
             return '{}.{}_{}_{}_{}_{}_ns{}_{}.output.txt'.format(
-                os.path.join(out_dir, self.args.dataset_id),
-                self.dataset_mapping[self.args.dataset_id][0],
+                os.path.join(out_dir, self.args.subtask),
+                self.dataset_mapping[self.args.subtask][0],
                 self.dag_basename,
                 self.args.include_sparse_att_pairs,
                 regularization,
